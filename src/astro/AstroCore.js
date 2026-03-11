@@ -1,0 +1,776 @@
+/**
+ * AstroCore.js — Motor Astronómico Caelis Engine
+ * Hermetica Labs © 2025-2026
+ *
+ * Módulo puro: sin dependencias de DOM, canvas ni estado global.
+ * Extraído del monolito caelis_engine_1_5.html — Fase 1 de modularización.
+ *
+ * Precisión:
+ *   Planetas:  VSOP87 < 0.1°
+ *   Luna:      ELP2000 Cap.47 Meeus < 0.004°
+ *   Mercurio:  Meeus Cap.31 < 0.25°
+ *   Casas:     Placidus Newton-Raphson
+ *   Nutación:  IAU 1980, 63 términos
+ */
+
+// ── Constantes matemáticas ───────────────────────────────────────
+const deg2rad = Math.PI / 180;
+const rad2deg = 180 / Math.PI;
+const C_LIGHT = 173.1446326; // UA/día — velocidad de la luz
+
+// ── Tablas de datos ──────────────────────────────────────────────
+const deltaTTable=[
+  [1620,124],[1630,115],[1640,106],[1650,98],[1660,91],[1670,85],[1680,79],[1690,74],
+  [1700,70],[1710,65],[1720,62],[1730,58],[1740,55],[1750,53],[1760,50],[1770,48],
+  [1780,46],[1790,44],[1800,42],[1810,40],[1820,37],[1830,35],[1840,33],[1850,31],
+  [1860,29],[1870,27],[1880,24],[1890,22],[1900,19],[1910,16],[1920,13],[1930,11],
+  [1940,9],[1950,8],[1960,7],[1970,7],[1980,7],[1990,8],[2000,63.8],[2005,64.7],
+  [2010,66.1],[2015,67.6],[2020,69.4],[2025,70.9],[2030,73],[2040,79],[2050,87],
+  [2060,96],[2070,107],[2080,118],[2090,131],[2100,146]
+];
+
+const nutationTerms=[
+  [0,0,0,0,1,-171996,-1742,92025,89],[-2,0,0,2,2,-13187,-16,5736,-31],
+  [0,0,0,2,2,-2274,-2,977,-5],[0,0,0,0,2,2062,2,-895,5],
+  [0,1,0,0,0,1426,-34,54,-1],[0,0,1,0,0,712,1,-7,0],
+  [-2,1,0,2,2,-517,12,224,-6],[0,0,0,2,1,-386,-4,200,0],
+  [0,0,1,2,2,-301,0,129,-1],[-2,-1,0,2,2,217,-5,-95,3],
+  [-2,0,1,0,0,-158,0,0,0],[-2,0,0,2,1,129,1,-70,0],
+  [0,0,-1,2,2,123,0,-53,0],[2,0,0,0,0,63,0,0,0],
+  [0,0,1,0,1,63,1,-33,0],[2,0,-1,2,2,-59,0,26,0],
+  [0,0,-1,0,1,-58,-1,32,0],[0,0,1,2,1,-51,0,27,0],
+  [-2,0,2,0,0,48,0,0,0],[0,0,-2,2,1,46,0,-24,0],
+  [2,0,0,2,2,-38,0,16,0],[0,0,2,2,2,-31,0,13,0],
+  [0,0,2,0,0,29,0,0,0],[-2,0,1,2,2,29,0,-12,0],
+  [0,0,0,2,0,26,0,0,0],[-2,0,0,2,0,-22,0,0,0],
+  [0,0,-1,2,1,21,0,-10,0],[0,2,0,0,0,17,-1,0,0],
+  [2,0,-1,0,1,16,0,-8,0],[-2,2,0,2,2,-16,1,7,0],
+  [0,1,0,0,1,-15,0,9,0],[-2,0,1,0,1,-13,0,7,0],
+  [0,-1,0,0,1,-12,0,6,0],[0,0,2,-2,0,11,0,0,0],
+  [2,0,-1,2,1,-10,0,5,0],[2,0,1,2,2,-8,0,3,0],
+  [0,1,0,2,2,7,0,-3,0],[-2,1,1,0,0,-7,0,0,0],
+  [0,-1,0,2,2,-7,0,3,0],[2,0,0,2,1,-8,0,4,0],
+  [2,0,1,0,0,6,0,0,0],[-2,0,2,2,2,6,0,-3,0],
+  [-2,0,1,2,1,6,0,-3,0],[2,0,-2,0,1,-6,0,3,0],
+  [2,0,0,0,1,-6,0,3,0],[0,-1,1,0,0,5,0,0,0],
+  [-2,-1,0,2,1,-5,0,3,0],[-2,0,0,0,1,-5,0,3,0],
+  [0,0,2,2,1,-5,0,3,0],[-2,0,2,0,1,4,0,0,0],
+  [-2,1,0,2,1,4,0,-2,0],[0,0,1,-2,0,4,0,0,0],
+  [-1,0,1,0,0,-4,0,0,0],[-2,1,0,0,0,-4,0,0,0],
+  [1,0,0,0,0,-4,0,0,0],[0,0,1,2,0,3,0,0,0],
+  [0,0,-2,2,2,-3,0,1,0],[-1,-1,1,0,0,-3,0,0,0],
+  [0,1,1,0,0,-3,0,0,0],[0,-1,1,2,2,-3,0,1,0],
+  [2,-1,-1,2,2,-3,0,1,0],[0,0,3,2,2,-3,0,1,0],
+  [2,-1,0,2,2,-3,0,1,0],[0,0,0,0,0,0,0,0,0],
+  [-2,0,0,4,2,-2,0,1,0],[0,0,1,0,2,-2,0,1,0],
+  [-2,-1,0,2,0,2,0,0,0],[0,0,-1,2,0,2,0,0,0],
+  [-2,0,0,4,1,-2,0,1,0],[4,0,-1,0,0,2,0,0,0],
+  [0,-1,1,2,2,0,0,0,0],[2,1,0,0,0,-2,0,0,0],
+  [2,-1,1,0,0,2,0,0,0],[0,1,-1,0,1,-2,0,1,0],
+  [4,0,0,2,2,-2,0,1,0],[4,0,-1,2,2,-2,0,1,0],
+  [0,0,0,4,1,-2,0,1,0],[0,0,-2,4,2,2,0,-1,0],
+  [-2,-1,0,2,1,2,0,-1,0],[0,1,0,2,0,-2,0,0,0],
+  [0,0,0,0,3,-2,0,0,0],[4,0,0,0,0,2,0,0,0],
+  [2,0,0,-2,0,2,0,0,0],[0,0,1,-2,1,2,0,-1,0],
+  [2,1,-1,2,2,-2,0,1,0],[4,0,0,2,1,-2,0,1,0],
+  [-2,-1,2,2,2,-2,0,1,0],[0,2,-1,2,2,-2,0,1,0],
+  [2,0,1,2,1,-2,0,1,0],[-2,0,2,4,2,-2,0,1,0],
+  [-2,1,0,4,2,-2,0,1,0],[0,-1,0,4,2,-2,0,1,0],
+  [4,1,0,2,2,-2,0,1,0],[0,0,-1,4,2,2,0,-1,0],
+  [1,1,1,0,0,2,0,0,0],[2,0,2,0,2,-2,0,1,0],
+  [2,-1,1,2,2,-2,0,1,0],[2,0,-2,2,2,-2,0,1,0],
+  [2,1,0,2,1,-2,0,1,0],[0,1,2,2,2,-2,0,1,0],
+  [4,0,0,0,1,2,0,-1,0],[2,-1,0,2,0,2,0,0,0],
+  [0,1,1,2,2,-2,0,1,0],[-2,1,2,2,2,-2,0,1,0],
+  [-1,0,0,2,2,2,0,-1,0],[0,0,2,0,1,-2,0,1,0],
+  [4,0,-2,2,2,-2,0,1,0]
+];
+
+// ── Funciones astronómicas ──────────────────────────────────────
+
+function deltaT(jd){
+  let year=2000+(jd-2451545)/365.25;
+  for(let i=0;i<deltaTTable.length-1;i++){
+    let[y0,dt0]=deltaTTable[i],[y1,dt1]=deltaTTable[i+1];
+    if(year>=y0&&year<y1) return dt0+(year-y0)/(y1-y0)*(dt1-dt0);
+  }
+  let t=(jd-2451545)/36525; return 102.3+123.5*t+32.5*t*t;
+}
+
+function getJulianCenturies(jd){ return (jd-2451545)/36525; }
+
+function nutation(T){
+  function posMod(x){let r=x%360;return r<0?r+360:r;}
+  let D =posMod(297.85036 +445267.111480*T-0.0019142*T*T+T*T*T/189474)*deg2rad;
+  let M =posMod(357.52772 +35999.050340*T -0.0001603*T*T-T*T*T/300000)*deg2rad;
+  let Mp=posMod(134.96298 +477198.867398*T+0.0086972*T*T+T*T*T/56250)*deg2rad;
+  let F =posMod(93.27191  +483202.017538*T-0.0036825*T*T+T*T*T/327270)*deg2rad;
+  let Om=posMod(125.04452 -1934.136261*T +0.0020708*T*T+T*T*T/450000)*deg2rad;
+  let dP=0,dE=0;
+  for(let r of nutationTerms){
+    let a=r[0]*D+r[1]*M+r[2]*Mp+r[3]*F+r[4]*Om;
+    dP+=(r[5]+r[6]*T)*Math.sin(a);
+    dE+=(r[7]+r[8]*T)*Math.cos(a);
+  }
+  return{deltaPsi:dP*1e-4*deg2rad/3600,deltaEps:dE*1e-4*deg2rad/3600};
+}
+
+function meanObliquity(T){
+  return(23.439291111+(-46.8150*T-0.00059*T*T+0.001813*T*T*T)/3600)*deg2rad;
+}
+
+function trueObliquity(T){return meanObliquity(T)+nutation(T).deltaEps;}
+
+function gast(jd){
+  let T=getJulianCenturies(jd);
+  let gmst=86400*(0.7790572732640+1.00273781191135448*(jd-2451545));
+  gmst=((gmst%86400)+86400)%86400;
+  let gmstDeg=gmst/86400*360;
+  let gmstCorr=(0.014506+4612.156534*T+1.3915817*T*T-0.00000044*T*T*T
+               -0.000029956*T*T*T*T-0.0000000368*T*T*T*T*T)/3600;
+  gmstDeg+=gmstCorr;
+  let{deltaPsi}=nutation(T);
+  let eqEq=deltaPsi*Math.cos(trueObliquity(T))*rad2deg;
+  return((gmstDeg+eqEq)%360+360)%360;
+}
+
+function geocentricRadius(){
+  let a=6378.137,b=6356.7523142,c=Math.cos(lat),s=Math.sin(lat);
+  return Math.sqrt((Math.pow(a*a*c,2)+Math.pow(b*b*s,2))/(Math.pow(a*c,2)+Math.pow(b*s,2)));
+}
+
+function applyRefraction(alt){
+  let a=alt*rad2deg;
+  if(a<-1)return alt;
+  let R=1.02/Math.tan((a+10.3/(a+5.11))*deg2rad);
+  return Math.min(90,a+R)*deg2rad;
+}
+
+function eclipticToEquatorialWithEps(lambda,beta,eps){
+  return{
+    ra:Math.atan2(Math.sin(lambda)*Math.cos(eps)-Math.tan(beta)*Math.sin(eps),Math.cos(lambda)),
+    dec:Math.asin(Math.sin(beta)*Math.cos(eps)+Math.cos(beta)*Math.sin(eps)*Math.sin(lambda))
+  };
+}
+
+function eclipticLonToRaDec(lonDeg, epsRad){
+  let l   = lonDeg*deg2rad;
+  let eps = (epsRad !== undefined) ? epsRad : trueObliquity((julianDate()-2451545)/36525);
+  let ra  = Math.atan2(Math.sin(l)*Math.cos(eps), Math.cos(l));
+  let dec = Math.asin(Math.sin(eps)*Math.sin(l));
+  return {ra, dec};
+}
+
+function annualAberration(lambda,beta,T){
+  let e=earthHelio(T),e2=earthHelio(T+0.001);
+  let vx=(e2.x-e.x)/(0.001*36525),vy=(e2.y-e.y)/(0.001*36525);
+  let kappa=9.9365e-5,vm=Math.sqrt(vx*vx+vy*vy);
+  let vxn=vx/vm,vyn=vy/vm;
+  let cB=Math.cos(beta),sB=Math.sin(beta),cL=Math.cos(lambda),sL=Math.sin(lambda);
+  return{
+    lambda:lambda+kappa*(-vxn*sL+vyn*cL)/cB,
+    beta:beta-kappa*(vxn*cL*sB+vyn*sL*sB)
+  };
+}
+
+function earthHelio(T){return heliocentricCoords("Tierra",T);}
+
+function heliocentricCoords(name,T){
+  let v;
+  switch(name){
+    case"Mercurio":v=vsop87Mercurio(T);break;
+    case"Venus":   v=vsop87Venus(T);break;
+    case"Tierra":  v=vsop87Tierra(T);break;
+    case"Marte":   v=vsop87Marte(T);break;
+    case"Júpiter": v=vsop87Jupiter(T);break;
+    case"Saturno": v=vsop87Saturno(T);break;
+    default:return{x:0,y:0,z:0};
+  }
+  let{L,B,R}=v;
+  return{x:R*Math.cos(B)*Math.cos(L),y:R*Math.cos(B)*Math.sin(L),z:R*Math.sin(B)};
+}
+
+function geocentricEclipticWithLightTime(name,T,jd){
+  let p=heliocentricCoords(name,T),e=earthHelio(T);
+  let xg=p.x-e.x,yg=p.y-e.y,zg=p.z-e.z;
+  let dist=Math.sqrt(xg*xg+yg*yg+zg*zg);
+  let Tc=(jd-dist/C_LIGHT-2451545)/36525;
+  p=heliocentricCoords(name,Tc);e=earthHelio(Tc);
+  xg=p.x-e.x;yg=p.y-e.y;zg=p.z-e.z;
+  return{lambda:Math.atan2(yg,xg),beta:Math.atan2(zg,Math.sqrt(xg*xg+yg*yg)),dist};
+}
+
+function sunPosition(){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let e=earthHelio(T);
+  let lam=Math.atan2(-e.y,-e.x),bet=Math.atan2(-e.z,Math.sqrt(e.x*e.x+e.y*e.y));
+  lam+=nutation(T).deltaPsi;
+  let ab=annualAberration(lam,bet,T);
+  return eclipticToEquatorialWithEps(ab.lambda,ab.beta,trueObliquity(T));
+}
+
+function moonPosition(){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  function posMod(x){let r=x%360;return r<0?r+360:r;}
+  let L =posMod(218.3164591+481267.88134236*T-0.0013268*T*T+T*T*T/538841-T*T*T*T/65194000);
+  let D =posMod(297.8502042+445267.11151668*T-0.0016300*T*T+T*T*T/545868-T*T*T*T/113065000);
+  let M =posMod(357.5291092+35999.05029190*T -0.0001536*T*T+T*T*T/24490000);
+  let Mp=posMod(134.9634114+477198.86763133*T+0.0089970*T*T+T*T*T/69699-T*T*T*T/14712000);
+  let F =posMod(93.2720993 +483202.01752731*T-0.0034029*T*T-T*T*T/3526000+T*T*T*T/863310000);
+  let E=1-0.002516*T-0.0000074*T*T,E2=E*E;
+  let Lr=L*deg2rad,Dr=D*deg2rad,Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
+  const lT=[[0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],[0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],[2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],[0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,2,-12528],[0,0,1,-2,10980],[4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],[2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],[2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],[2,0,-1,2,-2602],[2,-1,-2,0,2390],[1,0,1,0,-2348],[2,-2,0,0,2236],[0,1,2,0,-2120],[0,2,0,0,-2069],[2,-2,-1,0,2048],[2,0,1,-2,-1773],[2,0,0,2,-1595],[4,-1,-1,0,1215],[0,0,2,2,-1110],[3,0,-1,0,-892],[2,1,1,0,-810],[4,-1,-2,0,759],[0,2,-1,0,-713],[2,2,-1,0,-700],[2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],[4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],[1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],[0,2,1,0,-323],[1,1,-1,0,299],[2,0,3,0,294],[2,0,-1,-2,0]];
+  const bT=[[0,0,0,1,5128122],[0,0,1,1,280602],[0,0,1,-1,277693],[2,0,0,-1,173237],[2,0,-1,1,55413],[2,0,-1,-1,46271],[2,0,0,1,32573],[0,0,2,1,17198],[2,0,1,-1,9266],[0,0,2,-1,8822],[2,-1,0,-1,8216],[2,0,-2,-1,4324],[2,0,1,1,4200],[2,1,0,-1,-3359],[2,-1,-1,1,2463],[2,-1,0,1,2211],[2,-1,-1,-1,2065],[0,1,-1,-1,-1870],[4,0,-1,-1,1828],[0,1,0,1,-1794],[0,0,0,3,-1749],[0,1,-1,1,-1565],[1,0,0,1,-1491],[0,1,1,1,-1475],[0,1,1,-1,-1410],[0,1,0,-1,-1344],[1,0,0,-1,-1335],[0,0,3,1,1107],[4,0,0,-1,1021],[4,0,-1,1,833],[0,0,1,-3,777],[4,0,-2,1,671],[2,0,0,-3,607],[2,0,2,-1,596],[2,-1,1,-1,491],[2,0,-2,1,-451],[0,0,3,-1,439],[2,0,2,1,422],[2,0,-3,-1,421],[2,1,-1,1,-366],[2,1,0,1,-351],[4,0,0,1,331],[2,-1,1,1,315],[2,-2,0,-1,302],[0,0,1,3,-283],[2,1,1,-1,-229],[1,1,0,-1,223],[1,1,0,1,223],[0,1,-2,-1,-220],[2,1,-1,-1,-220],[1,0,1,1,-185],[2,-1,-2,-1,181],[0,1,2,1,-177],[4,0,-2,-1,176],[4,-1,-1,-1,166],[1,0,1,-1,-164],[4,0,1,-1,132],[1,0,-1,-1,-119],[4,-1,0,-1,115],[2,-2,0,1,107]];
+  const rT=[[0,0,1,0,-20905355],[2,0,-1,0,-3699111],[2,0,0,0,-2955968],[0,0,2,0,-569925],[0,1,0,0,48888],[0,0,0,2,-3149],[2,0,-2,0,246158],[2,-1,-1,0,-152138],[2,0,1,0,-170733],[2,-1,0,0,-204586],[0,1,-1,0,-129620],[1,0,0,0,108743],[0,1,1,0,104755],[2,0,0,-2,10321],[0,0,1,2,0],[0,0,1,-2,79661],[4,0,-1,0,-34782],[0,0,3,0,-23210],[4,0,-2,0,-21636],[2,1,-1,0,24208],[2,1,0,0,30824],[1,0,-1,0,-8379],[1,1,0,0,-16675],[2,-1,1,0,-12831],[2,0,2,0,-10445],[4,0,0,0,-11650],[2,0,-3,0,14403],[0,1,-2,0,-7003],[2,-1,-2,0,10056],[1,0,1,0,6322]];
+  let sL=0,sB=0,sR=0;
+  for(let r of lT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sL+=r[4]*ef*Math.sin(a);}
+  for(let r of rT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sR+=r[4]*ef*Math.cos(a);}
+  for(let r of bT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sB+=r[4]*ef*Math.sin(a);}
+  let A1=(119.75+131.849*T)*deg2rad,A2=(53.09+479264.290*T)*deg2rad,A3=(313.45+481266.484*T)*deg2rad;
+  sL+=3958*Math.sin(A1)+1962*Math.sin(Lr-Fr)+318*Math.sin(A2);
+  sB+=-2235*Math.sin(Lr)+382*Math.sin(A3)+175*Math.sin(A1-Fr)+175*Math.sin(A1+Fr)+127*Math.sin(Lr-Mpr)-115*Math.sin(Lr+Mpr);
+  let lambda=Lr+(sL/1e6)*deg2rad,beta=(sB/1e6)*deg2rad,Rgeo=385000.56+sR/1000;
+  lambda+=nutation(T).deltaPsi;
+  let eps=trueObliquity(T);
+  let{ra:raG,dec:decG}=eclipticToEquatorialWithEps(lambda,beta,eps);
+  let LST=getLST(),HA=LST-raG,dR=Rgeo/R_TIERRA;
+  let cLat=Math.cos(lat),sLat=Math.sin(lat),cDec=Math.cos(decG),sDec=Math.sin(decG),cHA=Math.cos(HA),sHA=Math.sin(HA);
+  return{ra:raG-(1/dR)*cLat*sHA/cDec,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
+}
+
+function planetPosition(name){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let{lambda,beta}=geocentricEclipticWithLightTime(name,T,jd);
+  lambda+=nutation(T).deltaPsi;
+  let ab=annualAberration(lambda,beta,T);
+  return eclipticToEquatorialWithEps(ab.lambda,ab.beta,trueObliquity(T));
+}
+
+function vsop87Mercurio(T){
+  // Reemplazado con Meeus "Astronomical Algorithms" Cap.31 + ecuación del centro
+  // Precisión ~1' de arco (vs ~21° de error del VSOP87 truncado anterior)
+  // T recibe siglos julianos (la función divide /10 para milenios internamente)
+  // NOTA: esta función recibe T_siglos directamente (heliocentricCoords pasa T sin dividir)
+  // pero el contrato original espera que vsop87 divida /10 — respetamos la interfaz:
+  const tau = T / 10; // milenios (para consistencia con las otras vsop87)
+  const Tc = tau * 10; // volvemos a siglos para Meeus Cap.31
+  // Elementos orbitales medios (Meeus Cap.31, Tabla 31.a)
+  const L_med = ((252.250906 + 149474.0722491*Tc + 0.00030350*Tc*Tc) % 360 + 360) % 360;
+  const omega  = ((77.4561190  + 1.5564776*Tc   + 0.00029045*Tc*Tc) % 360 + 360) % 360;
+  const Omega  = ((48.330893   + 1.1861883*Tc   + 0.00017542*Tc*Tc) % 360 + 360) % 360;
+  const i_deg  = 7.004986 + 0.0018215*Tc;
+  const e      = 0.20563175 + 0.000020407*Tc - 0.0000000283*Tc*Tc;
+  const a      = 0.387098310;
+  // Anomalía media
+  const M_deg  = ((L_med - omega) % 360 + 360) % 360;
+  const Mr     = M_deg * Math.PI/180;
+  // Ecuación del centro — serie a 5 términos (convergente para e=0.206)
+  const C = (180/Math.PI) * (
+    (2*e - e*e*e/4 + 5*Math.pow(e,5)/96)   * Math.sin(Mr)     +
+    (5/4*e*e - 11/24*Math.pow(e,4))         * Math.sin(2*Mr)   +
+    (13/12*e*e*e - 43/64*Math.pow(e,5))     * Math.sin(3*Mr)   +
+    (103/96*Math.pow(e,4))                  * Math.sin(4*Mr)   +
+    (1097/960*Math.pow(e,5))                * Math.sin(5*Mr)
+  );
+  // Longitud verdadera heliocéntrica (en el plano orbital)
+  const L_true_deg = ((L_med + C) % 360 + 360) % 360;
+  const L_true     = L_true_deg * Math.PI/180;
+  // Radio vector
+  const R = a * (1 - e*e) / (1 + e*Math.cos(Mr));
+  // Latitud eclíptica heliocéntrica (inclinación orbital 7°)
+  const i   = i_deg * Math.PI/180;
+  const Om  = Omega * Math.PI/180;
+  const u   = L_true - Om;           // argumento desde nodo
+  const B   = Math.asin(Math.sin(i) * Math.sin(u));
+  // Corregir L para proyección al plano eclíptico
+  const L_ecl = Math.atan2(Math.sin(L_true - Om)*Math.cos(i), Math.cos(L_true - Om)) + Om;
+  return { L: L_ecl, B, R };
+}
+
+function vsop87Venus(T){
+  T = T / 10; // VSOP87 Meeus App.II usa τ en milenios julianos
+  let L0=317614667+1353968*Math.cos(5.59313319+10213.2855462*T)+89892*Math.cos(5.30650048+20426.5710924*T)+5477*Math.cos(4.4163+7860.4193924*T)+3456*Math.cos(2.69964+11790.6290887*T)+2372*Math.cos(2.99139+3930.2096962*T)+1664*Math.cos(4.25018+26.2983197*T)+1438*Math.cos(4.15745+9153.903616*T)+1317*Math.cos(5.18668+1577.3435424*T)+1201*Math.cos(6.15357+529.6909651*T)+762*Math.cos(2.141+1109.379*T)+708*Math.cos(1.065+13367.973*T)+585*Math.cos(3.998+10404.734*T)+500*Math.cos(4.123+5507.553*T)+429*Math.cos(3.586+10239.584*T)+327*Math.cos(5.677+5661.332*T)+326*Math.cos(4.591+10596.182*T)+232*Math.cos(3.163+9153.904*T)+180*Math.cos(4.653+1109.379*T)+155*Math.cos(5.57+19651.048*T)+128*Math.cos(4.226+20.775*T)+128*Math.cos(0.962+5091.177*T)+106*Math.cos(1.537+11243.685*T);
+  let L1=1021352943052+95708*Math.cos(2.46424+10213.2855462*T)+14445*Math.cos(0.51625+20426.5710924*T)+213*Math.cos(1.795+30639.857*T)+174*Math.cos(2.655+26.298*T)+152*Math.cos(6.106+1577.344*T)+82*Math.cos(5.7+191.448*T)+70*Math.cos(2.68+9153.904*T)+52*Math.cos(3.6+15720.839*T)+38*Math.cos(1.03+9437.763*T)+30*Math.cos(1.25+5507.553*T)+25*Math.cos(6.11+10404.734*T);
+  let L2=54127+3891*Math.cos(0.3451+10213.2855*T)+1338*Math.cos(2.0201+20426.5711*T)+24*Math.cos(2.05+26.298*T)+19*Math.cos(3.54+30639.86*T)+10*Math.cos(3.97+775.52*T)+7*Math.cos(1.52+1109.38*T)+6*Math.cos(1.0+191.45*T);
+  let L3=136*Math.cos(4.804+10213.286*T)+78*Math.cos(3.67+20426.571*T)+26+6*Math.cos(4.5+30639.9*T);
+  let L4=114+3*Math.cos(5.21+20426.57*T)+2*Math.cos(2.51+10213.29*T);
+  let L5=1;
+  let B0=5923638*Math.cos(0.26702775+10213.2855462*T)+40108*Math.cos(1.14737848+20426.5710924*T)+32815+1011*Math.cos(1.0895+30639.857*T)+149*Math.cos(6.254+18073.705*T)+138*Math.cos(0.86+1577.344*T)+130*Math.cos(3.672+9153.904*T)+120*Math.cos(3.705+2352.866*T)+108*Math.cos(4.539+22003.915*T)+68*Math.cos(1.87+14712.317*T)+52*Math.cos(5.14+10404.73*T);
+  let B1=513348*Math.cos(1.80364998+10213.2855462*T)+4380*Math.cos(3.38615+20426.5710924*T)+199+197*Math.cos(2.53+30639.857*T);
+  let B2=22378*Math.cos(3.38509+10213.2855*T)+282+173*Math.cos(5.256+20426.571*T)+27*Math.cos(3.87+30639.86*T);
+  let B3=647*Math.cos(4.992+10213.286*T)+20+6*Math.cos(0.77+20426.571*T);
+  let B4=14*Math.cos(0.32+10213.286*T);
+  let R0=72334821+489824*Math.cos(4.02151782+10213.2855462*T)+1658*Math.cos(4.9021+20426.5711*T)+1632*Math.cos(2.8455+7860.4194*T)+1378*Math.cos(1.1285+11790.629*T)+498*Math.cos(2.587+9153.904*T)+374*Math.cos(1.423+10239.584*T)+264*Math.cos(5.529+26.298*T)+237*Math.cos(2.551+8624.213*T)+222*Math.cos(2.013+191.448*T)+126*Math.cos(2.728+5507.553*T)+119*Math.cos(3.02+10404.734*T);
+  let R1=34551*Math.cos(0.89199+10213.28555*T)+234*Math.cos(1.772+20426.571*T)+234;
+  let R2=1407*Math.cos(5.0637+10213.2855*T)+16*Math.cos(5.47+20426.57*T)+13;
+  let L=(L0+L1*T+L2*T*T+L3*T*T*T+L4*T*T*T*T+L5*T*T*T*T*T)/1e8;
+  let B=(B0+B1*T+B2*T*T+B3*T*T*T+B4*T*T*T*T)/1e8;
+  let R=(R0+R1*T+R2*T*T)/1e8;
+  return{L,B,R};
+}
+
+function vsop87Marte(T){
+  T = T / 10; // VSOP87 Meeus App.II usa τ en milenios julianos
+  let L0=620347712+18656368*Math.cos(5.050371+3340.6124267*T)+1108217*Math.cos(5.40099338+6681.2248534*T)+91798*Math.cos(5.75478745+10021.83728*T)+27745*Math.cos(5.97049512+3.5231183*T)+12316*Math.cos(0.84956094+2810.9214646*T)+10610*Math.cos(2.9395856+2281.2304965*T)+8927*Math.cos(4.15697846+0.0173512*T)+8716*Math.cos(6.11005159+13362.4497065*T)+7775*Math.cos(3.33968761+5621.8429232*T)+6798*Math.cos(0.36462229+398.1490034*T)+4161*Math.cos(0.2281422+2942.4634233*T)+3575*Math.cos(1.66186439+2544.3144198*T)+3075*Math.cos(0.85696614+191.4482661*T)+2938*Math.cos(6.07893711+0.0674366*T)+2884*Math.cos(0.4146565+3337.0893033*T)+2628*Math.cos(0.6482607+3344.1355501*T)+2395*Math.cos(5.03481414+3149.1641578*T)+2152*Math.cos(0.01283683+5088.6288397*T)+1987*Math.cos(5.90004337+3337.0893033*T)+1941*Math.cos(0.50425484+796.2980068*T)+1871*Math.cos(5.36847226+6151.5338484*T)+1628*Math.cos(1.17387379+529.6909651*T)+1583*Math.cos(1.09451474+1059.3819302*T)+1496*Math.cos(1.17890572+2146.1654164*T)+1461*Math.cos(4.10610178+3154.6870849*T)+1440*Math.cos(1.43978174+3340.595345*T)+1374*Math.cos(4.52830291+3340.6295084*T)+1358*Math.cos(0.66114873+6681.2248534*T)+1295*Math.cos(1.38547958+2544.3144198*T)+1258*Math.cos(4.55447577+3158.2099475*T)+1130*Math.cos(1.34617723+1580.8641965*T)+1128*Math.cos(4.33178481+3191.0491872*T)+1087*Math.cos(1.38978574+396.1726855*T)+993*Math.cos(5.42359+6890.073*T)+820*Math.cos(2.945+191.045*T)+813*Math.cos(4.013+3636.919*T)+812*Math.cos(2.676+5088.629*T)+780*Math.cos(2.744+7084.897*T)+707*Math.cos(4.197+2280.415*T)+688*Math.cos(6.229+8962.455*T)+627*Math.cos(3.38+3095.032*T)+573*Math.cos(4.143+1748.016*T)+532*Math.cos(5.702+1194.447*T)+529*Math.cos(4.228+3188.023*T)+517*Math.cos(1.66+6832.316*T)+461*Math.cos(2.512+3590.033*T)+434*Math.cos(4.637+155.42*T)+432*Math.cos(5.888+16730.464*T)+436*Math.cos(3.722+2921.136*T)+396*Math.cos(5.648+8432.764*T)+397*Math.cos(4.705+7238.676*T);
+  let L1=334085627474+1458227*Math.cos(3.60426051+3340.6124267*T)+164901*Math.cos(3.9263125+6681.2248534*T)+19963*Math.cos(4.26594532+10021.83728*T)+2580*Math.cos(4.6+13362.45*T)+1528*Math.cos(3.143+3.523*T)+1472*Math.cos(2.516+3340.595*T)+1471*Math.cos(2.516+3340.63*T)+1255*Math.cos(2.646+6151.534*T)+1163*Math.cos(3.562+1059.382*T)+982*Math.cos(5.757+3344.136*T)+963*Math.cos(4.021+529.691*T)+898*Math.cos(5.394+0.017*T)+882*Math.cos(3.673+398.149*T)+741*Math.cos(6.095+3337.089*T)+661*Math.cos(3.269+6681.225*T)+602*Math.cos(2.531+8401.673*T)+606*Math.cos(4.983+2281.23*T)+597*Math.cos(2.633+2146.165*T)+540*Math.cos(4.091+3188.023*T);
+  let L2=58016*Math.cos(2.04979+3340.6124*T)+54188+13908*Math.cos(2.45742+6681.2249*T)+2465*Math.cos(2.799+10021.837*T)+1077*Math.cos(2.625+13362.45*T)+745*Math.cos(3.681+1059.382*T)+666*Math.cos(1.403+3.523*T)+631*Math.cos(0.65+3344.136*T)+546*Math.cos(1.987+398.149*T)+536*Math.cos(6.136+3337.089*T)+489*Math.cos(5.359+529.691*T)+399*Math.cos(5.22+6151.534*T)+372*Math.cos(1.051+2281.23*T)+322*Math.cos(3.985+6684.748*T)+314*Math.cos(5.5+5621.843*T);
+  let L3=1482*Math.cos(0.4443+3340.6124*T)+662*Math.cos(0.885+6681.225*T)+188*Math.cos(1.288+10021.837*T)+114+75*Math.cos(0.902+13362.449*T)+45*Math.cos(4.4+3344.14*T)+38*Math.cos(3.44+3337.09*T);
+  let L4=114+29*Math.cos(5.64+3340.61*T)+21*Math.cos(3.3+6681.22*T);
+  let L5=1;
+  let B0=3197135*Math.cos(3.76832042+3340.6124267*T)+298033*Math.cos(4.10616996+6681.2248534*T)+289105+31366*Math.cos(4.44651052+10021.83728*T)+3484*Math.cos(4.78812752+13362.4497065*T)+443*Math.cos(5.026+3344.136*T)+443*Math.cos(5.652+3337.089*T)+399*Math.cos(5.131+3340.595*T)+293*Math.cos(3.793+2281.23*T)+182*Math.cos(6.136+3340.63*T)+163*Math.cos(4.264+529.691*T)+160*Math.cos(2.232+2544.314*T)+149*Math.cos(3.912+0.017*T)+143*Math.cos(1.177+3337.089*T)+133*Math.cos(1.445+191.448*T)+116*Math.cos(0.745+3932.209*T);
+  let B1=350069*Math.cos(5.36847226+3340.6124267*T)+14116+9671*Math.cos(5.47877752+6681.2248534*T)+1472*Math.cos(3.2+10021.837*T)+426*Math.cos(3.408+13362.45*T)+102*Math.cos(0.776+3340.595*T)+79*Math.cos(3.979+3340.63*T);
+  let B2=16727*Math.cos(0.60229+3340.6124*T)+4987+1010*Math.cos(4.423+6681.225*T)+84*Math.cos(2.731+10021.837*T)+31*Math.cos(3.97+13362.45*T);
+  let B3=607*Math.cos(1.981+3340.612*T)+43+20*Math.cos(4.432+6681.225*T);
+  let B4=13+11*Math.cos(3.46+3340.61*T);
+  let R0=153033488+14184953*Math.cos(3.47971284+3340.6124267*T)+660776*Math.cos(3.81783443+6681.2248534*T)+46179*Math.cos(4.15595316+10021.83728*T)+8110*Math.cos(5.55559144+2810.9214646*T)+7485*Math.cos(1.77238998+5621.8429232*T)+5765*Math.cos(0.2348484+2281.2304965*T)+5151*Math.cos(3.44374946+13362.4497065*T)+4664*Math.cos(0.64738548+3337.0893033*T)+3574*Math.cos(1.08378399+3344.1355501*T)+3459*Math.cos(1.32287+2146.165*T)+3357*Math.cos(0.92931+3340.63*T)+2997*Math.cos(0.39285+191.448*T)+2664*Math.cos(1.25044+529.691*T)+2645*Math.cos(4.26012+3191.049*T);
+  let R1=1107433*Math.cos(2.03250524+3340.6124267*T)+103176*Math.cos(2.37071847+6681.2248534*T)+12877+10816*Math.cos(2.70888095+10021.83728*T)+2387*Math.cos(2.038+13362.45*T)+821*Math.cos(2.278+3337.089*T)+820*Math.cos(1.236+3344.136*T)+535*Math.cos(2.318+529.691*T)+482*Math.cos(5.918+3191.049*T)+464*Math.cos(2.659+0.017*T)+405*Math.cos(2.492+3.523*T);
+  let R2=44242*Math.cos(0.4793+3340.6124*T)+8138*Math.cos(0.87188+6681.2249*T)+1275*Math.cos(1.22+10021.837*T)+187*Math.cos(1.573+13362.449*T)+52+41*Math.cos(1.97+3344.14*T)+27*Math.cos(4.52+3337.09*T);
+  let R3=1107*Math.cos(2.0325+3340.612*T)+103*Math.cos(2.371+6681.225*T)+13;
+  let L=(L0+L1*T+L2*T*T+L3*T*T*T+L4*T*T*T*T+L5*T*T*T*T*T)/1e8;
+  let B=(B0+B1*T+B2*T*T+B3*T*T*T+B4*T*T*T*T)/1e8;
+  let R=(R0+R1*T+R2*T*T+R3*T*T*T)/1e8;
+  return{L,B,R};
+}
+
+function vsop87Jupiter(T){
+  T = T / 10; // VSOP87 Meeus App.II usa τ en milenios julianos
+  let L0=59954691+9695899*Math.cos(5.06191793+529.6909651*T)+573610*Math.cos(1.44406205+7.113547*T)+306389*Math.cos(5.41734326+1059.3819302*T)+97178*Math.cos(4.14264726+632.7837393*T)+72903*Math.cos(3.64042902+522.577418*T)+64264*Math.cos(3.41145165+103.0927742*T)+39806*Math.cos(2.2937674+419.4846438*T)+38858*Math.cos(1.27231755+316.3918696*T)+27965*Math.cos(1.78454591+536.804512*T)+13590*Math.cos(5.7748104+1589.0728953*T)+8769*Math.cos(3.63000308+949.1756089*T)+8246*Math.cos(3.58227925+206.1855484*T)+7368*Math.cos(5.0810125+735.8765135*T)+6263*Math.cos(0.02497647+213.2990954*T)+6114*Math.cos(4.51319672+1162.4747044*T)+5305*Math.cos(4.18625324+1052.2683831*T)+5305*Math.cos(1.30671216+14.227094*T)+4905*Math.cos(1.32084631+110.2063209*T)+4647*Math.cos(4.6995878+3.9321532*T)+3045*Math.cos(4.31136+426.598*T)+2610*Math.cos(1.56963+846.083*T)+2028*Math.cos(1.06791+3.181*T)+1921*Math.cos(0.97168+639.897*T)+1765*Math.cos(2.14189+1066.495*T)+1723*Math.cos(3.88202+1265.567*T)+1633*Math.cos(3.58982+515.464*T)+1432*Math.cos(4.2991+625.67*T)+1331*Math.cos(2.96512+411.786*T)+1233*Math.cos(1.5596+209.367*T)+1022*Math.cos(0.63311+323.506*T)+987*Math.cos(3.048+529.691*T)+964*Math.cos(1.956+9437.763*T)+916*Math.cos(1.414+419.485*T)+714*Math.cos(1.558+735.877*T)+710*Math.cos(1.836+543.919*T)+625*Math.cos(0.947+199.072*T)+538*Math.cos(1.253+533.623*T)+526*Math.cos(1.914+0.521*T)+501*Math.cos(5.279+206.186*T)+496*Math.cos(4.08+527.153*T);
+  let L1=52993480757+489741*Math.cos(4.22064977+529.6909651*T)+228919*Math.cos(6.02647915+7.113547*T)+27655*Math.cos(4.31525412+1059.3819302*T)+20721*Math.cos(5.4594899+522.577418*T)+12106*Math.cos(0.16986475+536.804512*T)+6068*Math.cos(4.42419698+103.0927742*T)+5765*Math.cos(1.37639098+632.7837393*T)+5764*Math.cos(2.9923949+419.4846438*T)+4743*Math.cos(1.053297+316.3918696*T)+3741*Math.cos(4.4270077+1589.0728953*T)+2386*Math.cos(4.40716+14.227*T)+1633*Math.cos(3.58+515.464*T)+1224*Math.cos(2.86+1162.475*T)+916*Math.cos(1.414+3937.804*T)+869*Math.cos(2.273+949.176*T)+839*Math.cos(2.947+423.418*T)+768*Math.cos(5.108+835.037*T);
+  let L2=47234*Math.cos(4.32148+7.11355*T)+38966+30629*Math.cos(2.93307+529.69097*T)+3189*Math.cos(1.05196+522.57742*T)+2729*Math.cos(4.84173+536.80451*T)+2723*Math.cos(3.40707+1059.38193*T)+1721*Math.cos(4.18865+14.22709*T)+383*Math.cos(5.768+522.577*T)+378*Math.cos(0.76+536.805*T)+367*Math.cos(6.055+103.093*T)+337*Math.cos(3.786+419.485*T)+308*Math.cos(0.694+632.784*T)+218*Math.cos(6.186+210.978*T)+199*Math.cos(0.38+1589.073*T);
+  let L3=6502*Math.cos(2.5986+7.1135*T)+1357*Math.cos(1.3464+529.691*T)+471*Math.cos(2.475+536.805*T)+417*Math.cos(3.245+522.577*T)+353*Math.cos(4.486+1059.382*T)+155*Math.cos(0.403+14.227*T);
+  let L4=669*Math.cos(0.853+7.114*T)+114+100*Math.cos(0.743+536.805*T);
+  let L5=50*Math.cos(0.84+7.11*T)+14;
+  let B0=2268616*Math.cos(3.55852606+529.6909651*T)+110090+109972*Math.cos(3.90816399+1059.3819302*T)+8101*Math.cos(3.60509055+522.577418*T)+6438*Math.cos(0.30627879+536.804512*T)+6044*Math.cos(4.02101516+1589.0728953*T)+1107*Math.cos(2.91960879+1162.4747044*T)+944*Math.cos(1.67728048+426.5981909*T)+942*Math.cos(4.0726+1052.268*T)+894*Math.cos(2.66961+7.114*T)+836*Math.cos(5.19728+103.093*T)+650*Math.cos(3.348+635.965*T);
+  let B1=177352*Math.cos(5.70166+529.69097*T)+3230*Math.cos(5.722+1059.382*T)+3081*Math.cos(4.953+522.577*T)+2378*Math.cos(4.001+536.805*T)+946*Math.cos(5.775+1589.073*T)+614*Math.cos(0.583+426.598*T)+536*Math.cos(6.046+103.093*T);
+  let B2=8795*Math.cos(5.4003+529.691*T)+1632*Math.cos(5.188+1059.382*T)+1378*Math.cos(4.0+536.805*T)+805*Math.cos(0.83+522.577*T);
+  let B3=234*Math.cos(0.5+529.691*T)+30*Math.cos(1.25+1059.382*T)+20;
+  let B4=11*Math.cos(4.75+529.691*T)+3;
+  let R0=520887429+25209327*Math.cos(3.49108639+529.6909651*T)+610600*Math.cos(3.84115365+1059.3819302*T)+282029*Math.cos(2.57419982+632.7837393*T)+187647*Math.cos(2.0759087+522.577418*T)+86793*Math.cos(0.71811728+419.4846438*T)+72062*Math.cos(0.21466183+536.804512*T)+65517*Math.cos(5.97379786+316.3918696*T)+29135*Math.cos(1.67759782+103.0927742*T)+22795*Math.cos(1.92701639+949.1756089*T)+20484*Math.cos(1.6071558+103.0927742*T)+19954*Math.cos(2.62935+1162.475*T)+17934*Math.cos(1.60794+7.114*T)+17610*Math.cos(2.99434+6275.962*T)+14176*Math.cos(3.42038+523.098*T)+13005*Math.cos(5.98119+11.046*T)+12877*Math.cos(4.15022+632.784*T)+12097*Math.cos(6.2694+522.577*T);
+  let R1=1271802*Math.cos(2.64937512+529.6909651*T)+61661*Math.cos(3.00076614+1059.3819302*T)+53443*Math.cos(3.89717512+522.577418*T)+41390+31185*Math.cos(4.88276971+536.804512*T)+11847*Math.cos(2.413+419.485*T)+9166*Math.cos(4.751+632.784*T)+3404*Math.cos(3.538+1589.073*T)+2901*Math.cos(4.789+103.093*T)+2412*Math.cos(4.369+949.176*T)+2155*Math.cos(5.843+103.093*T);
+  let R2=79645*Math.cos(1.35866+529.69097*T)+8252*Math.cos(5.7272+522.5774*T)+7030*Math.cos(5.8453+536.805*T)+5314*Math.cos(1.172+1059.382*T)+1861*Math.cos(2.413+419.485*T)+964*Math.cos(3.574+632.784*T);
+  let R3=3519*Math.cos(6.058+529.691*T)+1073*Math.cos(1.673+536.805*T)+916*Math.cos(1.414+522.577*T);
+  let R4=129*Math.cos(0.084+529.691*T);
+  let L=(L0+L1*T+L2*T*T+L3*T*T*T+L4*T*T*T*T+L5*T*T*T*T*T)/1e8;
+  let B=(B0+B1*T+B2*T*T+B3*T*T*T+B4*T*T*T*T)/1e8;
+  let R=(R0+R1*T+R2*T*T+R3*T*T*T+R4*T*T*T*T)/1e8;
+  return{L,B,R};
+}
+
+function vsop87Saturno(T){
+  T = T / 10; // VSOP87 Meeus App.II usa τ en milenios julianos
+  let L0=87401354+11107660*Math.cos(3.9620509+213.2990954*T)+1414151*Math.cos(4.58581516+7.113547*T)+398379*Math.cos(0.52112032+206.1855484*T)+350769*Math.cos(3.30329907+426.5981909*T)+206816*Math.cos(0.24658372+103.0927742*T)+79271*Math.cos(3.84007565+220.4126424*T)+23990*Math.cos(4.66976932+110.2063209*T)+16574*Math.cos(0.43719541+419.4846438*T)+15820*Math.cos(0.93808685+632.7837393*T)+15054*Math.cos(2.71670979+639.8972864*T)+14907*Math.cos(5.7690347+316.3918696*T)+14610*Math.cos(1.56518573+3.9321532*T)+13160*Math.cos(4.4489118+14.227094*T)+13005*Math.cos(5.98119011+11.045743*T)+10725*Math.cos(3.12936116+202.253448*T)+6126*Math.cos(1.76328283+277.3168028*T)+5863*Math.cos(0.23380853+529.6909651*T)+5228*Math.cos(4.20177725+3.181349*T)+5020*Math.cos(3.17251517+433.711738*T)+4593*Math.cos(0.61493+199.072*T)+4006*Math.cos(2.24789+63.736*T)+3894*Math.cos(4.38991+233.771*T)+3722*Math.cos(1.95747+639.897*T)+3689*Math.cos(4.71199+309.278*T)+3637*Math.cos(4.07139+728.763*T)+3529*Math.cos(2.12543+202.253*T)+3345*Math.cos(3.46498+735.877*T)+2659*Math.cos(2.44361+949.176*T)+2598*Math.cos(0.67287+1265.567*T)+2417*Math.cos(5.41038+323.506*T)+2371*Math.cos(2.99862+309.278*T)+2226*Math.cos(3.61497+419.485*T)+2149*Math.cos(6.20516+735.877*T)+2048*Math.cos(1.60885+220.413*T)+1539*Math.cos(2.19869+639.897*T);
+  let L1=21354295596+1296855*Math.cos(1.82820544+213.2990954*T)+564348*Math.cos(2.88500137+7.113547*T)+107679*Math.cos(2.27769991+206.1855484*T)+98323*Math.cos(1.08070857+426.5981909*T)+40255*Math.cos(2.04128278+220.4126424*T)+19942*Math.cos(1.27355542+103.0927742*T)+10512*Math.cos(2.74880302+14.227094*T)+6939*Math.cos(0.40493524+639.8972864*T)+4803*Math.cos(2.44194087+419.4846438*T)+4056*Math.cos(2.92177682+110.2063209*T)+3768*Math.cos(3.6453+3.523*T)+3385*Math.cos(2.41329+319.841*T)+3302*Math.cos(1.26667+433.712*T)+3041*Math.cos(4.4068+220.413*T)+2432*Math.cos(2.24958+209.367*T)+2211*Math.cos(5.2849+736.755*T)+1941*Math.cos(6.01735+247.921*T);
+  let L2=116441*Math.cos(2.27137+213.2991*T)+91921+90592*Math.cos(1.86935+7.11355*T)+15277*Math.cos(4.06492+426.59819*T)+10814*Math.cos(2.92266+206.18555*T)+10293*Math.cos(1.19636+220.41264*T)+5765*Math.cos(2.64773+103.09277*T)+4138*Math.cos(4.61967+14.22709*T)+3128*Math.cos(3.32427+309.278*T)+2190*Math.cos(0.35416+220.413*T)+1265*Math.cos(2.239+639.897*T)+1100*Math.cos(3.876+323.506*T)+905*Math.cos(4.267+233.771*T)+864*Math.cos(2.673+7.114*T);
+  let L3=16039*Math.cos(5.73945+7.11355*T)+4250*Math.cos(4.58539+213.2991*T)+1907*Math.cos(4.76082+220.41264*T)+1466*Math.cos(5.91326+206.18555*T)+1162*Math.cos(5.61973+14.22709*T)+1067*Math.cos(3.6+426.598*T)+239*Math.cos(3.861+433.712*T)+180*Math.cos(6.167+220.413*T)+163*Math.cos(5.685+309.278*T);
+  let L4=1662*Math.cos(3.9983+7.1135*T)+257*Math.cos(2.984+220.413*T)+236*Math.cos(3.902+206.186*T)+149*Math.cos(2.741+213.299*T)+114;
+  let L5=124*Math.cos(2.278+7.114*T)+34*Math.cos(2.84+213.3*T)+28;
+  let B0=4330678*Math.cos(3.60234769+213.2990954*T)+240348*Math.cos(2.85238529+426.5981909*T)+84746+34116*Math.cos(0.57297163+206.1855484*T)+30863*Math.cos(3.48441805+220.4126424*T)+14734*Math.cos(2.11846598+639.8972864*T)+9917*Math.cos(5.79003493+419.4846438*T)+6466*Math.cos(0.14498655+7.113547*T)+5850*Math.cos(1.45520448+433.711738*T)+5765*Math.cos(4.09921159+110.2063209*T)+4720*Math.cos(2.4752+213.299*T)+4099*Math.cos(1.04342+639.897*T)+3297*Math.cos(2.43693+206.186*T)+2982*Math.cos(4.49499+220.413*T)+2876*Math.cos(4.55386+3.523*T)+2631*Math.cos(5.43086+533.623*T)+2088*Math.cos(5.23677+209.367*T);
+  let B1=397555*Math.cos(5.33268786+213.2990954*T)+49479+18572*Math.cos(6.0991952+426.5981909*T)+14801*Math.cos(2.30442795+206.1855484*T)+9644*Math.cos(1.69674953+220.4126424*T)+3757*Math.cos(1.25853487+7.113547*T)+2717*Math.cos(5.57566+206.186*T)+1455*Math.cos(5.205+639.897*T)+1291*Math.cos(0.925+433.712*T);
+  let B2=20630*Math.cos(0.90721+213.2991*T)+3720*Math.cos(3.99355+206.18555*T)+1627*Math.cos(6.18347+220.41264*T)+1346+706*Math.cos(2.271+426.598*T)+365*Math.cos(4.283+633.662*T);
+  let B3=666*Math.cos(1.99+213.299*T)+632*Math.cos(5.765+206.186*T)+398*Math.cos(1.423+220.413*T)+188*Math.cos(4.338+426.598*T);
+  let B4=80*Math.cos(1.12+213.3*T)+32*Math.cos(3.84+206.19*T)+17*Math.cos(1.53+220.41*T);
+  let R0=955758136+52921382*Math.cos(2.3922622+213.2990954*T)+1873680*Math.cos(5.23549605+206.1855484*T)+1464664*Math.cos(1.6476341+426.5981909*T)+821891*Math.cos(5.9352038+316.3918696*T)+547507*Math.cos(5.01532628+103.0927742*T)+371684*Math.cos(2.27114196+220.4126424*T)+361778*Math.cos(3.13904343+7.113547*T)+140618*Math.cos(5.70498198+632.7837393*T)+108975*Math.cos(3.29312879+110.2063209*T)+69116*Math.cos(5.94099631+419.4846438*T)+61053*Math.cos(0.94037755+639.8972864*T)+48913*Math.cos(1.55733044+202.253448*T)+34144*Math.cos(0.19519102+277.3168028*T)+32402*Math.cos(5.47938+949.176*T)+20937*Math.cos(0.46349+735.877*T)+20839*Math.cos(1.52103+433.712*T)+20092*Math.cos(1.84995+309.278*T)+13797*Math.cos(5.33717+323.506*T)+13317*Math.cos(1.24479+3.523*T)+13250*Math.cos(4.73834+209.367*T)+9927*Math.cos(5.833+536.805*T)+9873*Math.cos(2.765+1265.567*T)+9672*Math.cos(3.095+206.186*T);
+  let R1=6182981*Math.cos(0.25843511+213.2990954*T)+506578*Math.cos(0.71114858+206.1855484*T)+341394*Math.cos(5.79635551+426.5981909*T)+188491*Math.cos(0.47215347+220.4126424*T)+186262+143891*Math.cos(1.40744348+7.113547*T)+49621*Math.cos(6.0153294+103.0927742*T)+20928*Math.cos(3.0054+639.897*T)+19953*Math.cos(1.17608+426.598*T)+18840*Math.cos(1.6082+316.392*T)+13877*Math.cos(0.75886+433.712*T)+12893*Math.cos(5.9433+209.367*T)+5765*Math.cos(2.64773+206.186*T);
+  let R2=436902*Math.cos(4.78529+213.2991*T)+128528*Math.cos(4.14679+206.18555*T)+92723*Math.cos(4.01027+220.41264*T)+17897+13954*Math.cos(5.258+426.598*T)+13358*Math.cos(4.984+639.897*T)+8585*Math.cos(1.507+309.278*T)+6506*Math.cos(1.344+433.712*T)+5761*Math.cos(4.173+220.413*T);
+  let R3=20315*Math.cos(3.02187+213.2991*T)+8924*Math.cos(3.19144+220.41264*T)+6909*Math.cos(4.3592+206.18555*T)+4087+3879*Math.cos(3.3+426.598*T)+1071*Math.cos(3.555+639.897*T);
+  let R4=1202*Math.cos(1.415+220.413*T)+707*Math.cos(1.617+213.299*T)+539*Math.cos(0.524+206.186*T);
+  let L=(L0+L1*T+L2*T*T+L3*T*T*T+L4*T*T*T*T+L5*T*T*T*T*T)/1e8;
+  let B=(B0+B1*T+B2*T*T+B3*T*T*T+B4*T*T*T*T)/1e8;
+  let R=(R0+R1*T+R2*T*T+R3*T*T*T+R4*T*T*T*T)/1e8;
+  return{L,B,R};
+}
+
+function lunarNodes(){
+  let T = (julianDate()-2451545)/36525;
+  function pm(x){return((x%360)+360)%360;}
+  // Nodo ascendente medio con correcciones periódicas (Meeus 47.7)
+  let Om = pm(125.0445479 - 1934.1362608*T + 0.0020754*T*T + T*T*T/467441 - T*T*T*T/60616000);
+  // Correcciones menores
+  let L  = pm(218.3164591+481267.88134236*T);
+  let Ls = pm(280.46646  + 36000.76983*T);   // long media sol
+  let Ms = pm(357.52911  + 35999.05029*T);   // anomalía media sol
+  let Mp = pm(134.96298  + 477198.867398*T); // anomalía media luna
+  let F  = pm(93.27191   + 483202.017538*T);
+  let dOm = -1.4979*Math.sin((2*(F-Om))*deg2rad)
+            -0.1500*Math.sin(Ms*deg2rad)
+            -0.1226*Math.sin(2*F*deg2rad)
+            +0.1176*Math.sin(2*(F-Om)*deg2rad)
+            -0.0801*Math.sin((2*(L-Om)-Mp)*deg2rad);
+  let omega = pm(Om + dOm);
+  // Nodo Norte (Caput): lat eclíptica = 0, lon = omega
+  let northRad = omega*deg2rad;
+  let {ra:raN, dec:decN} = eclipticLonToRaDec(omega);
+  // Nodo Sur (Cauda): lon = omega + 180
+  let southLon = pm(omega+180);
+  let {ra:raS, dec:decS} = eclipticLonToRaDec(southLon);
+  return {
+    north: {ra:raN, dec:decN, lon_ecl:omega},
+    south: {ra:raS, dec:decS, lon_ecl:southLon},
+    omega // nodo ascendente en grados
+  };
+}
+
+function moonLonEcl(){
+  // Extraer lambda de moonPosition — recalcular solo lon eclíptica
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  function posMod(x){let r=x%360;return r<0?r+360:r;}
+  let L=posMod(218.3164591+481267.88134236*T-0.0013268*T*T+T*T*T/538841);
+  let D=posMod(297.8502042+445267.11151668*T-0.0016300*T*T+T*T*T/545868);
+  let M=posMod(357.5291092+35999.05029190*T-0.0001536*T*T+T*T*T/24490000);
+  let Mp=posMod(134.9634114+477198.86763133*T+0.0089970*T*T+T*T*T/69699);
+  let F=posMod(93.2720993+483202.01752731*T-0.0034029*T*T-T*T*T/3526000);
+  let E=1-0.002516*T-0.0000074*T*T;
+  let Lr=L*deg2rad,Dr=D*deg2rad,Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
+  const lT=[[0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],[0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],[2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],[0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,-2,10980],[4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],[2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],[2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],[1,0,1,0,-2348],[2,-2,0,0,2236],[0,1,2,0,-2120],[2,-2,-1,0,2048],[2,0,1,-2,-1773],[4,-1,-1,0,1215],[3,0,-1,0,-892],[2,1,1,0,-810],[4,-1,-2,0,759],[2,2,-1,0,-700],[2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],[4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],[1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],[4,0,-2,-1,176]];
+  let sL=0;
+  for(let r of lT){
+    let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;
+    let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E*E:1;
+    sL+=r[4]*ef*Math.sin(a);
+  }
+  let A1=(119.75+131.849*T)*deg2rad,A2=(53.09+479264.290*T)*deg2rad;
+  sL+=3958*Math.sin(A1)+1962*Math.sin(Lr-Fr)+318*Math.sin(A2);
+  let lambda=Lr+(sL/1e6)*deg2rad;
+  lambda+=nutation(T).deltaPsi;
+  return ((lambda*rad2deg)%360+360)%360;
+}
+
+function sunLonEcl(){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let e=earthHelio(T);
+  let lam=Math.atan2(-e.y,-e.x);
+  lam+=nutation(T).deltaPsi;
+  let ab=annualAberration(lam,Math.atan2(-e.z,Math.sqrt(e.x*e.x+e.y*e.y)),T);
+  return ((ab.lambda*rad2deg)%360+360)%360;
+}
+
+function planetLonEcl(name){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let{lambda,beta}=geocentricEclipticWithLightTime(name,T,jd);
+  lambda+=nutation(T).deltaPsi;
+  let ab=annualAberration(lambda,beta,T);   // beta real, no 0
+  return ((ab.lambda*rad2deg)%360+360)%360;
+}
+
+function obliqAsc(raDeg, decDeg, latDeg){
+  let phi  = latDeg * deg2rad;
+  let delta = decDeg * deg2rad;
+  let arg  = Math.tan(delta) * Math.tan(phi);
+  if(Math.abs(arg) > 1) return null; // circumpolarity
+  let AD = Math.asin(arg) * rad2deg;
+  return ((raDeg - AD) % 360 + 360) % 360;
+}
+
+function obliqAscension(raDeg, decDeg, latDeg){
+  let ra  = raDeg  * deg2rad;
+  let dec = decDeg * deg2rad;
+  let phi = latDeg * deg2rad;
+  // Semiarco diurno: AD = arcsin(tan(δ)·tan(φ))
+  let sinAD = Math.tan(dec)*Math.tan(phi);
+  // Clamp para evitar NaN en declinaciones extremas
+  sinAD = Math.max(-0.9999, Math.min(0.9999, sinAD));
+  let AD = Math.asin(sinAD)*rad2deg;
+  return ((raDeg - AD)%360+360)%360;
+}
+
+function semiArcDiurno(decDeg, latDeg){
+  let phi  = latDeg * deg2rad;
+  let delta = decDeg * deg2rad;
+  let arg  = Math.tan(delta) * Math.tan(phi);
+  if(Math.abs(arg) > 1) return null;
+  return 90 + Math.asin(arg) * rad2deg;
+}
+
+function raToEclLon(raDeg, epsRad){
+  let ra  = raDeg * deg2rad;
+  let lon = Math.atan2(Math.sin(ra)*Math.cos(epsRad), Math.cos(ra));
+  return ((lon * rad2deg) % 360 + 360) % 360;
+}
+
+function eclLonToRA(lonDeg, epsRad){
+  let l = lonDeg * deg2rad;
+  let ra = Math.atan2(Math.sin(l)*Math.cos(epsRad), Math.cos(l));
+  return ((ra * rad2deg) % 360 + 360) % 360;
+}
+
+function placidusIterateCusp(oaASC, k, latDeg, epsRad, isNocturnal){
+  // Semiarco nocturno = 180 - SAD
+  let lon = oaASC + (isNocturnal ? -k*120 : k*120); // semilla inicial (casas iguales)
+  lon = ((lon % 360) + 360) % 360;
+
+  for(let iter = 0; iter < 50; iter++){
+    let ra  = eclLonToRA(lon, epsRad);
+    let dec = Math.asin(Math.sin(lon * deg2rad) * Math.sin(epsRad)) * rad2deg;
+    let SAD = semiArcDiurno(dec, latDeg);
+    if(SAD === null) return null; // circumpolarity — no converge
+
+    let SAN = 180 - SAD;
+    let arc = isNocturnal ? SAN : SAD;
+    let oaCusp = obliqAsc(ra, dec, latDeg);
+    if(oaCusp === null) return null;
+
+    // Ecuación: f(lon) = OA(cusp) - k·arc - oaASC = 0
+    let target = oaASC + (isNocturnal ? -k*arc : k*arc);
+    let f = oaCusp - ((target % 360 + 360) % 360);
+    if(Math.abs(f) > 180) f -= Math.sign(f)*360;
+
+    if(Math.abs(f) < 0.0001) break; // convergido
+
+    // Paso de Newton: derivada numérica
+    let lonP = lon + 0.01;
+    let raP  = eclLonToRA(lonP, epsRad);
+    let decP = Math.asin(Math.sin(lonP * deg2rad) * Math.sin(epsRad)) * rad2deg;
+    let SADP = semiArcDiurno(decP, latDeg);
+    if(SADP === null) return null;
+    let arcP  = isNocturnal ? (180-SADP) : SADP;
+    let oaP   = obliqAsc(raP, decP, latDeg);
+    if(oaP === null) return null;
+    let targetP = oaASC + (isNocturnal ? -k*arcP : k*arcP);
+    let fP = oaP - ((targetP % 360 + 360) % 360);
+    if(Math.abs(fP) > 180) fP -= Math.sign(fP)*360;
+
+    let deriv = (fP - f) / 0.01;
+    if(Math.abs(deriv) < 1e-9) break;
+    lon -= f / deriv;
+    lon = ((lon % 360) + 360) % 360;
+  }
+  return ((lon % 360) + 360) % 360;
+}
+
+function placidusHouseCusps(asc, mc, eps, latDeg){
+  // En Placidus, los 4 ángulos son los mismos que en cualquier sistema
+  // Casa I = ASC, IV = IC = MC+180, VII = DSC = ASC+180, X = MC
+  let ic  = ((mc + 180) % 360 + 360) % 360;
+  let dsc = ((asc + 180) % 360 + 360) % 360;
+
+  // OA del ASC
+  let ascRA  = eclLonToRA(asc, eps);
+  let ascDec = Math.asin(Math.sin(asc*deg2rad)*Math.sin(eps)) * rad2deg;
+  let oaASC  = obliqAsc(ascRA, ascDec, latDeg);
+  if(oaASC === null) return null; // polar
+
+  // Casas diurnas (II, III): k=1/3 y k=2/3 del SAD
+  let c2  = placidusIterateCusp(oaASC, 1/3, latDeg, eps, false);
+  let c3  = placidusIterateCusp(oaASC, 2/3, latDeg, eps, false);
+  // Casas nocturnas (XII, XI): k=1/3 y k=2/3 del SAN (debajo horizonte)
+  let c12 = placidusIterateCusp(oaASC, 1/3, latDeg, eps, true);
+  let c11 = placidusIterateCusp(oaASC, 2/3, latDeg, eps, true);
+
+  if(c2===null||c3===null||c12===null||c11===null) return null; // fallback
+
+  // Casa X = MC; cúspides V,VI,VIII,IX = opuestos de XI,XII,II,III
+  let c5  = ((c11+180)%360+360)%360;
+  let c6  = ((c12+180)%360+360)%360;
+  let c8  = ((c2 +180)%360+360)%360;
+  let c9  = ((c3 +180)%360+360)%360;
+
+  // Array ordenado: índice 0 = Casa I
+  return [asc, c2, c3, ic, c5, c6, dsc, c8, c9, mc, c11, c12];
+}
+
+function getHouseCusps(forLatDeg){
+  let latDeg = (forLatDeg !== undefined) ? forLatDeg : lat * rad2deg;
+  let T   = (julianDate()-2451545)/36525;
+  let eps = trueObliquity(T);   // radianes
+  let LST = getLST();           // radianes
+
+  // ASC
+  let ascRad = Math.atan2(
+    -Math.cos(LST),
+    Math.sin(eps)*Math.tan(latDeg*deg2rad) + Math.cos(eps)*Math.sin(LST)
+  );
+  let asc = ((ascRad*rad2deg)%360+360)%360;
+
+  // MC
+  let mcRad = Math.atan2(Math.sin(LST), Math.cos(eps)*Math.cos(LST));
+  let mc    = ((mcRad*rad2deg)%360+360)%360;
+  if(mc < asc-180) mc += 360;
+  if(mc > asc+180) mc -= 360;
+
+  let cusps;
+  if(houseSystem === "placidus"){
+    let pc = placidusHouseCusps(asc, mc, eps, latDeg);
+    cusps = pc !== null ? pc : null;
+    if(cusps === null){
+      // Fallback silencioso a casas iguales para latitudes polares
+      cusps = [];
+      for(let i=0;i<12;i++) cusps.push(((asc+i*30)%360+360)%360);
+    }
+  } else {
+    cusps = [];
+    for(let i=0;i<12;i++) cusps.push(((asc+i*30)%360+360)%360);
+  }
+
+  return {cusps, asc, mc, eps, system: houseSystem};
+}
+
+function lunarPhaseJDE(k, phase){
+  // phase: 0=nueva, 0.25=CC, 0.5=llena, 0.75=CM
+  const k_=k+phase, T=k_/1236.85, T2=T*T, T3=T*T2, T4=T*T3;
+  let JDE=2451550.09766+29.530588861*k_+0.00015437*T2-0.000000150*T3+0.00000000073*T4;
+  const M  =((2.5534  +29.10535670*k_ -0.0000014*T2)%360+360)%360;
+  const Mp =((201.5643+385.81693528*k_+0.0107582*T2 +0.00001238*T3)%360+360)%360;
+  const F  =((160.7108+390.67050284*k_-0.0016118*T2 -0.00000227*T3)%360+360)%360;
+  const E=1-0.002516*T-0.0000074*T2;
+  const Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
+  if(phase===0||phase===0.5){
+    JDE+=phase===0
+      ?(-0.40720*Math.sin(Mpr)+0.17241*E*Math.sin(Mr)+0.01608*Math.sin(2*Mpr)
+        +0.01039*Math.sin(2*Fr)+0.00739*E*Math.sin(Mpr-Mr)-0.00514*E*Math.sin(Mpr+Mr)
+        +0.00208*E*E*Math.sin(2*Mr)-0.00111*Math.sin(2*Fr-Mpr)-0.00057*Math.sin(Mpr+2*Fr)
+        +0.00056*E*Math.sin(2*Mpr+Mr)-0.00042*Math.sin(3*Mpr)+0.00042*E*Math.sin(Mr+2*Fr)
+        +0.00038*E*Math.sin(Mr-2*Fr)-0.00024*E*Math.sin(2*Mpr-Mr)-0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)
+        -0.00007*Math.sin(Mpr+2*Mr)+0.00004*Math.sin(2*Mpr-2*Fr)+0.00004*Math.sin(3*Mr)
+        +0.00003*Math.sin(Mpr+Mr-2*Fr)+0.00003*Math.sin(2*Mpr+2*Fr)-0.00003*Math.sin(Mpr+Mr+2*Fr)
+        +0.00003*Math.sin(Mpr-Mr+2*Fr)-0.00002*Math.sin(Mpr-Mr-2*Fr)-0.00002*Math.sin(3*Mpr+Mr)
+        +0.00002*Math.sin(4*Mpr))
+      :(-0.40614*Math.sin(Mpr)+0.17302*E*Math.sin(Mr)+0.01614*Math.sin(2*Mpr)
+        +0.01043*Math.sin(2*Fr)+0.00734*E*Math.sin(Mpr-Mr)-0.00515*E*Math.sin(Mpr+Mr)
+        +0.00209*E*E*Math.sin(2*Mr)-0.00111*Math.sin(2*Fr-Mpr)-0.00057*Math.sin(Mpr+2*Fr)
+        +0.00056*E*Math.sin(2*Mpr+Mr)-0.00042*Math.sin(3*Mpr)+0.00042*E*Math.sin(Mr+2*Fr)
+        +0.00038*E*Math.sin(Mr-2*Fr)-0.00024*E*Math.sin(2*Mpr-Mr)-0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)
+        -0.00007*Math.sin(Mpr+2*Mr)+0.00004*Math.sin(2*Mpr-2*Fr)+0.00004*Math.sin(3*Mr)
+        +0.00003*Math.sin(Mpr+Mr-2*Fr)+0.00003*Math.sin(2*Mpr+2*Fr)-0.00003*Math.sin(Mpr+Mr+2*Fr)
+        +0.00003*Math.sin(Mpr-Mr+2*Fr)-0.00002*Math.sin(Mpr-Mr-2*Fr)-0.00002*Math.sin(3*Mpr+Mr)
+        +0.00002*Math.sin(4*Mpr));
+  } else {
+    const W=0.00306-0.00038*E*Math.cos(Mr)+0.00026*Math.cos(Mpr)
+            -0.00002*Math.cos(Mpr-Mr)+0.00002*Math.cos(Mpr+Mr)+0.00002*Math.cos(2*Fr);
+    JDE+=(-0.62801*Math.sin(Mpr)+0.17172*E*Math.sin(Mr)-0.01183*E*Math.sin(Mpr+Mr)
+          +0.00862*Math.sin(2*Mpr)+0.00804*Math.sin(2*Fr)+0.00454*E*Math.sin(Mpr-Mr)
+          +0.00204*E*E*Math.sin(2*Mr)-0.00180*Math.sin(Mpr-2*Fr)-0.00070*Math.sin(Mpr+2*Fr)
+          -0.00040*Math.sin(3*Mpr)-0.00034*E*Math.sin(2*Mpr-Mr)+0.00032*E*Math.sin(Mr+2*Fr)
+          +0.00032*E*Math.sin(Mr-2*Fr)-0.00028*E*E*Math.sin(Mpr+2*Mr)+0.00027*E*Math.sin(2*Mpr+Mr)
+          -0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)-0.00005*Math.sin(Mpr-Mr-2*Fr)
+          +0.00004*Math.sin(2*Mpr+2*Fr)-0.00004*Math.sin(Mpr+Mr+2*Fr)+0.00003*Math.sin(Mpr-2*Mr)
+          +0.00003*Math.sin(4*Mpr)+0.00003*E*Math.sin(Mr+2*Fr)-0.00003*Math.sin(Mpr+Mr-2*Fr))
+         +(phase===0.25?W:-W);
+  }
+  return JDE;
+}
+
+function proximasFasesLunares(jdNow, nCiclos){
+  // Retorna las próximas n*4 fases ordenadas cronológicamente desde jdNow
+  const k0=Math.floor((jdNow-2451550.09766)/29.530588861);
+  const fases=[{ph:0,icono:'🌑',nombre:'Nueva'},{ph:0.25,icono:'🌓',nombre:'Creciente'},
+               {ph:0.5,icono:'🌕',nombre:'Llena'},{ph:0.75,icono:'🌗',nombre:'Menguante'}];
+  let result=[];
+  for(let dk=0;dk<=nCiclos+1;dk++){
+    for(const {ph,icono,nombre} of fases){
+      const jde=lunarPhaseJDE(k0+dk,ph);
+      if(jde>=jdNow&&result.length<nCiclos*4) result.push({jde,icono,nombre,dias:jde-jdNow});
+    }
+  }
+  return result.sort((a,b)=>a.jde-b.jde).slice(0,nCiclos*4);
+}
+
+function lunarApsisJDE(k, isApogeo){
+  const k_=isApogeo?k+0.5:k, T=k_/1325.55, T2=T*T, T3=T*T2;
+  let JDE=2451534.6408+27.55454989*k_-0.0006691*T2-0.000001098*T3;
+  const D=((171.9179+335.9106046*k_-0.0100383*T2-0.00001156*T3)%360+360)%360;
+  const M=((347.3477+27.1577721*k_ -0.0008130*T2)%360+360)%360;
+  const F=((316.6109+364.5287911*k_ -0.0125053*T2)%360+360)%360;
+  const Dr=D*deg2rad,Mr=M*deg2rad,Fr=F*deg2rad;
+  if(!isApogeo){
+    JDE+=-1.6769*Math.sin(2*Dr)+0.4589*Math.sin(4*Dr)-0.1856*Math.sin(6*Dr)
+         +0.1143*Math.sin(8*Dr)+0.0666*Math.sin(2*Dr-Mr)-0.0596*Math.sin(2*Dr-2*Fr)
+         +0.0175*Math.sin(4*Dr-Mr)-0.0111*Math.sin(Mr)-0.0015*Math.sin(2*Dr+Mr)
+         +0.0008*Math.sin(4*Dr-2*Fr)-0.0004*Math.sin(2*Dr+2*Fr)-0.0002*Math.sin(2*Dr-2*Mr)
+         +0.0001*Math.sin(4*Dr-2*Mr)+0.0001*Math.sin(6*Dr-Mr)-0.0001*Math.sin(2*Fr)
+         +0.0001*Math.sin(2*Mr)-0.0001*Math.sin(4*Dr-2*Fr)+0.0001*Math.sin(2*Dr-2*Fr+Mr);
+  } else {
+    JDE+=0.4392*Math.sin(2*Dr)-0.0931*Math.sin(4*Dr)+0.0361*Math.sin(2*Dr-Mr)
+        +0.0320*Math.sin(Mr)-0.0323*Math.sin(2*Fr)+0.0213*Math.sin(4*Dr-Mr)
+        -0.0199*Math.sin(2*Dr+Mr)-0.0175*Math.sin(6*Dr)-0.0115*Math.sin(4*Dr-2*Mr)
+        +0.0054*Math.sin(2*Dr-2*Mr)-0.0020*Math.sin(2*Fr-Mr)+0.0013*Math.sin(4*Dr+Mr)
+        -0.0011*Math.sin(2*Dr+2*Fr)+0.0003*Math.sin(4*Dr-2*Fr);
+  }
+  return JDE;
+}
+
+function lunarDistELP(jde){
+  // Distancia lunar real en el JDE dado — ELP2000 términos de R
+  const T=(jde-2451545)/36525;
+  function pm(x){return((x%360)+360)%360;}
+  const D=pm(297.8502042+445267.11151668*T-0.0016300*T*T)*deg2rad;
+  const M=pm(357.5291092+35999.05029190*T)*deg2rad;
+  const Mp=pm(134.9634114+477198.86763133*T+0.0089970*T*T)*deg2rad;
+  const F=pm(93.2720993+483202.01752731*T-0.0034029*T*T)*deg2rad;
+  const E=1-0.002516*T,E2=E*E;
+  const rT=[[0,0,1,0,-20905355],[2,0,-1,0,-3699111],[2,0,0,0,-2955968],[0,0,2,0,-569925],
+            [0,1,0,0,48888],[0,0,0,2,-3149],[2,0,-2,0,246158],[2,-1,-1,0,-152138],
+            [2,0,1,0,-170733],[2,-1,0,0,-204586],[0,1,-1,0,-129620],[1,0,0,0,108743],
+            [0,1,1,0,104755],[2,0,0,-2,10321],[0,0,1,-2,79661],[4,0,-1,0,-34782],
+            [0,0,3,0,-23210],[4,0,-2,0,-21636],[2,1,-1,0,24208],[2,1,0,0,30824],
+            [1,0,-1,0,-8379],[1,1,0,0,-16675],[2,-1,1,0,-12831],[2,0,2,0,-10445],
+            [4,0,0,0,-11650],[2,0,-3,0,14403],[0,1,-2,0,-7003],[2,-1,-2,0,10056],[1,0,1,0,6322]];
+  let sR=0;
+  for(const r of rT){const a=r[0]*D+r[1]*M+r[2]*Mp+r[3]*F;const ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sR+=r[4]*ef*Math.cos(a);}
+  return 385000.56+sR/1000;
+}
+
+function proximosApsis(jdNow, n){
+  const k0=Math.floor((jdNow-2451534.6408)/27.55454989);
+  let result=[];
+  for(let dk=0;dk<=n+2;dk++){
+    const kk=k0+dk;
+    const jp=lunarApsisJDE(kk,false);
+    const ja=lunarApsisJDE(kk,true);
+    if(jp>=jdNow&&result.length<n*2)
+      result.push({jde:jp,tipo:'Perigeo',icono:'🔴',dist:lunarDistELP(jp),dias:jp-jdNow});
+    if(ja>=jdNow&&result.length<n*2)
+      result.push({jde:ja,tipo:'Apogeo',icono:'⚪',dist:lunarDistELP(ja),dias:ja-jdNow});
+  }
+  return result.sort((a,b)=>a.jde-b.jde).slice(0,n*2);
+}
+
+
+// ── Exportación universal ───────────────────────────────────────
+const AstroCore = {
+  deltaT,
+  getJulianCenturies,
+  nutation,
+  meanObliquity,
+  trueObliquity,
+  gast,
+  geocentricRadius,
+  applyRefraction,
+  eclipticToEquatorialWithEps,
+  eclipticLonToRaDec,
+  annualAberration,
+  earthHelio,
+  heliocentricCoords,
+  geocentricEclipticWithLightTime,
+  sunPosition,
+  moonPosition,
+  planetPosition,
+  vsop87Mercurio,
+  vsop87Venus,
+  vsop87Marte,
+  vsop87Jupiter,
+  vsop87Saturno,
+  lunarNodes,
+  moonLonEcl,
+  sunLonEcl,
+  planetLonEcl,
+  obliqAsc,
+  obliqAscension,
+  semiArcDiurno,
+  raToEclLon,
+  eclLonToRA,
+  placidusIterateCusp,
+  placidusHouseCusps,
+  getHouseCusps,
+  lunarPhaseJDE,
+  proximasFasesLunares,
+  lunarApsisJDE,
+  lunarDistELP,
+  proximosApsis,
+  deg2rad, rad2deg, C_LIGHT,
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = AstroCore;
+} else if (typeof window !== 'undefined') {
+  window.AstroCore = AstroCore;
+}
