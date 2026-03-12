@@ -2,10 +2,10 @@
  * TimeEngine.js — Motor de Tiempo y Estado
  * Gestión del tiempo juliano, LST, snapshots astronómicos completos.
  *
- * Autor:      Cristian Vásquez
+ * Autor:      Cristian Valeria Bravo
  * Proyecto:   Hermetica Labs — Caelis Engine
  * Repositorio: github.com/HermeticaLabs/caelis-engine
- * © 2024–2026 Cristian Vásquez / Hermetica Labs
+ * © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
  * Todos los derechos reservados.
  *
  * Depende de: AstroCore.js
