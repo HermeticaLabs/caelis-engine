@@ -1,16 +1,15 @@
 /**
- * AstroCore.js — Motor Astronómico Caelis Engine
- * Hermetica Labs © 2025-2026
+ * AstroCore.js — Motor Astronómico Puro
+ * Funciones astronómicas puras: VSOP87, ELP2000, Placidus, Nutación.
+ * Sin dependencias de DOM ni estado global. Verificado contra Meeus.
  *
- * Módulo puro: sin dependencias de DOM, canvas ni estado global.
- * Extraído del monolito caelis_engine_1_5.html — Fase 1 de modularización.
+ * Autor:      Cristian Vásquez
+ * Proyecto:   Hermetica Labs — Caelis Engine
+ * Repositorio: github.com/HermeticaLabs/caelis-engine
+ * © 2024–2026 Cristian Vásquez / Hermetica Labs
+ * Todos los derechos reservados.
  *
- * Precisión:
- *   Planetas:  VSOP87 < 0.1°
- *   Luna:      ELP2000 Cap.47 Meeus < 0.004°
- *   Mercurio:  Meeus Cap.31 < 0.25°
- *   Casas:     Placidus Newton-Raphson
- *   Nutación:  IAU 1980, 63 términos
+ * Depende de: ninguna (módulo independiente)
  */
 
 // ── Constantes matemáticas ───────────────────────────────────────

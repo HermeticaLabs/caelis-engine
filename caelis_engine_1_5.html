@@ -1,11 +1,44 @@
 <!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║              C A E L I S   E N G I N E   1.5               ║
+  ║         Motor Astronómico y Visual Hermético de Precisión    ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+  Autor:     Cristian Vásquez
+  Proyecto:  Hermetica Labs
+  Repositorio: github.com/HermeticaLabs/caelis-engine
+  Creado:    2024
+  Versión:   1.5.0
+  Fecha:     2026-03-11
+
+  © 2024–2026 Cristian Vásquez / Hermetica Labs
+  Todos los derechos reservados.
+
+  Este software es obra original del autor. Su reproducción,
+  distribución o uso comercial sin autorización expresa está
+  prohibido. El código fuente y su arquitectura constituyen
+  propiedad intelectual protegida.
+
+  Componentes astronómicos:
+    · VSOP87  — Bretagnon & Francou (1987)
+    · ELP2000 — Chapront (Meeus, Astronomical Algorithms)
+    · Nutation IAU 1980
+    · Casas Placidus — Newton-Raphson iteration
+    · Atacir — Al-Biruni / Ptolomeo / Naibod
+
+  Stack técnico:
+    · Canvas 2D (sky renderer, astrolabe, vortex)
+    · Three.js r128 (Oculus 3D)
+    · JavaScript puro — sin frameworks externos
+-->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Caelis Engine — motor astronómico hermético de precisión. VSOP87, ELP/Meeus, nodos lunares, Atacir, proyección estereográfica polar.">
-<meta name="version" content="1.3.0">
-<title>Caelis Engine</title>
+<meta name="version" content="1.5.0">
+<title>Caelis Engine 1.5 — Hermetica Labs</title>
 <style>
 *{box-sizing:border-box;}
 body{margin:0;background:#000;overflow:hidden;font-family:'Georgia',serif;}

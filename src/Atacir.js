@@ -1,19 +1,14 @@
 /**
- * Atacir.js — Motor de Direcciones Primarias y Análisis Natal
- * Hermetica Labs © 2025-2026
+ * Atacir.js — Motor de Direcciones Primarias
+ * Direcciones primarias, aspectos, simetrías, ciclos, resonancias y luna.
  *
- * Incluye:
- *   - Direcciones primarias por ascensión oblicua (Ptolomeo / Al-Biruni / Naibod)
- *   - Aspectos natales y de tránsito
- *   - Simetrías angulares (Antiscia, Contrantiscia, ejes ASC/MC)
- *   - Ciclos recurrentes por planeta
- *   - Resonancias orbitales entre pares
- *   - Luna completa: fases, perigeo/apogeo, nodos, retornos
+ * Autor:      Cristian Vásquez
+ * Proyecto:   Hermetica Labs — Caelis Engine
+ * Repositorio: github.com/HermeticaLabs/caelis-engine
+ * © 2024–2026 Cristian Vásquez / Hermetica Labs
+ * Todos los derechos reservados.
  *
  * Depende de: AstroCore.js, TimeEngine.js
- *
- * Panel HTML y CSS incluidos como strings exportables para
- * inyección dinámica en cualquier interfaz.
  */
 
 // ── Panel HTML ───────────────────────────────────────────────────
