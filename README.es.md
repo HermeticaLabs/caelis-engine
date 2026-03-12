@@ -138,7 +138,7 @@ Caelis Engine tiene licencia dual:
 Libre para usar, estudiar, modificar y compartir. Si usas Caelis Engine en un producto o servicio, debes publicar tu código fuente bajo los mismos términos.
 
 **Licencia Comercial — Hermetica Labs**
-Para uso en productos o servicios propietarios sin el requisito de divulgación de código fuente de la AGPL. Contacto: [hermeticalabs@proton.me](mailto:hermeticalabs@proton.me)
+Para uso en productos o servicios propietarios sin el requisito de divulgación de código fuente de la AGPL. Contacto: [hermeticalabs.dev@proton.me](mailto:hermeticalabs.dev@proton.me)
 
 ---
 
