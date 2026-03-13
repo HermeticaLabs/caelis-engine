@@ -41,6 +41,7 @@ Símbolo → Estructura → Simulación
 |---|---|---|---|
 | VSOP87 + ELP2000 | ✓ | a veces | raramente |
 | Verificado contra Meeus | ✓ | raramente | no |
+| Verificado contra JPL Horizons | ✓ | raramente | no |
 | Sin dependencias | ✓ | no | no |
 | Capa simbólica + científica | ✓ | no | no |
 | Análisis de ciclos y resonancias | ✓ | no | no |
@@ -54,8 +55,10 @@ Símbolo → Estructura → Simulación
 ```
 caelis-engine/
 ├── caelis_engine_1_5.html     ← Instrumento completo (archivo único, standalone)
+├── validation.html            ← Suite de precisión — 30/30 PASS
 └── src/
-    ├── AstroCore.js           ← VSOP87, ELP2000, transformaciones de coordenadas
+    ├── astro/
+    │   └── AstroCore.js       ← VSOP87, ELP2000, transformaciones de coordenadas
     ├── TimeEngine.js          ← Fechas julianas, tiempo sidéreo, control temporal
     └── Atacir.js              ← Análisis de ciclos, aspectos, resonancias, progresiones
 ```
@@ -70,12 +73,44 @@ caelis-engine/
 
 ## Precisión
 
-Posición lunar verificada en JDE 2448724.5 (Ejemplo 47.a de Meeus):
-- Calculado: λ = 133.1628°, β = −3.2291°, Δ = 368409.7 km
-- Referencia Meeus: λ = 133.1627°, β = −3.2291°, Δ = 368409.7 km
-- **Error: < 0.001°**
+Todos los resultados verificados por `validation.html` — **30/30 tests PASS**.
 
-Posiciones planetarias verificadas contra JPL Horizons para 2026-03-08 12:00 UTC. Todos los cuerpos dentro de 0.1° de la referencia.
+### Luna · ELP2000 (Meeus Ejemplo 47.a · JDE 2448724.5)
+
+| Cantidad | Calculado | Referencia Meeus | Error |
+|---|---|---|---|
+| λ Longitud eclíptica | 133.1782° | 133.1627° | **0.016°** |
+| β Latitud eclíptica | −3.2286° | −3.2291° | **0.001°** |
+| Δ Distancia geocéntrica | 368.436 km | 368.409,7 km | **27 km** |
+
+### Sol · VSOP87 (Meeus Cap.25)
+
+| Fecha | Calculado | Referencia | Error |
+|---|---|---|---|
+| 1992-10-13 (Libra) | 199.9068° | 199.906° | **< 0.001°** |
+| 1992-04-12 (Tauro) | 22.3402° | 22.340° | **< 0.001°** |
+
+### Planetas · JPL Horizons (2026-03-08 12:00 UTC)
+
+| Planeta | Calculado | JPL Horizons | Error |
+|---|---|---|---|
+| Venus | 2.5469° | 2.5500° | **0.003°** |
+| Marte | 334.6487° | 334.6500° | **0.001°** |
+| Júpiter | 105.0983° | 105.1000° | **0.002°** |
+| Saturno | 2.6230° | 2.6200° | **0.003°** |
+
+### Otros componentes
+
+| Componente | Resultado |
+|---|---|
+| Nutación IAU 1980 ΔΨ | error < 0.004 arcsec vs Meeus |
+| Nutación IAU 1980 Δε | error < 0.002 arcsec vs Meeus |
+| Oblicuidad ε₀ en J2000 | error < 0.002° vs Meeus |
+| Fases lunares (JDE) | error < 0.17 días vs Meeus Cap.49 |
+| Cúspides Placidus | 12/12 calculadas correctamente |
+| Nodos lunares | Nodo Sur = Nodo Norte + 180° ✓ |
+
+**Rango de validez:** Series VSOP87 truncadas (Meeus App.II) — precisión confiable dentro del rango 1800–2100 d.C.
 
 ---
 
@@ -90,7 +125,7 @@ git clone https://github.com/HermeticaLabs/caelis-engine
 O usa los módulos en Node.js:
 
 ```javascript
-import { sunPosition, moonPosition, planetPosition } from './src/AstroCore.js';
+import { sunPosition, moonPosition, planetPosition } from './src/astro/AstroCore.js';
 
 const jd   = 2451545.0; // J2000.0
 const sol  = sunPosition(jd);
@@ -98,6 +133,14 @@ const luna = moonPosition(jd);
 const marte = planetPosition(jd, 'Marte');
 
 console.log(sol.lon, luna.lon, marte.lon); // longitudes eclípticas en grados
+```
+
+Ejecutar la suite de precisión:
+
+```bash
+# Iniciar servidor local
+node -e "const h=require('http'),f=require('fs'),p=require('path');h.createServer((req,res)=>{let fp='.'+req.url;if(fp==='./') fp='./index.html';f.readFile(fp,(e,d)=>{if(e){res.writeHead(404);res.end()}else{const ext=p.extname(fp);const m={'html':'text/html','js':'application/javascript','css':'text/css'};res.writeHead(200,{'Content-Type':m[ext.slice(1)]||'text/plain'});res.end(d)}})}).listen(8080,()=>console.log('http://localhost:8080'))"
+# Abrir http://localhost:8080/validation.html
 ```
 
 ---
@@ -125,8 +168,8 @@ console.log(sol.lon, luna.lon, marte.lon); // longitudes eclípticas en grados
 
 - Jean Meeus — *Astronomical Algorithms*, 2ª ed.
 - VSOP87 — Bretagnon & Francou, 1987
--  ELP2000-82B — Chapront-Touzé & Chapront, 1988
-- Series de nutación IAU, correcciones FK5, aberración
+- ELP2000-82B — Chapront-Touzé & Chapront, 1988
+- Series de nutación IAU 1980, correcciones FK5, aberración anual
 
 ---
 
