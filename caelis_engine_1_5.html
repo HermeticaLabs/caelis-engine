@@ -473,6 +473,14 @@ button:hover{background:rgba(255,255,255,0.18);}
 <div id="oculusUI">
   <button onclick="ocuTogglePanel()" title="Panel Oculus">☰</button>
   <span style="font-size:11px;color:#8a7662;letter-spacing:0.1em;">OCULUS</span>
+  <button id="btnClean" onclick="ocuToggleClean()" title="Vista limpia — oculta estrellas y halo"
+    style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,0.05);
+           border:1px solid rgba(255,255,255,0.15);border-radius:4px;
+           color:rgba(180,180,255,0.75);cursor:pointer;letter-spacing:0.05em;">✦ Clean</button>
+  <button id="btnAutoModo" onclick="ocuToggleAutoModo()" title="Auto: x10 cada 5s"
+    style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,0.05);
+           border:1px solid rgba(255,255,255,0.15);border-radius:4px;
+           color:rgba(180,255,210,0.75);cursor:pointer;letter-spacing:0.05em;">⚡ Auto</button>
   <button onclick="oculusChangeSpeed(-1)" title="Reducir velocidad">◀</button>
   <div id="oculusSpeedDisplay">1x</div>
   <button id="btnSpeedUp" onclick="oculusChangeSpeed(1)" title="Aumentar velocidad — doble clic: auto-acelerar cada 7s">▶</button>
@@ -5180,6 +5188,8 @@ function buildThreeScene(){
   const eclHaloMesh = new THREE.Mesh(new THREE.TorusGeometry(ECL_RADIUS,0.28,8,160),
     new THREE.MeshBasicMaterial({color:0xdcb450,transparent:true,opacity:0.06}));
   eclHaloMesh.rotation.x = Math.PI/2;
+  eclHaloMesh.visible = false; // oculto por defecto — botón clean lo controla
+  window._oculusEclHalo = eclHaloMesh;
   threeScene.add(eclHaloMesh);
 
   // Rete — líneas radiales doradas
@@ -5465,6 +5475,18 @@ function renderOculus(){
 function oculusLoop(){
   if(!modoOculus) return;
   oculusTime += 0.016 * oculusSpeed;
+
+  // Modo automático: x10 cada 5s — no interrumpe armilar ni spiritus
+  if(_autoModoActivo){
+    _autoModoTimer += 0.016;
+    if(_autoModoTimer >= AUTO_MODO_INTERVAL){
+      _autoModoTimer  = 0;
+      oculusSpeedRaw  = Math.min(oculusSpeedRaw * 10, AUTO_MODO_MAX);
+      oculusSpeed     = oculusSpeedRaw;
+      oculusUpdateDisplay();
+    }
+  }
+
   ocuTickRespiracion();
   renderOculus();
   requestAnimationFrame(oculusLoop);
@@ -5492,6 +5514,32 @@ function oculusChangeSpeed(d){
 // ── Auto-acelerador — doble clic en ▶ activa ciclo cada 7s ───────
 let _autoAccelTimer  = null;
 let _autoAccelActivo = false;
+let _autoModoActivo  = false;   // modo automático: x10 cada 5s independiente
+let _autoModoTimer   = 0;       // contador interno
+const AUTO_MODO_INTERVAL = 5.0; // segundos entre cada x10
+const AUTO_MODO_MAX      = 1e7; // sin límite práctico
+
+function ocuToggleAutoModo(){
+  _autoModoActivo = !_autoModoActivo;
+  _autoModoTimer  = 0;
+  const btn = document.getElementById("btnAutoModo");
+  if(_autoModoActivo){
+    if(btn){
+      btn.style.background  = "rgba(100,220,180,0.20)";
+      btn.style.borderColor = "rgba(100,220,180,0.60)";
+      btn.style.color       = "rgba(140,255,210,0.95)";
+      btn.textContent       = "⚡ Auto ON";
+    }
+  } else {
+    if(btn){
+      btn.style.background  = "";
+      btn.style.borderColor = "";
+      btn.style.color       = "";
+      btn.textContent       = "⚡ Auto";
+    }
+    // No resetea velocidad — deja donde está
+  }
+}
 
 function ocuToggleAutoAccel(){
   _autoAccelActivo = !_autoAccelActivo;
@@ -5672,6 +5720,35 @@ let ocuRespirTime   = 0;          // tiempo interno del oscilador
 const RESP_PERIOD   = 8.0;        // segundos de un ciclo completo libre→armilar→libre
 const RESP_TICK     = 0.016;      // delta por frame (~60fps)
 
+// ── Botón Clean — oculta rete visual (stars, halo eclíptica) ────
+let _ocuCleanActivo = false;
+function ocuToggleClean(){
+  _ocuCleanActivo = !_ocuCleanActivo;
+  const btn = document.getElementById("btnClean");
+
+  // Stars
+  if(window._oculusStars)
+    window._oculusStars.visible = !_ocuCleanActivo;
+
+  // Halo eclíptica (el toro grueso decorativo, no el bisel dorado)
+  if(window._oculusEclHalo)
+    window._oculusEclHalo.visible = !_ocuCleanActivo;
+
+  if(btn){
+    if(_ocuCleanActivo){
+      btn.style.background  = "rgba(80,160,255,0.20)";
+      btn.style.borderColor = "rgba(80,160,255,0.60)";
+      btn.style.color       = "rgba(120,200,255,0.95)";
+      btn.textContent       = "✦ Clean ON";
+    } else {
+      btn.style.background  = "";
+      btn.style.borderColor = "";
+      btn.style.color       = "";
+      btn.textContent       = "✦ Clean";
+    }
+  }
+}
+
 function ocuToggleRespiracion(){
   ocuRespirando = !ocuRespirando;
   const btn = document.getElementById("btnRespiracion");
@@ -5744,8 +5821,9 @@ function ocuTickRespiracion(){
 
 // ── Configuración por defecto al entrar a Oculus ─────────────────
 function ocuApplyDefaults(){
-  // Velocidad 562x
-  oculusSpeedRaw = 562.0;
+  // Velocidad inicial 1364x
+  oculusSpeedRaw = 1364.0;
+  oculusSpeed    = 1364.0;
   oculusUpdateDisplay();
 
   // Estelas: longitud 90, opacidad 85%
@@ -5764,33 +5842,35 @@ function ocuApplyDefaults(){
   threeControls.target.set(0, 0, 0);
   threeControls.update();
 
+  // Armilar activado al 100% en todos los planetas
+  for(const p of OCU_PLANETS){
+    ocuArmilarTarget[p.key] = 1.0;
+    ocuArmilarBlend[p.key]  = 1.0;
+    const sl  = document.getElementById("ocuArm_"+p.key);
+    const lbl = document.getElementById("ocuArmVal_"+p.key);
+    if(sl)  sl.value = 100;
+    if(lbl) lbl.textContent = "⊕";
+  }
+
   // Spiritus activado
   if(!ocuRespirando) ocuToggleRespiracion();
 
-  // Sol, Luna, Saturno visibles — resto ocultos
-  const visibles = new Set(["sol","luna","saturno"]);
-
+  // Todos los planetas visibles por defecto
   for(const p of OCU_PLANETS){
     if(!threeBodies[p.key]) continue;
-    const vis = visibles.has(p.key);
-    threeBodies[p.key].visible           = vis;
-    threeBodies[p.key].mesh.visible      = vis;
-    threeBodies[p.key].sprite.visible    = vis;
-    threeBodies[p.key].ring.visible      = vis;
+    threeBodies[p.key].visible        = true;
+    threeBodies[p.key].mesh.visible   = true;
+    threeBodies[p.key].sprite.visible = true;
+    threeBodies[p.key].ring.visible   = false; // anillos siempre ocultos
     if(threeBodies[p.key].satRings)
-      threeBodies[p.key].satRings.visible = vis;
-    // trail siempre visible
-
+      threeBodies[p.key].satRings.visible = true;
     const chk = document.getElementById("ocuChk_"+p.key);
-    if(chk) chk.checked = vis;
-
-    const sl = document.getElementById("ocuArm_"+p.key);
-    if(sl) sl.value = 0;
-    const lbl = document.getElementById("ocuArmVal_"+p.key);
-    if(lbl) lbl.textContent = "libre";
-    ocuArmilarTarget[p.key] = 0.0;
-    ocuArmilarBlend[p.key]  = 0.0;
+    if(chk) chk.checked = true;
   }
+
+  // Panel minimizado por defecto
+  const panel = document.getElementById("oculusPanel");
+  if(panel) panel.classList.remove("visible");
 }
 
 function startOculusAfterLoad(){
