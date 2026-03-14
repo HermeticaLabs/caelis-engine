@@ -196,7 +196,7 @@ function getSnapshot(){
     luna: {
       phase_ratio:  phase,          // 0=nueva, 0.5=llena, 1=nueva
       phase_deg:    phase*180,      // 0–180 grados de elongación
-      illumination: (1+Math.cos(phase*Math.PI))/2  // 0–1
+      illumination: (1-Math.cos(phase*Math.PI))/2  // 0–1  (0=nueva, 1=llena)
     },
     // Ángulos de las casas
     houses: {

@@ -2427,8 +2427,8 @@ function getSnapshot(){
     },
     // Luna
     luna: {
-      phase_ratio:  phase,          // 0=nueva, 0.5=llena, 1=nueva
-      phase_deg:    phase*180,      // 0–180 grados de elongación
+      phase_ratio:  phase,          // 0=nueva, 0.5=llena, 1=nueva (ciclo completo)
+      phase_deg:    phase*180,      // 0–180° elongación angular Sol–Luna
       illumination: (1-Math.cos(phase*Math.PI))/2  // 0–1  (0=nueva, 1=llena)
     },
     // Ángulos de las casas
@@ -3260,7 +3260,7 @@ function exportarJSON(){
 
   // Construir objeto limpio y legible
   let out = {
-    motor:   "Caelis Engine 1.0",
+    motor:   "Caelis Engine 1.5",
     exportado: new Date().toISOString(),
 
     radix: {
@@ -3443,7 +3443,7 @@ function exportarTexto(){
   t.push("");
   t.push("  ◀ = dentro de ±2 años de la edad actual");
   t.push(`  Exportado: ${new Date().toISOString()}`);
-  t.push("  Motor: Caelis Engine 1.0 — VSOP87 / ELP-Meeus");
+  t.push("  Motor: Caelis Engine 1.5 — VSOP87 / ELP-Meeus");
   t.push("");
 
   let texto = t.join("\n");
@@ -4465,7 +4465,7 @@ function drawAstrolabio(){
   ctx.font="11px Georgia";
   ctx.fillStyle="rgba(255,255,255,0.18)";
   ctx.textAlign="right"; ctx.textBaseline="bottom";
-  ctx.fillText("Caelis Engine 1.3 · Astrolabio", canvas.width-16, canvas.height-12);
+  ctx.fillText("Caelis Engine 1.5 · Astrolabio", canvas.width-16, canvas.height-12);
   ctx.restore();
 
   timeOffset+=timeSpeed*(1/60);
@@ -4749,7 +4749,7 @@ function draw(){
   ctx.fillStyle="rgba(255,255,255,0.18)";
   ctx.textAlign="right";
   ctx.textBaseline="bottom";
-  ctx.fillText("Caelis Engine 1.3", canvas.width-16, canvas.height-12);
+  ctx.fillText("Caelis Engine 1.5", canvas.width-16, canvas.height-12);
   ctx.restore();
 
   timeOffset+=timeSpeed*(1/60);
