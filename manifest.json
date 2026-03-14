@@ -1,0 +1,37 @@
+{
+  "name": "Caelis Engine",
+  "short_name": "Caelis",
+  "description": "Motor matemático de modelado astronómico para observación celeste simbólica.",
+  "start_url": "./caelis_engine_1_5.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#080612",
+  "orientation": "any",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
