@@ -4930,6 +4930,7 @@ const flashOverlay  = document.getElementById("flashOverlay");
 let modoOculus      = false;
 let oculusSpeed     = 1.0;
 let oculusTime      = 0;
+let _ocuLastFrame   = 0; // timestamp del frame anterior para delta time real
 
 function resizeOculus(){
   // Solo redimensionar canvas 2D — Three.js maneja su propio resize
@@ -5630,7 +5631,14 @@ function renderOculus(){
 
 function oculusLoop(){
   if(!modoOculus) return;
-  oculusTime += 0.016 * oculusSpeed;
+
+  // Delta time real — mide el tiempo exacto entre frames
+  // Cap a 50ms para proteger contra saltos grandes (cambio de pestaña, etc.)
+  const now = performance.now();
+  const dt  = Math.min((now - (_ocuLastFrame || now)) / 1000, 0.05);
+  _ocuLastFrame = now;
+
+  oculusTime += dt * oculusSpeed;
 
   // Modo automático: x10 cada 5s — no interrumpe armilar ni spiritus
   if(_autoModoActivo){
@@ -6061,6 +6069,7 @@ function startOculusAfterLoad(){
     btn.classList.add("oculus-active");
     btn.textContent="✦ Transmutare ✓";
   });
+  _ocuLastFrame = performance.now(); // reset para delta time limpio al entrar
   oculusLoop();
 }
 
