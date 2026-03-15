@@ -5370,7 +5370,7 @@ function buildThreeScene(){
       new THREE.TorusGeometry(p.r*PHI,_tubeR,12,160),
       new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.38,depthWrite:false})
     );
-    ring.visible = true; // órbitas visibles por defecto
+    ring.visible = false; // anillos armilares nunca visibles — solo posicionamiento
     threeScene.add(ring);
     threeOrbitRings.push({mesh:ring,idx:i});
 
@@ -6025,7 +6025,7 @@ function ocuApplyDefaults(){
     threeBodies[p.key].visible        = true;
     threeBodies[p.key].mesh.visible   = true;
     threeBodies[p.key].sprite.visible = true;
-    threeBodies[p.key].ring.visible   = true; // órbitas visibles por defecto
+    threeBodies[p.key].ring.visible   = false; // anillos armilares nunca visibles
     if(threeBodies[p.key].satRings)
       threeBodies[p.key].satRings.visible = true;
     const chk = document.getElementById("ocuChk_"+p.key);
@@ -6046,7 +6046,7 @@ function startOculusAfterLoad(){
         threeBodies[p.key].visible        = vis;
         threeBodies[p.key].mesh.visible   = vis;
         threeBodies[p.key].sprite.visible = vis;
-        threeBodies[p.key].ring.visible   = vis;
+        threeBodies[p.key].ring.visible   = false; // anillos armilares nunca visibles
         if(threeBodies[p.key].satRings)
           threeBodies[p.key].satRings.visible = vis;
         const chk = document.getElementById(`ocuChk_${p.key}`);
@@ -6122,7 +6122,7 @@ function ocuInitPanel(){
       threeBodies[p.key].visible         = v;
       threeBodies[p.key].mesh.visible    = v;
       threeBodies[p.key].sprite.visible  = v;
-      threeBodies[p.key].ring.visible    = v;
+      threeBodies[p.key].ring.visible    = false; // anillos armilares nunca visibles
       if(threeBodies[p.key].satRings)
         threeBodies[p.key].satRings.visible = v;
       // trail.visible NO se toca — la estela permanece independientemente
