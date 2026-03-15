@@ -602,6 +602,33 @@ const FREE_PALETTES = ["clasico", "neon"];
 
 let _isPremium = false;
 
+// ── Opción B: Seeds revocados ────────────────────────────────────
+// Para revocar una clave comprometida, agrega su seed a este Set
+// y publica una nueva versión del HTML. Las claves de cortesía
+// actuales usan seeds: 7,12,33,42,77,108,144,369,888,1618
+const _CL_REVOKED = new Set([
+  // Agregar seeds revocados aquí, ej: 7, 42
+]);
+
+// ── Opción C: Fingerprint de dispositivo ────────────────────────
+// Genera un hash del entorno del navegador para vincular
+// la clave al dispositivo donde se activó.
+async function _clFingerprint(){
+  const raw = [
+    navigator.userAgent,
+    navigator.language,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screen.width + "x" + screen.height,
+    screen.colorDepth
+  ].join("|");
+  const buf = await crypto.subtle.digest("SHA-256",
+    new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(buf))
+    .map(b=>b.toString(16).padStart(2,"0"))
+    .join("").slice(0,24).toUpperCase();
+}
+
+// ── Verificación de clave (con revocación B) ─────────────────────
 async function _clVerifyKey(key){
   if(!key || !key.startsWith("CAELIS-")) return false;
   const parts = key.replace("CAELIS-","").split("-");
@@ -609,6 +636,7 @@ async function _clVerifyKey(key){
   const candidate = parts.join("").toUpperCase();
   const encoder = new TextEncoder();
   for(let seed = 1; seed <= 10000; seed++){
+    if(_CL_REVOKED.has(seed)) continue; // B: saltar seeds revocados
     const raw  = `${_CL_SALT}:${seed}`;
     const buf  = await crypto.subtle.digest("SHA-256", encoder.encode(raw));
     const hex  = Array.from(new Uint8Array(buf))
@@ -619,13 +647,35 @@ async function _clVerifyKey(key){
   return false;
 }
 
+// ── Inicialización (con binding C) ──────────────────────────────
 async function _clInit(){
   const saved = localStorage.getItem(_CL_STORE);
-  if(saved){
+  if(!saved){ _setPremium(false); return; }
+
+  // Formato nuevo: "CAELIS-XXXX-XXXX-XXXX-XXXX|FINGERPRINT"
+  if(saved.includes("|")){
+    const [key, savedFp] = saved.split("|");
+    const valid = await _clVerifyKey(key);
+    if(!valid){ _setPremium(false); return; }
+    const currentFp = await _clFingerprint();
+    if(currentFp !== savedFp){
+      // Dispositivo distinto — no activar, mostrar aviso suave
+      _setPremium(false);
+      _clShowToast("⚠ Licencia vinculada a otro dispositivo. Contacta hermeticalabs.dev@proton.me");
+      return;
+    }
+    _setPremium(true);
+  } else {
+    // Formato antiguo sin fingerprint — migrar al nuevo formato
     const valid = await _clVerifyKey(saved);
-    if(valid){ _setPremium(true); return; }
+    if(valid){
+      const fp = await _clFingerprint();
+      localStorage.setItem(_CL_STORE, saved + "|" + fp);
+      _setPremium(true);
+    } else {
+      _setPremium(false);
+    }
   }
-  _setPremium(false);
 }
 
 function _setPremium(val){
@@ -654,7 +704,9 @@ async function _clActivate(){
   if(msg) msg.textContent = "Verificando…";
   const valid = await _clVerifyKey(key);
   if(valid){
-    localStorage.setItem(_CL_STORE, key);
+    // C: guardar clave vinculada al fingerprint del dispositivo
+    const fp = await _clFingerprint();
+    localStorage.setItem(_CL_STORE, key + "|" + fp);
     _setPremium(true);
     _clCloseModal();
     _clShowToast("✦ Caelis Premium activado. Gracias por tu apoyo.");
