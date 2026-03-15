@@ -601,7 +601,7 @@ button:hover{background:rgba(255,255,255,0.18);}
 const _CL_SALT   = "HermeticaLabs_Caelis_2026_CVB";
 const _CL_STORE  = "caelis_license_v1";
 
-const FREE_PLANETS  = ["sol", "luna", "mercurio"];
+const FREE_PLANETS  = ["sol", "luna", "saturno"];
 const FREE_PALETTES = ["clasico", "neon"];
 
 let _isPremium = false;
@@ -2427,8 +2427,8 @@ function getSnapshot(){
     },
     // Luna
     luna: {
-      phase_ratio:  phase,          // 0=nueva, 0.5=llena, 1=nueva (ciclo completo)
-      phase_deg:    phase*180,      // 0–180° elongación angular Sol–Luna
+      phase_ratio:  phase,          // 0=nueva, 0.5=llena, 1=nueva
+      phase_deg:    phase*180,      // 0–180 grados de elongación
       illumination: (1-Math.cos(phase*Math.PI))/2  // 0–1  (0=nueva, 1=llena)
     },
     // Ángulos de las casas
@@ -3147,6 +3147,48 @@ function calcAtacir(){
 
   // Calcular aspectos
   let aspNatales  = calcAspectosNatales(rx);
+
+  // ── FREEMIUM: Free solo muestra 1 aspecto natal (el más exacto), clave Naibod fija ──
+  if(!_isPremium){
+    // Forzar clave Naibod en free
+    key = 0.8219;
+    // Solo el aspecto natal más exacto
+    let mejorAspecto = aspNatales.length > 0 ? [aspNatales[0]] : [];
+
+    // Guardar para exportación limitada
+    window._lastAtacir = { rx, tr, aspNatales: mejorAspecto, aspTransito: [],
+      ageNow, key, rxDate, rxTime, rxLat, rxLon, trDate, trTime, trLat, trLon };
+
+    // Renderizar versión free limitada
+    let htmlMejor = mejorAspecto.length > 0
+      ? _renderTablaAspectos(mejorAspecto, "Planeta A", "Planeta B", "Sin aspectos.")
+      : `<div class="note" style="text-align:center;padding:8px;">Sin aspectos mayores.</div>`;
+
+    html += `
+  <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+    <div style="font-size:10.5px;color:rgba(220,180,80,0.85);margin-bottom:8px;letter-spacing:0.04em;">
+      ✦ Aspecto natal más exacto (Naibod) — clave ${key}
+    </div>
+    ${htmlMejor}
+    <div style="margin-top:10px;padding:10px 12px;background:rgba(220,180,80,0.06);
+                border:1px solid rgba(220,180,80,0.20);border-radius:8px;text-align:center;">
+      <div style="font-size:11px;color:rgba(220,180,80,0.80);margin-bottom:6px;">
+        🔒 <b>Caelis Premium</b> incluye aspectos de tránsito, simetrías,<br>
+        ciclos planetarios, resonancias, análisis lunar y exportación completa.
+      </div>
+      <button onclick="_clOpenModal()" style="background:linear-gradient(135deg,#b8920a,#7a5f05);
+        border:none;border-radius:6px;color:#fff8e0;font-size:11.5px;
+        padding:7px 18px;cursor:pointer;letter-spacing:0.06em;">
+        ✦ Activar Premium
+      </button>
+    </div>
+  </div>`;
+
+    document.getElementById("atacirResults").innerHTML = html;
+    return;
+  }
+
+  // ── PREMIUM: cálculo completo ──
   let aspTransito = calcAspectosTransito(rx, tr);
 
   // Guardar para exportación (después de calcular aspectos)
@@ -3261,6 +3303,7 @@ function exportarJSON(){
   // Construir objeto limpio y legible
   let out = {
     motor:   "Caelis Engine 1.5",
+    version: _isPremium ? "premium" : "free",
     exportado: new Date().toISOString(),
 
     radix: {
@@ -3349,10 +3392,12 @@ function exportarJSON(){
       angulo: a.angulo, orbe: +a.orb, exactitud: +(a.exactitud*100).toFixed(1)
     })),
 
-    aspectos_transito: d.aspTransito.map(a=>({
-      transito: a.nmTr, natal: a.nmRx, aspecto: a.asp,
-      angulo: a.angulo, orbe: +a.orb, exactitud: +(a.exactitud*100).toFixed(1)
-    }))
+    ...(_isPremium ? {
+      aspectos_transito: d.aspTransito.map(a=>({
+        transito: a.nmTr, natal: a.nmRx, aspecto: a.asp,
+        angulo: a.angulo, orbe: +a.orb, exactitud: +(a.exactitud*100).toFixed(1)
+      }))
+    } : { nota_premium: "Actualiza a Premium para aspectos de tránsito, ciclos y resonancias — ko-fi.com/hermeticalabs" })
   };
 
   let json = JSON.stringify(out, null, 2);
@@ -3402,46 +3447,54 @@ function exportarTexto(){
     }
   }
 
-  t.push("");
-  t.push("  ── TRÁNSITO ────────────────────────────────────────");
-  t.push(`  Fecha tránsito : ${d.trDate}  ${d.trTime} UTC`);
-  t.push(`  Lugar tránsito : ${d.trLat.toFixed(3)}°,  ${d.trLon.toFixed(3)}°`);
-  t.push(`  Edad           : ${d.ageNow.toFixed(2)} años`);
+  if(_isPremium){
+    t.push("");
+    t.push("  ── TRÁNSITO ────────────────────────────────────────");
+    t.push(`  Fecha tránsito : ${d.trDate}  ${d.trTime} UTC`);
+    t.push(`  Lugar tránsito : ${d.trLat.toFixed(3)}°,  ${d.trLon.toFixed(3)}°`);
+    t.push(`  Edad           : ${d.ageNow.toFixed(2)} años`);
 
-  t.push("");
-  t.push("  ── ASPECTOS DE TRÁNSITO ACTIVOS ────────────────────");
-  if(d.aspTransito.length === 0){
-    t.push("  Sin aspectos de tránsito activos.");
-  } else {
-    for(let a of d.aspTransito){
-      let ex = (a.exactitud*100).toFixed(0);
-      t.push(`  TR ${(glyphs[a.nmTr]+" "+a.nmTr).padEnd(12)} ${a.sim.padEnd(3)} RX ${(glyphs[a.nmRx]+" "+a.nmRx).padEnd(12)}  orbe ${a.orb}°  (${ex}%)`);
+    t.push("");
+    t.push("  ── ASPECTOS DE TRÁNSITO ACTIVOS ────────────────────");
+    if(d.aspTransito.length === 0){
+      t.push("  Sin aspectos de tránsito activos.");
+    } else {
+      for(let a of d.aspTransito){
+        let ex = (a.exactitud*100).toFixed(0);
+        t.push(`  TR ${(glyphs[a.nmTr]+" "+a.nmTr).padEnd(12)} ${a.sim.padEnd(3)} RX ${(glyphs[a.nmRx]+" "+a.nmRx).padEnd(12)}  orbe ${a.orb}°  (${ex}%)`);
+      }
     }
+
+    t.push("");
+    t.push("  ── ATACIR ──────────────────────────────────────────");
+    t.push(`  Clave: ${d.key} (${d.key===1?"Ptolomeo":d.key===0.8219?"Naibod":"Solar"})`);
+    t.push(`  ${"Promissor".padEnd(14)} ${"→ ASC arc".padEnd(12)} ${"Edad ASC".padEnd(12)} ${"→ MC arc".padEnd(12)} Edad MC`);
+    t.push("  " + "─".repeat(60));
+
+    const names = Object.keys(glyphs);
+    for(let nm of names){
+      let b = d.rx.bodies[nm];
+      if(!b) continue;
+      let oaProm = obliqAscension(b.ra, b.dec, d.rxLat);
+      let oaASC  = obliqAscension(eclipticLonToRaDec(d.rx.houses.asc).ra*rad2deg,
+                                  eclipticLonToRaDec(d.rx.houses.asc).dec*rad2deg, d.rxLat);
+      let oaMC   = obliqAscension(eclipticLonToRaDec(d.rx.houses.mc).ra*rad2deg,
+                                  eclipticLonToRaDec(d.rx.houses.mc).dec*rad2deg,  d.rxLat);
+      let arcASC = ((oaProm-oaASC)+360)%360; if(arcASC>180) arcASC-=360;
+      let arcMC  = ((oaProm-oaMC)+360)%360;  if(arcMC>180)  arcMC-=360;
+      let mark = (x)=> Math.abs(x/d.key - d.ageNow) < 2 ? " ◀" : "";
+      t.push(`  ${(glyphs[nm]+" "+nm).padEnd(14)} ${(arcASC>=0?"+":"")+arcASC.toFixed(2)+"°".padEnd(10)} ${(arcASC/d.key).toFixed(2)+" a"+(mark(arcASC)).padEnd(8)} ${(arcMC>=0?"+":"")+arcMC.toFixed(2)+"°".padEnd(10)} ${(arcMC/d.key).toFixed(2)+" a"+mark(arcMC)}`);
+    }
+    t.push("");
+    t.push("  ◀ = dentro de ±2 años de la edad actual");
+  } else {
+    t.push("");
+    t.push("  ── VERSIÓN FREE ─────────────────────────────────────");
+    t.push("  Tránsitos, ciclos, resonancias y Atacir completo");
+    t.push("  disponibles en Caelis Premium.");
+    t.push("  ✦ ko-fi.com/hermeticalabs");
   }
 
-  t.push("");
-  t.push("  ── ATACIR ──────────────────────────────────────────");
-  t.push(`  Clave: ${d.key} (${d.key===1?"Ptolomeo":d.key===0.8219?"Naibod":"Solar"})`);
-  t.push(`  ${"Promissor".padEnd(14)} ${"→ ASC arc".padEnd(12)} ${"Edad ASC".padEnd(12)} ${"→ MC arc".padEnd(12)} Edad MC`);
-  t.push("  " + "─".repeat(60));
-
-  const names = Object.keys(glyphs);
-  for(let nm of names){
-    let b = d.rx.bodies[nm];
-    if(!b) continue;
-    let oaProm = obliqAscension(b.ra, b.dec, d.rxLat);
-    let oaASC  = obliqAscension(eclipticLonToRaDec(d.rx.houses.asc).ra*rad2deg,
-                                eclipticLonToRaDec(d.rx.houses.asc).dec*rad2deg, d.rxLat);
-    let oaMC   = obliqAscension(eclipticLonToRaDec(d.rx.houses.mc).ra*rad2deg,
-                                eclipticLonToRaDec(d.rx.houses.mc).dec*rad2deg,  d.rxLat);
-    let arcASC = ((oaProm-oaASC)+360)%360; if(arcASC>180) arcASC-=360;
-    let arcMC  = ((oaProm-oaMC)+360)%360;  if(arcMC>180)  arcMC-=360;
-    let mark = (x)=> Math.abs(x/d.key - d.ageNow) < 2 ? " ◀" : "";
-    t.push(`  ${(glyphs[nm]+" "+nm).padEnd(14)} ${(arcASC>=0?"+":"")+arcASC.toFixed(2)+"°".padEnd(10)} ${(arcASC/d.key).toFixed(2)+" a"+(mark(arcASC)).padEnd(8)} ${(arcMC>=0?"+":"")+arcMC.toFixed(2)+"°".padEnd(10)} ${(arcMC/d.key).toFixed(2)+" a"+mark(arcMC)}`);
-  }
-
-  t.push("");
-  t.push("  ◀ = dentro de ±2 años de la edad actual");
   t.push(`  Exportado: ${new Date().toISOString()}`);
   t.push("  Motor: Caelis Engine 1.5 — VSOP87 / ELP-Meeus");
   t.push("");
@@ -6116,7 +6169,17 @@ window.addEventListener("DOMContentLoaded", ()=>{
   <div id="_clModalBox">
     <button id="_clCloseBtn" onclick="_clCloseModal()">✕</button>
     <h2>✦ Caelis Premium</h2>
-    <p>Activa todas las órbitas, paletas, panel Atacir<br>y resonancias planetarias.</p>
+    <p style="font-size:11px;color:#8a7050;text-align:left;margin:0 0 14px;line-height:1.8;">
+      <span style="color:rgba(220,180,80,0.90);font-size:12px;">Versión Free incluye:</span><br>
+      · Modo Caelis 2D completo · Control de tiempo<br>
+      · Oculus 3D — Sol, Luna, Saturno · 2 paletas<br>
+      · Atacir — 1 aspecto natal (Naibod)<br><br>
+      <span style="color:rgba(160,220,180,0.90);font-size:12px;">✦ Premium desbloquea:</span><br>
+      · Oculus 3D — 7 planetas completos · 6 paletas<br>
+      · Atacir completo — tránsitos, simetrías,<br>
+      &nbsp;&nbsp;ciclos, resonancias, análisis lunar<br>
+      · Exportación JSON y texto completos
+    </p>
     <input id="_clKeyInput" type="text" placeholder="CAELIS-XXXX-XXXX-XXXX-XXXX"
            onkeydown="if(event.key==='Enter') _clActivate()">
     <button id="_clActivateBtn" onclick="_clActivate()">Activar licencia</button>
