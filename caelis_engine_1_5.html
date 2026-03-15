@@ -69,7 +69,30 @@ button:hover{background:rgba(255,255,255,0.18);}
   min-width:190px;
   backdrop-filter:blur(8px);
   pointer-events:none;
+  transition: padding 0.2s ease;
 }
+#infoPanel.collapsed{
+  padding:7px 14px;
+  min-width:unset;
+}
+#infoPanel.collapsed .ip-collapsible{
+  display:none;
+}
+#_infoPanelToggle{
+  position:absolute;
+  top:6px; right:8px;
+  background:none;
+  border:none;
+  color:rgba(180,165,255,0.55);
+  font-size:11px;
+  cursor:pointer;
+  pointer-events:all;
+  padding:2px 4px;
+  line-height:1;
+  transition:color 0.15s;
+  user-select:none;
+}
+#_infoPanelToggle:hover{ color:rgba(220,180,80,0.90); }
 #infoPanel .row{ display:flex; justify-content:space-between; gap:12px; }
 #infoPanel .lbl{ color:rgba(180,165,255,0.75); white-space:nowrap; }
 #infoPanel .val{ color:rgba(255,255,255,0.92); text-align:right; }
@@ -300,7 +323,7 @@ button:hover{background:rgba(255,255,255,0.18);}
     transform:translateY(0);
   }
 
-  /* Panel info — más compacto */
+  /* Panel info — más compacto, colapsado por defecto en móvil */
   #infoPanel {
     top:auto; bottom:70px; right:8px; left:8px;
     min-width:unset; font-size:11px; padding:8px 10px;
@@ -568,7 +591,9 @@ button:hover{background:rgba(255,255,255,0.18);}
 </div>
 
 <div id="infoPanel">
+  <button id="_infoPanelToggle" onclick="_toggleInfoPanel()" title="Mostrar/ocultar panel">▾</button>
   <div class="row"><span class="lbl">Fecha</span><span class="val" id="ip-date">—</span></div>
+  <div class="ip-collapsible">
   <div class="row"><span class="lbl">Hora UTC</span><span class="val" id="ip-utc">—</span></div>
   <div class="row"><span class="lbl">Hora local</span><span class="val" id="ip-local">—</span></div>
   <hr class="sep">
@@ -587,6 +612,7 @@ button:hover{background:rgba(255,255,255,0.18);}
       onkeydown="if(event.key==='Enter') applyManualLocation(this.value)">
   </div>
   <div id="locStatus">Santiago de Chile</div>
+  </div>
 </div>
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -777,6 +803,15 @@ function showTooltip(x, y, html){
   _tooltip.style.top  = ty + "px";
 }
 function hideTooltip(){ _tooltip.style.display = "none"; }
+
+// ── Toggle panel info ────────────────────────────────────────────
+function _toggleInfoPanel(){
+  const panel = document.getElementById("infoPanel");
+  const btn   = document.getElementById("_infoPanelToggle");
+  const collapsed = panel.classList.toggle("collapsed");
+  btn.textContent = collapsed ? "▸" : "▾";
+  btn.title = collapsed ? "Expandir panel" : "Colapsar panel";
+}
 
 function fmtRA(raDeg){
   let h = Math.floor(raDeg/15), m = Math.floor((raDeg%15)*4),
