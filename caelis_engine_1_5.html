@@ -473,10 +473,6 @@ button:hover{background:rgba(255,255,255,0.18);}
 <div id="oculusUI">
   <button onclick="ocuTogglePanel()" title="Panel Oculus">☰</button>
   <span style="font-size:11px;color:#8a7662;letter-spacing:0.1em;">OCULUS</span>
-  <button id="btnClean" onclick="ocuToggleClean()" title="Vista limpia — oculta estrellas y halo"
-    style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,0.05);
-           border:1px solid rgba(255,255,255,0.15);border-radius:4px;
-           color:rgba(180,180,255,0.75);cursor:pointer;letter-spacing:0.05em;">✦ Clean</button>
   <button id="btnAutoModo" onclick="ocuToggleAutoModo()" title="Auto: x10 cada 5s"
     style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,0.05);
            border:1px solid rgba(255,255,255,0.15);border-radius:4px;
@@ -5283,30 +5279,30 @@ function buildThreeScene(){
   }
   const starGeo = new THREE.BufferGeometry();
   starGeo.setAttribute("position", new THREE.BufferAttribute(starPos,3));
-  threeScene.add(new THREE.Points(starGeo,
-    new THREE.PointsMaterial({color:0xffffff,size:0.8,sizeAttenuation:true})));
+  const starPoints = new THREE.Points(starGeo,
+    new THREE.PointsMaterial({color:0xffffff,size:0.8,sizeAttenuation:true}));
+  starPoints.visible = false; // no se muestra en el modo limpio por defecto
+  threeScene.add(starPoints);
+  window._oculusStars = starPoints;
 
-  // Anillo eclíptica contenedor (estilo latón OCULUS)
+  // Bisel de la eclíptica — VISIBLE por defecto
   const eclMat = new THREE.MeshStandardMaterial({color:0xb5a642,metalness:1.0,roughness:0.2,
     emissive:0x221100,emissiveIntensity:0.1});
   const eclMesh = new THREE.Mesh(new THREE.TorusGeometry(ECL_RADIUS,0.06,8,160), eclMat);
   eclMesh.rotation.x = Math.PI/2;
   threeScene.add(eclMesh);
-  eclMesh.visible = false; // ocultar aro eclíptico
+  eclMesh.visible = true; // bisel siempre visible
+  window._oculusEclMesh = eclMesh;
+
+  // Halo eclíptica — nunca visible (eliminado visualmente)
   const eclHaloMesh = new THREE.Mesh(new THREE.TorusGeometry(ECL_RADIUS,0.28,8,160),
     new THREE.MeshBasicMaterial({color:0xdcb450,transparent:true,opacity:0.06}));
   eclHaloMesh.rotation.x = Math.PI/2;
-  eclHaloMesh.visible = false; // oculto por defecto — botón clean lo controla
+  eclHaloMesh.visible = false; // nunca visible
   window._oculusEclHalo = eclHaloMesh;
   threeScene.add(eclHaloMesh);
 
-  // Rete — líneas radiales doradas
-  const matGoldLine = new THREE.LineBasicMaterial({color:0xe0c097,transparent:true,opacity:0.25});
-  for(let a=0;a<Math.PI*2;a+=Math.PI/6){
-    const pts=[new THREE.Vector3(0,0,0),
-               new THREE.Vector3(ECL_RADIUS*Math.cos(a),0,ECL_RADIUS*Math.sin(a))];
-    threeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),matGoldLine));
-  }
+  // Radios dorados — NO se crean (eliminados de la escena)
 
   const pal = OCU_PALETTES[ocuPalette];
 
@@ -5322,7 +5318,7 @@ function buildThreeScene(){
       new THREE.TorusGeometry(p.r*PHI,_tubeR,12,160),
       new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.38,depthWrite:false})
     );
-    ring.visible = false; // ocultos por defecto — no entorpecen la vista
+    ring.visible = true; // órbitas visibles por defecto
     threeScene.add(ring);
     threeOrbitRings.push({mesh:ring,idx:i});
 
@@ -5951,6 +5947,14 @@ function ocuApplyDefaults(){
   threeControls.update();
 
   // Armilar activado al 100% en todos los planetas
+  ocuArmilarActivo = true;
+  const btnArm = document.getElementById("btnArmilar");
+  if(btnArm){
+    btnArm.style.background  = "rgba(212,175,55,0.25)";
+    btnArm.style.borderColor = "#d4af37";
+    btnArm.style.color       = "#d4af37";
+    btnArm.textContent       = "⊕ Armilar ✓";
+  }
   for(const p of OCU_PLANETS){
     ocuArmilarTarget[p.key] = 1.0;
     ocuArmilarBlend[p.key]  = 1.0;
@@ -5969,7 +5973,7 @@ function ocuApplyDefaults(){
     threeBodies[p.key].visible        = true;
     threeBodies[p.key].mesh.visible   = true;
     threeBodies[p.key].sprite.visible = true;
-    threeBodies[p.key].ring.visible   = false; // anillos siempre ocultos
+    threeBodies[p.key].ring.visible   = true; // órbitas visibles por defecto
     if(threeBodies[p.key].satRings)
       threeBodies[p.key].satRings.visible = true;
     const chk = document.getElementById("ocuChk_"+p.key);
