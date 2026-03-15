@@ -533,7 +533,7 @@ button:hover{background:rgba(255,255,255,0.18);}
       </div>
       <!-- Tránsito -->
       <div class="atc-col">
-        <h4>⊙ Momento Actual (Tránsito)</h4>
+        <h4>⊙ Momento Actual (Tránsito) <span id="_atcTransitoLock" style="font-size:9px;color:rgba(220,180,80,0.60);"></span></h4>
         <div class="atc-row"><label>Fecha</label><input type="date" id="tr-date"></div>
         <div class="atc-row"><label>Hora</label><input type="time" id="tr-time" step="60"></div>
         <div class="atc-row"><label>Lat</label><input type="number" id="tr-lat" step="0.01" min="-90" max="90"></div>
@@ -646,6 +646,9 @@ function _setPremium(val){
   });
   const badge = document.getElementById("_clBadge");
   if(badge) badge.textContent = _isPremium ? "✦ Premium" : "Free";
+  // Refrescar estado del panel Atacir si está abierto
+  const panel = document.getElementById("atacirPanel");
+  if(panel && panel.classList.contains("open")) _atacirApplyFreeState();
 }
 
 async function _clActivate(){
@@ -3676,18 +3679,70 @@ function _renderTablaAspectos(aspectos, colA, colB, vacioMsg){
 
 
 function toggleAtacirPanel(){
-  if(!_isPremium){
-    _clOpenModal();
-    _clShowToast("🔒 El panel Atacir es una función Premium.");
-    return;
-  }
   let p = document.getElementById("atacirPanel");
   let b = document.getElementById("btnAtacir");
   p.classList.toggle("open");
   let open = p.classList.contains("open");
   if(b){ b.style.background   = open ? "rgba(220,180,80,0.18)" : ""; }
   if(b){ b.style.borderColor  = open ? "rgba(220,180,80,0.50)" : ""; }
-  if(open) syncTransitoNow();
+  if(open){
+    syncTransitoNow();
+    _atacirApplyFreeState();
+  }
+}
+
+// Aplica el estado visual free/premium al panel Atacir al abrirlo
+function _atacirApplyFreeState(){
+  // Selector de clave: deshabilitado en free (forzado a Naibod)
+  const selKey = document.getElementById("atc-key");
+  if(selKey){
+    selKey.disabled = !_isPremium;
+    selKey.style.opacity = _isPremium ? "1" : "0.45";
+    selKey.title = _isPremium ? "" : "🔒 Clave fija en Naibod — activa Premium para cambiarla";
+  }
+  // Columna tránsito: campos visibles pero deshabilitados en free
+  const trFields = ["tr-date","tr-time","tr-lat","tr-lon"];
+  trFields.forEach(id => {
+    const el = document.getElementById(id);
+    if(el){
+      el.disabled = !_isPremium;
+      el.style.opacity = _isPremium ? "1" : "0.45";
+    }
+  });
+  // Botón sincronizar: deshabilitado en free
+  const btnSync = document.querySelector("#atacirPanel .atc-btn[onclick='syncTransitoNow()']");
+  if(btnSync){
+    btnSync.disabled = !_isPremium;
+    btnSync.style.opacity = _isPremium ? "1" : "0.45";
+    btnSync.title = _isPremium ? "" : "🔒 Premium";
+  }
+  // Ícono lock en título de columna tránsito
+  const lockSpan = document.getElementById("_atcTransitoLock");
+  if(lockSpan) lockSpan.textContent = _isPremium ? "" : "🔒 Premium";
+  let badge = document.getElementById("_atacirVersionBadge");
+  if(!badge){
+    badge = document.createElement("div");
+    badge.id = "_atacirVersionBadge";
+    badge.style.cssText = [
+      "font-size:10px","padding:3px 10px","border-radius:4px","margin-bottom:8px",
+      "text-align:center","cursor:pointer","letter-spacing:0.06em"
+    ].join(";");
+    const body = document.getElementById("atacirBody");
+    if(body) body.insertBefore(badge, body.firstChild);
+  }
+  if(_isPremium){
+    badge.textContent = "✦ Premium activo";
+    badge.style.background = "rgba(160,220,160,0.10)";
+    badge.style.border = "1px solid rgba(160,220,160,0.25)";
+    badge.style.color = "rgba(160,220,160,0.80)";
+    badge.onclick = null;
+  } else {
+    badge.innerHTML = "🔒 Versión Free — <u>Activar Premium</u> para tránsitos, ciclos y resonancias";
+    badge.style.background = "rgba(220,180,80,0.08)";
+    badge.style.border = "1px solid rgba(220,180,80,0.25)";
+    badge.style.color = "rgba(220,180,80,0.75)";
+    badge.onclick = ()=>{ _clOpenModal(); };
+  }
 }
 
 // ======= MODO CARTA NATAL FIJA =======
