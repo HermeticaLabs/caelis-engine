@@ -473,7 +473,7 @@ button:hover{background:rgba(255,255,255,0.18);}
 <div id="oculusUI">
   <button onclick="ocuTogglePanel()" title="Panel Oculus">☰</button>
   <span style="font-size:11px;color:#8a7662;letter-spacing:0.1em;">OCULUS</span>
-  <button id="btnAutoModo" onclick="ocuToggleAutoModo()" title="Auto: x10 cada 5s"
+  <button id="btnAutoModo" onclick="ocuToggleAutoModo()" title="Auto: +30 cada 5s"
     style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,0.05);
            border:1px solid rgba(255,255,255,0.15);border-radius:4px;
            color:rgba(180,255,210,0.75);cursor:pointer;letter-spacing:0.05em;">⚡ Auto</button>
@@ -5642,10 +5642,10 @@ function oculusLoop(){
 
   // Modo automático: x10 cada 5s — no interrumpe armilar ni spiritus
   if(_autoModoActivo){
-    _autoModoTimer += 0.016;
+    _autoModoTimer += dt;
     if(_autoModoTimer >= AUTO_MODO_INTERVAL){
       _autoModoTimer  = 0;
-      oculusSpeedRaw  = Math.min(oculusSpeedRaw * 10, AUTO_MODO_MAX);
+      oculusSpeedRaw  = Math.min(oculusSpeedRaw + 30, AUTO_MODO_MAX);
       oculusSpeed     = oculusSpeedRaw;
       oculusUpdateDisplay();
     }
@@ -5678,9 +5678,9 @@ function oculusChangeSpeed(d){
 // ── Auto-acelerador — doble clic en ▶ activa ciclo cada 7s ───────
 let _autoAccelTimer  = null;
 let _autoAccelActivo = false;
-let _autoModoActivo  = false;   // modo automático: x10 cada 5s independiente
+let _autoModoActivo  = false;   // modo automático: +30 cada 5s independiente
 let _autoModoTimer   = 0;       // contador interno
-const AUTO_MODO_INTERVAL = 5.0; // segundos entre cada x10
+const AUTO_MODO_INTERVAL = 5.0; // segundos entre cada +30
 const AUTO_MODO_MAX      = 1e7; // sin límite práctico
 
 function ocuToggleAutoModo(){
