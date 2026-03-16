@@ -855,7 +855,30 @@ function showTooltip(x, y, html){
 }
 function hideTooltip(){ _tooltip.style.display = "none"; }
 
-// ── Modal cuerpo celeste — click/tap en Caelis 2D y Astrolabio ──
+// ── Datos signos zodiacales ──────────────────────────────────────
+const _ZODIAC_INFO = [
+  { nombre:"Aries",       glyph:"♈", elem:"Fuego · Cardinal", reg:"Marte",    desc:"Primer signo del zodíaco. Marca el equinoccio vernal — el punto donde el Sol cruza el ecuador celeste hacia el norte. Energía iniciática, acción directa." },
+  { nombre:"Tauro",       glyph:"♉", elem:"Tierra · Fijo",    reg:"Venus",    desc:"El Sol transita Tauro entre abril y mayo. Asociado a la consolidación y los ciclos de la naturaleza. Venus rige su expresión sensorial y material." },
+  { nombre:"Géminis",     glyph:"♊", elem:"Aire · Mutable",   reg:"Mercurio", desc:"Signo de la dualidad y el intercambio. El Sol lo transita en mayo-junio. Mercurio como regente vincula el pensamiento con la comunicación." },
+  { nombre:"Cáncer",      glyph:"♋", elem:"Agua · Cardinal",  reg:"Luna",     desc:"El solsticio de verano ocurre en Cáncer. La Luna como regente lo conecta con los ciclos de 27.3 días y las mareas terrestres." },
+  { nombre:"Leo",         glyph:"♌", elem:"Fuego · Fijo",     reg:"Sol",      desc:"El Sol rige Leo — su domicilio propio. El centro lumínico del sistema en su signo de máxima expresión. Julio-agosto." },
+  { nombre:"Virgo",       glyph:"♍", elem:"Tierra · Mutable", reg:"Mercurio", desc:"Signo de análisis y síntesis. El Sol transita Virgo en agosto-septiembre. El equinoccio otoñal marca su límite con Libra." },
+  { nombre:"Libra",       glyph:"♎", elem:"Aire · Cardinal",  reg:"Venus",    desc:"El equinoccio otoñal ocurre en Libra — el punto opuesto al punto vernal. Equilibrio entre luz y oscuridad. Venus rige su búsqueda de armonía." },
+  { nombre:"Escorpio",    glyph:"♏", elem:"Agua · Fijo",      reg:"Marte",    desc:"Profundidad, transformación y ciclos ocultos. El Sol lo transita en octubre-noviembre. Asociado al descenso de la luz solar hacia el solsticio." },
+  { nombre:"Sagitario",   glyph:"♐", elem:"Fuego · Mutable",  reg:"Júpiter",  desc:"Júpiter rige Sagitario. El Sol lo transita en noviembre-diciembre. El solsticio de invierno marca su límite con Capricornio." },
+  { nombre:"Capricornio", glyph:"♑", elem:"Tierra · Cardinal",reg:"Saturno",  desc:"El solsticio de invierno inicia Capricornio. Saturno como regente lo conecta con los ciclos de 29.5 años y las estructuras de largo plazo." },
+  { nombre:"Acuario",     glyph:"♒", elem:"Aire · Fijo",      reg:"Saturno",  desc:"El Sol transita Acuario en enero-febrero. Saturno como regente tradicional vincula sus ciclos con la estructura social y los patrones colectivos." },
+  { nombre:"Piscis",      glyph:"♓", elem:"Agua · Mutable",   reg:"Júpiter",  desc:"Último signo del zodíaco. El Sol lo transita en febrero-marzo. Cierra el ciclo anual antes del punto vernal. Júpiter como regente tradicional." },
+];
+
+// ── Datos aspectos ───────────────────────────────────────────────
+const _ASP_INFO = {
+  "Conjunción":  { glyph:"☌", desc:"Dos cuerpos en el mismo grado eclíptico (orbe ≤8°). La conjunción fusiona las energías de ambos planetas. Es el punto de inicio de su ciclo sinódico mutuo. Máxima intensidad cuando el orbe es 0°." },
+  "Oposición":   { glyph:"☍", desc:"Separación de 180° entre dos cuerpos. Punto de máxima tensión y consciencia en el ciclo sinódico. Los planetas se ven desde la Tierra en direcciones opuestas del cielo." },
+  "Trígono":     { glyph:"△", desc:"Separación de 120°. Aspectos entre planetas del mismo elemento (fuego, tierra, aire, agua). Flujo armónico de energías afines. Considerado el aspecto más favorable en la tradición clásica." },
+  "Cuadratura":  { glyph:"□", desc:"Separación de 90°. Aspecto de tensión dinámica entre elementos incompatibles. Genera fricción que puede impulsar la acción. Los cuartos de ciclo sinódico producen cuadraturas." },
+  "Sextil":      { glyph:"⚹", desc:"Separación de 60°. Aspecto suave entre elementos complementarios (fuego-aire, tierra-agua). Oportunidad y comunicación fluida entre los principios planetarios involucrados." },
+};
 
 const _BODY_INFO = {
   "Sol":      { glyph:"☉", desc:"El Sol es el centro lumínico del sistema hermético. Su posición eclíptica define la estación y el carácter del tiempo. En el Atacir es el promissor más poderoso." },
@@ -908,15 +931,69 @@ function _bodyModalClose(){
   document.getElementById("_bodyModal").classList.remove("open");
 }
 
+function _bodyModalOpenZodiac(z){
+  document.getElementById("_bodyModalGlyph").textContent = z.glyph;
+  document.getElementById("_bodyModalName").textContent  = z.nombre;
+  document.getElementById("_bodyModalData").innerHTML =
+    `<div class="bm-row"><span class="bm-lbl">Elemento · Modo</span><span class="bm-val">${z.elem}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Regente</span><span class="bm-val">${z.reg}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Posición</span><span class="bm-val">30° del zodíaco</span></div>`;
+  document.getElementById("_bodyModalDesc").textContent = z.desc;
+  document.getElementById("_bodyModal").classList.add("open");
+}
+
+function _bodyModalOpenAspecto(asp){
+  const info = _ASP_INFO[asp.asp.nombre] || {};
+  document.getElementById("_bodyModalGlyph").textContent = info.glyph || asp.asp.nombre[0];
+  document.getElementById("_bodyModalName").textContent  = asp.asp.nombre;
+  document.getElementById("_bodyModalData").innerHTML =
+    `<div class="bm-row"><span class="bm-lbl">Planetas</span><span class="bm-val">${asp.a.glyph} ${asp.a.key} — ${asp.b.glyph} ${asp.b.key}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Ángulo</span><span class="bm-val">${asp.asp.angulo}°</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Orbe actual</span><span class="bm-val">${asp.orbe}° de ${asp.asp.orbe}° máx</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Exactitud</span><span class="bm-val">${Math.round(asp.exactitud*100)}%</span></div>`;
+  document.getElementById("_bodyModalDesc").textContent = info.desc || "";
+  document.getElementById("_bodyModal").classList.add("open");
+}
+
 // Los listeners del modal y click en canvas se registran en DOMContentLoaded
 // porque _bodyModal está al final del HTML
 
 function _onCanvasClick(e){
-  if(modoOculus) return; // solo en Caelis 2D y Astrolabio
+  if(modoOculus) return;
   const cx = e.clientX, cy = e.clientY;
-  const TAP_R = 22; // radio de detección en px
+  const TAP_R = 22;
 
-  // 1. Comprobar planetas principales
+  // ── Modo Astrolabio — usar hitboxes de drawRete ──────────────────
+  if(modoAstrolabio){
+    for(const hit of _astroHits){
+      const dx = cx - hit.x, dy = cy - hit.y;
+      if(dx*dx + dy*dy <= hit.r*hit.r){
+        if(hit.type === "signo"){
+          _bodyModalOpenZodiac(_ZODIAC_INFO[hit.i]);
+        } else if(hit.type === "planeta"){
+          const nm = hit.name;
+          let pos;
+          if(nm==="Sol")         pos = sunPosition();
+          else if(nm==="Luna")   pos = moonPosition();
+          else if(nm==="NodoNorte"||nm==="NodoSur"){
+            const nodes = lunarNodes();
+            pos = nm==="NodoNorte" ? nodes.north : nodes.south;
+          } else pos = planetPosition(nm);
+          const bd = _bodyData(pos.ra, pos.dec);
+          _bodyModalOpen(nm, {lon_ecl:bd.lon_ecl, ra:bd.ra, dec:bd.dec, alt:bd.alt, az:bd.az, house:bd.house});
+        } else if(hit.type === "estrella"){
+          const bd = _bodyData(hit.ra*deg2rad, hit.dec*deg2rad);
+          _bodyModalOpen(hit.name, {ra:hit.ra, dec:hit.dec, alt:bd.alt, az:bd.az, mag:hit.mag});
+        }
+        return;
+      }
+    }
+    return;
+  }
+
+  // ── Modo Caelis 2D ───────────────────────────────────────────────
+
+  // 1. Planetas principales
   const planetNames = ["Sol","Luna","Mercurio","Venus","Marte","Júpiter","Saturno","NodoNorte","NodoSur"];
   for(const name of planetNames){
     let pos;
@@ -940,7 +1017,7 @@ function _onCanvasClick(e){
     }
   }
 
-  // 2. Comprobar estrellas fijas
+  // 2. Estrellas fijas
   for(const star of fixedStarData){
     const pp = project(star.ra, star.dec);
     if(pp.alt <= 0) continue;
@@ -951,6 +1028,24 @@ function _onCanvasClick(e){
         ra: star.ra * rad2deg, dec: star.dec * rad2deg,
         alt: bd.alt, az: bd.az, mag: star.mag
       });
+      return;
+    }
+  }
+
+  // 3. Signos zodiacales
+  for(const hit of _zodHits){
+    const dx = cx - hit.x, dy = cy - hit.y;
+    if(dx*dx + dy*dy <= hit.r*hit.r){
+      _bodyModalOpenZodiac(_ZODIAC_INFO[hit.i]);
+      return;
+    }
+  }
+
+  // 4. Aspectos
+  for(const hit of _aspHits){
+    const dx = cx - hit.x, dy = cy - hit.y;
+    if(dx*dx + dy*dy <= 24*24){
+      _bodyModalOpenAspecto(hit.asp);
       return;
     }
   }
@@ -1017,6 +1112,10 @@ function fmtAz(az){
   return az.toFixed(1)+"° "+dirs[Math.round(az/22.5)%16];
 }
 let centerX, centerY, radius;
+// Arrays de hitboxes para click/tap — se llenan en cada frame
+let _zodHits  = []; // [{i, x, y, r}]  — signos zodiacales (Caelis 2D)
+let _aspHits  = []; // [{asp, x, y}]   — aspectos activos (Caelis 2D)
+let _astroHits = []; // [{type, name/i, x, y, r}] — hits en modo astrolabio
 const deg2rad  = Math.PI/180;
 const rad2deg  = 180/Math.PI;
 const C_LIGHT  = 173.1446326;
@@ -2526,6 +2625,7 @@ function drawEcliptic(vis){
 
   // Signos zodiacales con rotación aplicada
   let alphaSigno=Math.max(0.25, vis*0.55+0.25);
+  _zodHits = []; // resetear cada frame
   for(let i=0;i<12;i++){
     let lonDeg=i*30+15;
     let lon=lonDeg*deg2rad;
@@ -2543,6 +2643,7 @@ function drawEcliptic(vis){
     ctx.shadowColor="rgba(0,0,0,0.9)";ctx.shadowBlur=5;
     ctx.fillText(zodiacSignos[i],p.x,p.y);
     ctx.restore();
+    _zodHits.push({i, x:p.x, y:p.y, r:fs*1.2});
 
     if(isNear(mouseX,mouseY,p.x,p.y,fs)){
       drawLabel(p.x,p.y,zodiacNombres[i],"rgba(220,180,80,0.98)");
@@ -4484,6 +4585,7 @@ function drawRete(){
   let eps = trueObliquity(T) * rad2deg;
 
   ctx.save();
+  _astroHits = []; // resetear hitboxes del astrolabio cada frame
 
   // ── Eclíptica excéntrica
   let {cx, cy, rEcl} = eclipticCircleParams();
@@ -4527,6 +4629,7 @@ function drawRete(){
     if(p.vis || p.r < radius*1.1){
       ctx.fillStyle = signColors[i];
       ctx.fillText(signNames[i], p.x, p.y);
+      _astroHits.push({type:"signo", i, x:p.x, y:p.y, r:Math.round(radius*0.030)});
     }
   }
 
@@ -4544,6 +4647,7 @@ function drawRete(){
       ctx.beginPath(); ctx.arc(p.x,p.y,sz*2.2,0,Math.PI*2);
       ctx.fillStyle="rgba(200,210,255,0.10)"; ctx.fill();
     }
+    _astroHits.push({type:"estrella", name:s.name, ra:s.ra*rad2deg, dec:s.dec*rad2deg, mag:s.mag, x:p.x, y:p.y, r:sz+12});
     if(isNear(mouseX,mouseY,p.x,p.y,sz+10)){
       drawLabel(p.x,p.y,`${s.name} (${s.con})`,"rgba(220,220,255,0.98)");
     }
@@ -4679,6 +4783,7 @@ function drawRete(){
       ctx.moveTo(px + ux*lr, py + uy*lr);
       ctx.lineTo(px + ux*(lr+tipLen*0.45), py + uy*(lr+tipLen*0.45));
       ctx.strokeStyle="rgba(200,200,255,0.50)"; ctx.lineWidth=0.9; ctx.stroke();
+      _astroHits.push({type:"planeta", name:"Luna", x:px, y:py, r:lr+14});
 
       if(isNear(mouseX,mouseY,px,py,lr+12)){
         let pct = Math.round(illumL*100);
@@ -4725,6 +4830,7 @@ function drawRete(){
       let gy = ty + uy*fs*0.7 + (ux)*fs*0.5;
       ctx.fillText(glyphsP[nm], gx, gy);
       ctx.shadowBlur = 0;
+      _astroHits.push({type:"planeta", name:nm, x:px, y:py, r:dotR+16});
 
       if(isNear(mouseX,mouseY,px,py,dotR+14) || isNear(mouseX,mouseY,tx,ty,fs)){
         showTooltip(mouseX,mouseY,
@@ -4751,6 +4857,7 @@ function drawRete(){
     ctx.font=`${Math.round(radius*0.028)}px Georgia`;
     ctx.textAlign="center"; ctx.textBaseline="middle";
     ctx.fillText(nd.glyph, p.x, p.y);
+    _astroHits.push({type:"planeta", name: nd.glyph==="☊"?"NodoNorte":"NodoSur", x:p.x, y:p.y, r:radius*0.025});
     if(isNear(mouseX,mouseY,p.x,p.y,radius*0.022))
       drawLabel(p.x,p.y,nd.name,"rgba(200,180,255,0.98)");
   }
@@ -4910,8 +5017,9 @@ function calcAspectos(){
 // líneas queden debajo de los cuerpos celestes.
 function drawAspectos(sun, vis){
   if(!capas.aspectos) return;
-  if(transmutareRunning) return;   // no dibujar durante la transición
+  if(transmutareRunning) return;
   if(!sun || !sun.ra) return;
+  _aspHits = []; // resetear cada frame
 
   // Obtener posición proyectada de cada cuerpo
   let moon, posMap;
@@ -4968,6 +5076,7 @@ function drawAspectos(sun, vis){
 
     // Tooltip al pasar el mouse sobre la línea (zona ~10px alrededor del punto medio)
     const mx2 = (pa.x + pb.x) / 2, my2 = (pa.y + pb.y) / 2;
+    _aspHits.push({asp, x:mx2, y:my2}); // registrar para click/tap
     if(isNear(mouseX, mouseY, mx2, my2, 18)){
       showTooltip(mouseX, mouseY,
         `<b style="color:${asp.asp.color}0.95)">${ASP_GLYPH[asp.asp.nombre]} ${asp.asp.nombre}</b><br>
