@@ -58,21 +58,22 @@ button:hover{background:rgba(255,255,255,0.18);}
 #speedDisplay{min-width:80px;text-align:center;font-size:13px;letter-spacing:0.04em;}
 #infoPanel{
   position:fixed;top:20px;right:20px;
-  background:rgba(0,0,0,0.58);
+  background:rgba(0,0,0,0.62);
   border:1px solid rgba(255,255,255,0.09);
   border-radius:12px;
-  padding:12px 16px;
+  padding:8px 12px 8px 12px;
   color:rgba(255,255,255,0.88);
   font-family:'Georgia',serif;
-  font-size:12px;
-  line-height:1.85;
-  min-width:190px;
+  font-size:11.5px;
+  line-height:1.75;
+  min-width:180px;
   backdrop-filter:blur(8px);
   pointer-events:none;
-  transition: padding 0.2s ease;
+  transition:padding 0.2s ease, min-width 0.2s ease;
+  z-index:100;
 }
 #infoPanel.collapsed{
-  padding:7px 14px;
+  padding:6px 12px;
   min-width:unset;
 }
 #infoPanel.collapsed .ip-collapsible{
@@ -80,7 +81,7 @@ button:hover{background:rgba(255,255,255,0.18);}
 }
 #_infoPanelToggle{
   position:absolute;
-  top:6px; right:8px;
+  top:5px; right:8px;
   background:none;
   border:none;
   color:rgba(180,165,255,0.55);
@@ -93,6 +94,45 @@ button:hover{background:rgba(255,255,255,0.18);}
   user-select:none;
 }
 #_infoPanelToggle:hover{ color:rgba(220,180,80,0.90); }
+#infoPanel .ip-title{
+  font-size:10px; letter-spacing:0.08em;
+  color:rgba(180,165,255,0.60); margin-bottom:2px;
+  padding-right:18px;
+}
+#infoPanel .row{ display:flex; justify-content:space-between; gap:10px; }
+#infoPanel .lbl{ color:rgba(180,165,255,0.75); white-space:nowrap; font-size:10.5px; }
+#infoPanel .val{ color:rgba(255,255,255,0.92); text-align:right; font-size:10.5px; }
+#infoPanel .val-sim{ color:rgba(220,180,80,0.90); text-align:right; font-size:10.5px; }
+#infoPanel .sep{ border:none; border-top:1px solid rgba(255,255,255,0.07); margin:4px 0; }
+#infoPanel .cursor-section{ min-height:1.75em; }
+#_infoPanelGeoBtn{
+  display:inline-block;
+  background:rgba(180,165,255,0.10);
+  border:1px solid rgba(180,165,255,0.25);
+  border-radius:5px;
+  color:rgba(180,165,255,0.80);
+  font-size:10px; padding:2px 7px;
+  cursor:pointer; pointer-events:all;
+  margin-top:4px; width:100%;
+  text-align:center; letter-spacing:0.05em;
+  transition:background 0.15s;
+}
+#_infoPanelGeoBtn:hover{ background:rgba(180,165,255,0.22); color:#fff; }
+#infoPanel input[type=text]{
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:5px; color:rgba(255,255,255,0.88);
+  font-family:'Georgia',serif; font-size:10px;
+  padding:2px 5px; width:100%; pointer-events:all;
+  margin-top:3px;
+}
+#infoPanel input[type=text]:focus{
+  outline:none; border-color:rgba(180,165,255,0.5);
+}
+#locStatus{
+  font-size:9.5px; color:rgba(180,165,255,0.65);
+  margin-top:2px; text-align:right;
+}
 #infoPanel .row{ display:flex; justify-content:space-between; gap:12px; }
 #infoPanel .lbl{ color:rgba(180,165,255,0.75); white-space:nowrap; }
 #infoPanel .val{ color:rgba(255,255,255,0.92); text-align:right; }
@@ -103,7 +143,7 @@ button:hover{background:rgba(255,255,255,0.18);}
   background:rgba(0,0,0,0.58);
   border:1px solid rgba(255,255,255,0.09);
   border-radius:12px;
-  padding:12px 16px;
+  padding:8px 12px;
   color:rgba(255,255,255,0.88);
   font-family:'Georgia',serif;
   font-size:12px;
@@ -112,7 +152,10 @@ button:hover{background:rgba(255,255,255,0.18);}
   backdrop-filter:blur(8px);
   pointer-events:all;
   user-select:none;
+  position:relative;
 }
+#eclPanel.collapsed #_eclPanelContent{ display:none; }
+#eclPanel.collapsed{ min-width:unset; padding:6px 12px; }
 #eclPanel .lbl{ color:rgba(180,165,255,0.75); font-size:11px; }
 #eclPanel input[type=range]{
   width:100%; margin:4px 0;
@@ -307,8 +350,7 @@ button:hover{background:rgba(255,255,255,0.18);}
 
 @media (max-width: 768px) {
 
-  /* Mostrar botón hamburguesa */
-  #_mobileOculusToggle { display:block; }
+  /* Botón hamburguesa Oculus — visible solo cuando modoOculus está activo (controlado por JS) */
 
   /* Panel Oculus — colapsado por defecto en móvil */
   #oculusPanel {
@@ -323,19 +365,23 @@ button:hover{background:rgba(255,255,255,0.18);}
     transform:translateY(0);
   }
 
-  /* Panel info — más compacto, colapsado por defecto en móvil */
+  /* Panel info — esquina inferior derecha, compacto, colapsado por defecto */
   #infoPanel {
-    top:auto; bottom:70px; right:8px; left:8px;
-    min-width:unset; font-size:11px; padding:8px 10px;
-    line-height:1.6;
+    top:8px; bottom:auto; right:8px; left:auto;
+    min-width:unset; width:auto; max-width:44vw;
+    font-size:10px; padding:6px 10px;
+    line-height:1.5;
   }
 
-  /* Panel eclíptica — esquina superior derecha compacta */
+  /* Panel eclíptica — mismo tamaño que infoPanel */
   #eclPanel {
-    top:8px; left:auto; right:8px;
-    min-width:unset; width:auto; padding:8px 10px;
-    font-size:11px;
+    top:8px; left:8px; right:auto;
+    min-width:unset; width:auto; max-width:44vw;
+    padding:6px 10px; font-size:10px;
   }
+  #eclPanel .lbl { font-size:9px; }
+  #eclVal { font-size:10px; }
+  #eclPanel input[type=range] { margin:2px 0; }
 
   /* Controles inferiores — más compactos, scroll horizontal */
   #controls {
@@ -581,37 +627,42 @@ button:hover{background:rgba(255,255,255,0.18);}
 </div>
 
 <div id="eclPanel">
-  <div class="lbl">Latitud eclíptica</div>
-  <input type="range" id="eclSlider" min="0" max="90" step="0.5" value="0"
-    oninput="setEclRot(this.value)">
-  <div id="eclVal">0°</div>
-  <div class="lbl" style="margin-top:4px;font-size:10px;opacity:0.7;">
-    0° = eclíptica centrada<br>90° = rete astrolabio
+  <button id="_eclPanelToggle" onclick="_toggleEclPanel()" title="Mostrar/ocultar panel"
+    style="position:absolute;top:5px;right:8px;background:none;border:none;
+           color:rgba(180,165,255,0.55);font-size:11px;cursor:pointer;
+           padding:2px 4px;line-height:1;user-select:none;">▾</button>
+  <div class="lbl" style="padding-right:18px;">Latitud eclíptica</div>
+  <div id="_eclPanelContent">
+    <input type="range" id="eclSlider" min="0" max="90" step="0.5" value="0"
+      oninput="setEclRot(this.value)">
+    <div id="eclVal">0°</div>
+    <div class="lbl" style="margin-top:4px;font-size:10px;opacity:0.7;">
+      0° = eclíptica centrada<br>90° = rete astrolabio
+    </div>
   </div>
 </div>
 
 <div id="infoPanel">
   <button id="_infoPanelToggle" onclick="_toggleInfoPanel()" title="Mostrar/ocultar panel">▾</button>
-  <div class="row"><span class="lbl">Fecha</span><span class="val" id="ip-date">—</span></div>
+  <div class="ip-title">✦ CAELIS</div>
   <div class="ip-collapsible">
-  <div class="row"><span class="lbl">Hora UTC</span><span class="val" id="ip-utc">—</span></div>
-  <div class="row"><span class="lbl">Hora local</span><span class="val" id="ip-local">—</span></div>
-  <hr class="sep">
-  <div class="row"><span class="lbl">ASC</span><span class="val" id="ip-asc">—</span></div>
-  <div class="row"><span class="lbl">MC</span><span class="val" id="ip-mc">—</span></div>
-  <hr class="sep">
-  <div class="cursor-section">
-    <div class="row"><span class="lbl" id="ip-obj-lbl">—</span><span class="val" id="ip-obj-lon">—</span></div>
-    <div class="row"><span class="lbl">Alt</span><span class="val" id="ip-obj-alt">—</span></div>
-    <div class="row"><span class="lbl">Az</span><span class="val" id="ip-obj-az">—</span></div>
-  </div>
-  <hr class="sep">
-  <div class="row"><span class="lbl">Observador</span></div>
-  <div class="loc-row">
+    <div class="row"><span class="lbl">Hora real</span><span class="val" id="ip-local">—</span></div>
+    <div class="row"><span class="lbl">Simulada</span><span class="val-sim" id="ip-utc">—</span></div>
+    <div class="row"><span class="lbl">Fecha</span><span class="val" id="ip-date">—</span></div>
+    <hr class="sep">
+    <div class="row"><span class="lbl">ASC</span><span class="val" id="ip-asc">—</span></div>
+    <div class="row"><span class="lbl">MC</span><span class="val" id="ip-mc">—</span></div>
+    <hr class="sep">
+    <div class="cursor-section">
+      <div class="row"><span class="lbl" id="ip-obj-lbl">—</span><span class="val" id="ip-obj-lon">—</span></div>
+      <div class="row"><span class="lbl">Alt</span><span class="val" id="ip-obj-alt">—</span></div>
+      <div class="row"><span class="lbl">Az</span><span class="val" id="ip-obj-az">—</span></div>
+    </div>
+    <hr class="sep">
+    <button id="_infoPanelGeoBtn" onclick="_geoLocate()">📍 Geolocalizar</button>
     <input type="text" id="locInput" placeholder="lat, lon  (ej: -33.45, -70.66)"
       onkeydown="if(event.key==='Enter') applyManualLocation(this.value)">
-  </div>
-  <div id="locStatus">Santiago de Chile</div>
+    <div id="locStatus">Santiago de Chile</div>
   </div>
 </div>
 <script>
@@ -772,7 +823,7 @@ window.addEventListener("resize", resize);
 // Valores iniciales: Santiago de Chile — se actualizan por geolocalización o entrada manual
 let lat      = -33.45 * Math.PI/180;
 let lon      = -70.66 * Math.PI/180;
-let zoom       = 1;
+let zoom       = 1.18;
 let astroZoom  = 1; // zoom independiente para modo astrolabio
 
 // ── Tooltip universal ─────────────────────────────────────────────
@@ -804,6 +855,107 @@ function showTooltip(x, y, html){
 }
 function hideTooltip(){ _tooltip.style.display = "none"; }
 
+// ── Modal cuerpo celeste — click/tap en Caelis 2D y Astrolabio ──
+
+const _BODY_INFO = {
+  "Sol":      { glyph:"☉", desc:"El Sol es el centro lumínico del sistema hermético. Su posición eclíptica define la estación y el carácter del tiempo. En el Atacir es el promissor más poderoso." },
+  "Luna":     { glyph:"☽", desc:"La Luna es el cuerpo de mayor variación. Su ciclo sinódico de 29.5 días gobierna las mareas y los ritmos biológicos. Su paralaje topocéntrico es el mayor de todos los astros." },
+  "Mercurio": { glyph:"☿", desc:"Mercurio es el mensajero. Su órbita interior lo hace siempre cercano al Sol. Su alta excentricidad (e=0.206) lo hace el planeta más difícil de modelar con precisión." },
+  "Venus":    { glyph:"♀", desc:"Venus es el astro más brillante después del Sol y la Luna. Su ciclo sinódico de 583.9 días forma una pentágono casi perfecto en el cielo cada 8 años." },
+  "Marte":    { glyph:"♂", desc:"Marte es el primer planeta exterior. Su color rojizo proviene del óxido de hierro en su superficie. Su oposición cada ~26 meses es el momento de máxima visibilidad." },
+  "Júpiter":  { glyph:"♃", desc:"Júpiter es el mayor planeta del sistema. Su período de 11.86 años lo convierte en el marcador de los grandes ciclos. Su influencia gravitacional protege la Tierra de impactos." },
+  "Saturno":  { glyph:"♄", desc:"Saturno marca el límite del sistema hermético clásico. Su retorno a los ~29.5 años señala un ciclo generacional completo. Sus anillos son hielo y polvo en el plano ecuatorial." },
+  "NodoNorte":{ glyph:"☊", desc:"El Nodo Norte (Caput Draconis) es el punto donde la Luna cruza la eclíptica hacia el norte. Su ciclo de retorno es de 18.6 años, período del eclipse saros." },
+  "NodoSur":  { glyph:"☋", desc:"El Nodo Sur (Cauda Draconis) es el punto opuesto al Nodo Norte. Siempre separado exactamente 180°. Junto al Nodo Norte define el eje de los eclipses." },
+};
+
+const _STAR_DESC = "Estrella fija del catálogo hermético. Las estrellas fijas son la referencia inmóvil contra la que se miden los movimientos planetarios. Su posición cambia solo por la precesión de los equinoccios (~50\"/año).";
+
+function _bodyModalOpen(name, data){
+  const info = _BODY_INFO[name] || { glyph:"★", desc: _STAR_DESC };
+  document.getElementById("_bodyModalGlyph").textContent = info.glyph;
+  document.getElementById("_bodyModalName").textContent  = name;
+
+  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
+                  "Júpiter":"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+
+  let rows = "";
+  if(data.lon_ecl !== undefined){
+    const signos = ["Ari","Tau","Gem","Can","Leo","Vir","Lib","Sco","Sag","Cap","Acu","Pis"];
+    const sig = Math.floor(data.lon_ecl/30);
+    const deg = (data.lon_ecl % 30).toFixed(2);
+    rows += `<div class="bm-row"><span class="bm-lbl">Longitud</span><span class="bm-val">${signos[sig]} ${deg}°</span></div>`;
+  }
+  if(data.ra !== undefined)
+    rows += `<div class="bm-row"><span class="bm-lbl">AR</span><span class="bm-val">${fmtRA(data.ra)}</span></div>`;
+  if(data.dec !== undefined)
+    rows += `<div class="bm-row"><span class="bm-lbl">Dec</span><span class="bm-val">${fmtDec(data.dec)}</span></div>`;
+  if(data.alt !== undefined)
+    rows += `<div class="bm-row"><span class="bm-lbl">Altitud</span><span class="bm-val">${fmtAlt(data.alt)}</span></div>`;
+  if(data.az !== undefined)
+    rows += `<div class="bm-row"><span class="bm-lbl">Azimut</span><span class="bm-val">${fmtAz(data.az)}</span></div>`;
+  if(data.house !== undefined)
+    rows += `<div class="bm-row"><span class="bm-lbl">Casa</span><span class="bm-val">Casa ${data.house}</span></div>`;
+  if(data.mag !== undefined)
+    rows += `<div class="bm-row"><span class="bm-lbl">Magnitud</span><span class="bm-val">${data.mag.toFixed(2)}</span></div>`;
+
+  document.getElementById("_bodyModalData").innerHTML = rows;
+  document.getElementById("_bodyModalDesc").textContent = info.desc;
+  document.getElementById("_bodyModal").classList.add("open");
+}
+
+function _bodyModalClose(){
+  document.getElementById("_bodyModal").classList.remove("open");
+}
+
+// Los listeners del modal y click en canvas se registran en DOMContentLoaded
+// porque _bodyModal está al final del HTML
+
+function _onCanvasClick(e){
+  if(modoOculus) return; // solo en Caelis 2D y Astrolabio
+  const cx = e.clientX, cy = e.clientY;
+  const TAP_R = 22; // radio de detección en px
+
+  // 1. Comprobar planetas principales
+  const planetNames = ["Sol","Luna","Mercurio","Venus","Marte","Júpiter","Saturno","NodoNorte","NodoSur"];
+  for(const name of planetNames){
+    let pos;
+    if(name === "Sol")         pos = sunPosition();
+    else if(name === "Luna")   pos = moonPosition();
+    else if(name === "NodoNorte" || name === "NodoSur"){
+      const nodes = lunarNodes();
+      pos = name === "NodoNorte" ? nodes.north : nodes.south;
+    } else pos = planetPosition(name);
+
+    const pp = project(pos.ra, pos.dec);
+    if(pp.alt <= 0) continue;
+    const dx = cx - pp.x, dy = cy - pp.y;
+    if(dx*dx + dy*dy <= TAP_R*TAP_R){
+      const bd = _bodyData(pos.ra, pos.dec);
+      _bodyModalOpen(name, {
+        lon_ecl: bd.lon_ecl, ra: bd.ra, dec: bd.dec,
+        alt: bd.alt, az: bd.az, house: bd.house
+      });
+      return;
+    }
+  }
+
+  // 2. Comprobar estrellas fijas
+  for(const star of fixedStarData){
+    const pp = project(star.ra, star.dec);
+    if(pp.alt <= 0) continue;
+    const dx = cx - pp.x, dy = cy - pp.y;
+    if(dx*dx + dy*dy <= TAP_R*TAP_R){
+      const bd = _bodyData(star.ra, star.dec);
+      _bodyModalOpen(star.name, {
+        ra: star.ra * rad2deg, dec: star.dec * rad2deg,
+        alt: bd.alt, az: bd.az, mag: star.mag
+      });
+      return;
+    }
+  }
+}
+
 // ── Toggle panel info ────────────────────────────────────────────
 function _toggleInfoPanel(){
   const panel = document.getElementById("infoPanel");
@@ -811,6 +963,41 @@ function _toggleInfoPanel(){
   const collapsed = panel.classList.toggle("collapsed");
   btn.textContent = collapsed ? "▸" : "▾";
   btn.title = collapsed ? "Expandir panel" : "Colapsar panel";
+}
+
+// ── Toggle panel eclíptica ───────────────────────────────────────
+function _toggleEclPanel(){
+  const panel = document.getElementById("eclPanel");
+  const btn   = document.getElementById("_eclPanelToggle");
+  const collapsed = panel.classList.toggle("collapsed");
+  btn.textContent = collapsed ? "▸" : "▾";
+  btn.title = collapsed ? "Expandir panel" : "Colapsar panel";
+}
+
+// ── Geolocalización explícita (botón) ────────────────────────────
+function _geoLocate(){
+  const btn = document.getElementById("_infoPanelGeoBtn");
+  if(!navigator.geolocation){
+    if(btn) btn.textContent = "⚠ No disponible";
+    return;
+  }
+  if(btn){ btn.textContent = "⏳ Localizando…"; btn.style.opacity="0.6"; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const latD = pos.coords.latitude;
+      const lonD = pos.coords.longitude;
+      setObserver(latD, lonD);
+      const inp = document.getElementById("locInput");
+      if(inp) inp.value = `${latD.toFixed(3)}, ${lonD.toFixed(3)}`;
+      if(btn){ btn.textContent = "✓ Ubicación actualizada"; btn.style.opacity="1";
+               setTimeout(()=>{ btn.textContent = "📍 Geolocalizar"; },2000); }
+    },
+    () => {
+      if(btn){ btn.textContent = "⚠ Acceso denegado"; btn.style.opacity="1";
+               setTimeout(()=>{ btn.textContent = "📍 Geolocalizar"; },2500); }
+    },
+    {timeout:8000, maximumAge:300000}
+  );
 }
 
 function fmtRA(raDeg){
@@ -3996,17 +4183,18 @@ function raDecToEclLon(ra, dec){
 }
 
 function updateInfoPanel(){
-  // Tiempo
-  let now   = new Date(currentTime()*1000);
-  let utcH  = pad2(now.getUTCHours())+":"+pad2(now.getUTCMinutes())+":"+pad2(now.getUTCSeconds());
-  // Usar offset real del navegador solo en tiempo real (timeOffset===0)
-  let localDate = new Date(currentTime()*1000);
-  let lclStr = localDate.toLocaleTimeString('es-CL',{timeZone:'America/Santiago',hour12:false});
-  let dateStr = now.getUTCFullYear()+"-"+pad2(now.getUTCMonth()+1)+"-"+pad2(now.getUTCDate());
+  // Hora real del reloj del dispositivo (siempre)
+  let realNow  = new Date();
+  let realStr  = pad2(realNow.getHours())+":"+pad2(realNow.getMinutes())+":"+pad2(realNow.getSeconds());
 
+  // Hora simulada (tiempo del engine — puede diferir si timeOffset != 0)
+  let simNow   = new Date(currentTime()*1000);
+  let simUTC   = pad2(simNow.getUTCHours())+":"+pad2(simNow.getUTCMinutes())+":"+pad2(simNow.getUTCSeconds());
+  let dateStr  = simNow.getUTCFullYear()+"-"+pad2(simNow.getUTCMonth()+1)+"-"+pad2(simNow.getUTCDate());
+
+  document.getElementById("ip-local").textContent = realStr;
+  document.getElementById("ip-utc").textContent   = simUTC + " UTC";
   document.getElementById("ip-date").textContent  = dateStr;
-  document.getElementById("ip-utc").textContent   = utcH;
-  document.getElementById("ip-local").textContent = lclStr;
 
   // ASC y MC
   let {asc, mc, system} = getHouseCusps();
@@ -5770,6 +5958,29 @@ function ocuToggleAutoAccel(){
 document.addEventListener("DOMContentLoaded", ()=>{
   const btn = document.getElementById("btnSpeedUp");
   if(btn) btn.addEventListener("dblclick", (e)=>{ e.preventDefault(); ocuToggleAutoAccel(); });
+
+  // En móvil: colapsar infoPanel por defecto
+  if(window.innerWidth <= 768){
+    const panel = document.getElementById("infoPanel");
+    const tog   = document.getElementById("_infoPanelToggle");
+    if(panel){ panel.classList.add("collapsed"); }
+    if(tog)  { tog.textContent = "▸"; tog.title = "Expandir panel"; }
+  }
+
+  // Modal cuerpo celeste — cerrar al clic fuera
+  const bModal = document.getElementById("_bodyModal");
+  if(bModal) bModal.addEventListener("click", function(e){
+    if(e.target === this) _bodyModalClose();
+  });
+
+  // Click y tap en canvas para abrir modal de cuerpo
+  canvas.addEventListener("click", _onCanvasClick);
+  canvas.addEventListener("touchend", function(e){
+    if(e.changedTouches.length === 1){
+      const t = e.changedTouches[0];
+      _onCanvasClick({clientX: t.clientX, clientY: t.clientY});
+    }
+  }, {passive:true});
 });
 // Fallback por si DOMContentLoaded ya pasó
 (function(){ 
@@ -5856,6 +6067,9 @@ function transformareAstralis(){
         const oui=$("oculusUI"),   op=$("oculusPanel");
         if(oui) oui.classList.add("visible");
         if(op)  op.classList.add("visible");
+        // Mostrar toggle móvil solo en Oculus
+        const mob=$("_mobileOculusToggle");
+        if(mob) mob.style.display="block";
 
         if(!threeReady){
           initThree();
@@ -5890,6 +6104,9 @@ function transformareAstralis(){
       modoOculus=false;
       threeCanvas.style.display="none";
       threeCanvas.style.opacity="1";
+      // Ocultar toggle móvil al salir de Oculus
+      const mob=$("_mobileOculusToggle");
+      if(mob) mob.style.display="none";
 
       canvas.style.opacity="0";
       animateFlash(()=>{
@@ -6318,6 +6535,56 @@ window.addEventListener("DOMContentLoaded", ()=>{
 #_clBadge:hover{border-color:rgba(220,180,80,0.6);color:#d4b85a;}
 .pal-locked{opacity:0.35!important;cursor:not-allowed!important;}
 .pal-locked::after{content:" 🔒";font-size:9px;}
+
+/* ── Modal cuerpo celeste ───────────────────────────────────────── */
+#_bodyModal{
+  display:none; position:fixed; inset:0; z-index:9990;
+  background:rgba(0,0,0,0.72); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+#_bodyModal.open{ display:flex; }
+#_bodyModalBox{
+  background:linear-gradient(160deg,#0d0a1a,#06040f);
+  border:1px solid rgba(180,165,255,0.25);
+  border-radius:16px; padding:24px 22px;
+  width:320px; max-width:90vw; max-height:80vh;
+  overflow-y:auto; position:relative;
+  font-family:'Georgia',serif; color:rgba(255,255,255,0.90);
+  box-shadow:0 0 60px rgba(130,100,255,0.15);
+}
+#_bodyModalClose{
+  position:absolute; top:10px; right:14px;
+  background:none; border:none;
+  color:rgba(180,165,255,0.55); font-size:18px;
+  cursor:pointer; line-height:1;
+}
+#_bodyModalClose:hover{ color:#fff; }
+#_bodyModalGlyph{
+  font-size:42px; text-align:center;
+  display:block; margin-bottom:4px;
+}
+#_bodyModalName{
+  font-size:17px; font-weight:bold;
+  color:rgba(220,180,80,0.95);
+  text-align:center; letter-spacing:0.08em;
+  margin-bottom:12px;
+}
+#_bodyModalData{
+  font-size:11px; line-height:1.9;
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding-top:10px; margin-bottom:12px;
+}
+#_bodyModalData .bm-row{
+  display:flex; justify-content:space-between; gap:10px;
+}
+#_bodyModalData .bm-lbl{ color:rgba(180,165,255,0.70); }
+#_bodyModalData .bm-val{ color:rgba(255,255,255,0.90); text-align:right; }
+#_bodyModalDesc{
+  font-size:10.5px; line-height:1.7;
+  color:rgba(200,190,220,0.70);
+  border-top:1px solid rgba(255,255,255,0.07);
+  padding-top:10px; font-style:italic;
+}
 </style>
 
 <div id="_clModal" style="display:none">
@@ -6347,6 +6614,17 @@ window.addEventListener("DOMContentLoaded", ()=>{
 
 <div id="_clToast"></div>
 <div id="_clBadge" onclick="_clOpenModal()">Free</div>
+
+<!-- Modal cuerpo celeste -->
+<div id="_bodyModal">
+  <div id="_bodyModalBox">
+    <button id="_bodyModalClose" onclick="_bodyModalClose()">✕</button>
+    <span id="_bodyModalGlyph">☉</span>
+    <div id="_bodyModalName">—</div>
+    <div id="_bodyModalData"></div>
+    <div id="_bodyModalDesc"></div>
+  </div>
+</div>
 
 </body>
 </html>
