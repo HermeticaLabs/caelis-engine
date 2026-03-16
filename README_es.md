@@ -157,10 +157,10 @@ node -e "const h=require('http'),f=require('fs'),p=require('path');h.createServe
 
 ## Documentación
 
-- [API AstroCore](docs/astrocore.md) *(próximamente)*
-- [API TimeEngine](docs/timeengine.md) *(próximamente)*
-- [Atacir — Análisis de Ciclos](docs/atacir.md) *(próximamente)*
-- [Referencias matemáticas](docs/references.md) *(próximamente)*
+- [API AstroCore](docs/astrocore.es.md) — Núcleo matemático: VSOP87, ELP2000, transformaciones de coordenadas, casas Placidus, nodos lunares y fases
+- [API TimeEngine](docs/timeengine.es.md) — Control temporal, fechas julianas, tiempo sidéreo, snapshots astronómicos completos
+- [Atacir — Análisis de Ciclos](docs/atacir.es.md) — Direcciones primarias, aspectos natales y de tránsito, ciclos, resonancias, análisis lunar
+- [Referencias matemáticas](docs/references.es.md) — Algoritmos fuente, fórmulas y tabla completa de precisión verificada
 
 ---
 
