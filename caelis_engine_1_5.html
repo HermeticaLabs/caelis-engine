@@ -857,18 +857,18 @@ function hideTooltip(){ _tooltip.style.display = "none"; }
 
 // ── Datos signos zodiacales ──────────────────────────────────────
 const _ZODIAC_INFO = [
-  { nombre:"Aries",       glyph:"♈", elem:"Fuego · Cardinal", reg:"Marte",    desc:"Primer signo del zodíaco. Marca el equinoccio vernal — el punto donde el Sol cruza el ecuador celeste hacia el norte. Energía iniciática, acción directa." },
-  { nombre:"Tauro",       glyph:"♉", elem:"Tierra · Fijo",    reg:"Venus",    desc:"El Sol transita Tauro entre abril y mayo. Asociado a la consolidación y los ciclos de la naturaleza. Venus rige su expresión sensorial y material." },
-  { nombre:"Géminis",     glyph:"♊", elem:"Aire · Mutable",   reg:"Mercurio", desc:"Signo de la dualidad y el intercambio. El Sol lo transita en mayo-junio. Mercurio como regente vincula el pensamiento con la comunicación." },
-  { nombre:"Cáncer",      glyph:"♋", elem:"Agua · Cardinal",  reg:"Luna",     desc:"El solsticio de verano ocurre en Cáncer. La Luna como regente lo conecta con los ciclos de 27.3 días y las mareas terrestres." },
-  { nombre:"Leo",         glyph:"♌", elem:"Fuego · Fijo",     reg:"Sol",      desc:"El Sol rige Leo — su domicilio propio. El centro lumínico del sistema en su signo de máxima expresión. Julio-agosto." },
-  { nombre:"Virgo",       glyph:"♍", elem:"Tierra · Mutable", reg:"Mercurio", desc:"Signo de análisis y síntesis. El Sol transita Virgo en agosto-septiembre. El equinoccio otoñal marca su límite con Libra." },
-  { nombre:"Libra",       glyph:"♎", elem:"Aire · Cardinal",  reg:"Venus",    desc:"El equinoccio otoñal ocurre en Libra — el punto opuesto al punto vernal. Equilibrio entre luz y oscuridad. Venus rige su búsqueda de armonía." },
-  { nombre:"Escorpio",    glyph:"♏", elem:"Agua · Fijo",      reg:"Marte",    desc:"Profundidad, transformación y ciclos ocultos. El Sol lo transita en octubre-noviembre. Asociado al descenso de la luz solar hacia el solsticio." },
-  { nombre:"Sagitario",   glyph:"♐", elem:"Fuego · Mutable",  reg:"Júpiter",  desc:"Júpiter rige Sagitario. El Sol lo transita en noviembre-diciembre. El solsticio de invierno marca su límite con Capricornio." },
-  { nombre:"Capricornio", glyph:"♑", elem:"Tierra · Cardinal",reg:"Saturno",  desc:"El solsticio de invierno inicia Capricornio. Saturno como regente lo conecta con los ciclos de 29.5 años y las estructuras de largo plazo." },
-  { nombre:"Acuario",     glyph:"♒", elem:"Aire · Fijo",      reg:"Saturno",  desc:"El Sol transita Acuario en enero-febrero. Saturno como regente tradicional vincula sus ciclos con la estructura social y los patrones colectivos." },
-  { nombre:"Piscis",      glyph:"♓", elem:"Agua · Mutable",   reg:"Júpiter",  desc:"Último signo del zodíaco. El Sol lo transita en febrero-marzo. Cierra el ciclo anual antes del punto vernal. Júpiter como regente tradicional." },
+  { nombre:"Aries",       glyph:"♈", elem:"Fuego · Cardinal", reg:"Marte",    desc:"El primer signo marca el punto vernal — donde el Sol cruza el ecuador celeste hacia el norte. Inicio del año trópico. El impulso primordial que antecede a toda forma." },
+  { nombre:"Tauro",       glyph:"♉", elem:"Tierra · Fijo",    reg:"Venus",    desc:"El Sol transita Tauro entre abril y mayo, cuando la luz solar consolida su presencia. Venus como regente lo vincula con la medida sensorial y la permanencia de lo que crece." },
+  { nombre:"Géminis",     glyph:"♊", elem:"Aire · Mutable",   reg:"Mercurio", desc:"Signo de la dualidad y el intercambio. El Sol lo transita en mayo-junio. Mercurio rige su naturaleza de puente — entre el pensamiento y el mundo, entre opuestos que se necesitan." },
+  { nombre:"Cáncer",      glyph:"♋", elem:"Agua · Cardinal",  reg:"Luna",     desc:"El solsticio de verano ocurre en el ingreso del Sol a Cáncer. La Luna como regente lo conecta con los ciclos de 27.3 días. Principio de contención, memoria y origen." },
+  { nombre:"Leo",         glyph:"♌", elem:"Fuego · Fijo",     reg:"Sol",      desc:"El Sol rige Leo — su único domicilio. El centro lumínico en su propio signo, entre julio y agosto. Expresión plena de la luz. Donde el fuego interior encuentra su forma estable." },
+  { nombre:"Virgo",       glyph:"♍", elem:"Tierra · Mutable", reg:"Mercurio", desc:"El Sol transita Virgo en agosto-septiembre. El equinoccio otoñal marca su límite con Libra. Principio de discernimiento — la inteligencia que separa lo esencial de lo accidental." },
+  { nombre:"Libra",       glyph:"♎", elem:"Aire · Cardinal",  reg:"Venus",    desc:"El equinoccio otoñal inicia Libra — donde la luz y la oscuridad se igualan. Principio de equilibrio y relación. La búsqueda de armonía entre fuerzas que se oponen y se completan." },
+  { nombre:"Escorpio",    glyph:"♏", elem:"Agua · Fijo",      reg:"Marte",    desc:"El Sol lo transita en octubre-noviembre, mientras la luz mengua hacia el solsticio. Principio de profundidad y transformación — lo que permanece oculto hasta que el ciclo lo exige." },
+  { nombre:"Sagitario",   glyph:"♐", elem:"Fuego · Mutable",  reg:"Júpiter",  desc:"Júpiter rige Sagitario. El Sol lo transita en noviembre-diciembre. El solsticio de invierno marca su límite con Capricornio. La búsqueda de sentido que trasciende la experiencia inmediata." },
+  { nombre:"Capricornio", glyph:"♑", elem:"Tierra · Cardinal",reg:"Saturno",  desc:"El solsticio de invierno inicia Capricornio — el punto de mayor oscuridad, umbral del retorno de la luz. Saturno como regente lo vincula con la arquitectura del tiempo y lo duradero." },
+  { nombre:"Acuario",     glyph:"♒", elem:"Aire · Fijo",      reg:"Saturno",  desc:"El Sol transita Acuario en enero-febrero. Saturno como regente tradicional aporta estructura a la visión de conjunto. Principio de comprensión universal — el orden que sirve a todos." },
+  { nombre:"Piscis",      glyph:"♓", elem:"Agua · Mutable",   reg:"Júpiter",  desc:"Último signo del ciclo. El Sol lo transita en febrero-marzo, cerrando el año trópico. Principio de disolución y síntesis — el retorno al origen antes de que comience una nueva vuelta." },
 ];
 
 // ── Datos aspectos ───────────────────────────────────────────────
@@ -881,18 +881,18 @@ const _ASP_INFO = {
 };
 
 const _BODY_INFO = {
-  "Sol":      { glyph:"☉", desc:"El Sol es el centro lumínico del sistema hermético. Su posición eclíptica define la estación y el carácter del tiempo. En el Atacir es el promissor más poderoso." },
-  "Luna":     { glyph:"☽", desc:"La Luna es el cuerpo de mayor variación. Su ciclo sinódico de 29.5 días gobierna las mareas y los ritmos biológicos. Su paralaje topocéntrico es el mayor de todos los astros." },
-  "Mercurio": { glyph:"☿", desc:"Mercurio es el mensajero. Su órbita interior lo hace siempre cercano al Sol. Su alta excentricidad (e=0.206) lo hace el planeta más difícil de modelar con precisión." },
-  "Venus":    { glyph:"♀", desc:"Venus es el astro más brillante después del Sol y la Luna. Su ciclo sinódico de 583.9 días forma una pentágono casi perfecto en el cielo cada 8 años." },
-  "Marte":    { glyph:"♂", desc:"Marte es el primer planeta exterior. Su color rojizo proviene del óxido de hierro en su superficie. Su oposición cada ~26 meses es el momento de máxima visibilidad." },
-  "Júpiter":  { glyph:"♃", desc:"Júpiter es el mayor planeta del sistema. Su período de 11.86 años lo convierte en el marcador de los grandes ciclos. Su influencia gravitacional protege la Tierra de impactos." },
-  "Saturno":  { glyph:"♄", desc:"Saturno marca el límite del sistema hermético clásico. Su retorno a los ~29.5 años señala un ciclo generacional completo. Sus anillos son hielo y polvo en el plano ecuatorial." },
-  "NodoNorte":{ glyph:"☊", desc:"El Nodo Norte (Caput Draconis) es el punto donde la Luna cruza la eclíptica hacia el norte. Su ciclo de retorno es de 18.6 años, período del eclipse saros." },
-  "NodoSur":  { glyph:"☋", desc:"El Nodo Sur (Cauda Draconis) es el punto opuesto al Nodo Norte. Siempre separado exactamente 180°. Junto al Nodo Norte define el eje de los eclipses." },
+  "Sol":      { glyph:"☉", desc:"Centro lumínico del sistema. El Sol define el año trópico de 365.25 días y marca las estaciones por su declinación cambiante. En la tradición hermética es el principio de consciencia y voluntad — el corazón del instrumento." },
+  "Luna":     { glyph:"☽", desc:"El cuerpo de mayor variación aparente. Su ciclo sinódico de 29.5 días gobierna las mareas y los ritmos biológicos. En el sistema hermético es el eslabón entre el cielo y la tierra — el espejo del Sol." },
+  "Mercurio": { glyph:"☿", desc:"El más veloz de los planetas visibles. Su elongación máxima de 28° lo mantiene siempre cercano al Sol. Mensajero entre lo alto y lo bajo — rige el pensamiento, el lenguaje y la transmisión del conocimiento." },
+  "Venus":    { glyph:"♀", desc:"El astro más brillante después del Sol y la Luna. Su ciclo sinódico de 583.9 días traza un pentágono casi perfecto cada 8 años. Principio de atracción y armonía — la proporción áurea hecha planeta." },
+  "Marte":    { glyph:"♂", desc:"Primer planeta exterior. Su oposición cada ~26 meses marca el punto de máxima proximidad a la Tierra. En la tradición hermética es el principio de acción, energía y voluntad dirigida." },
+  "Júpiter":  { glyph:"♃", desc:"El mayor planeta del sistema. Su período de 11.86 años lo convierte en el marcador de los grandes ciclos sociales. Principio de expansión, síntesis y comprensión — el maestro del zodíaco." },
+  "Saturno":  { glyph:"♄", desc:"Límite del sistema hermético clásico. Su retorno a los ~29.5 años señala un ciclo generacional completo. Principio de estructura, tiempo y madurez — el guardián que prueba lo que es permanente." },
+  "NodoNorte":{ glyph:"☊", desc:"Punto de intersección ascendente entre la órbita lunar y la eclíptica. Su ciclo de retorno es de 18.6 años — período que gobierna la cadencia de los eclipses. Caput Draconis en la tradición." },
+  "NodoSur":  { glyph:"☋", desc:"Punto de intersección descendente. Siempre opuesto al Nodo Norte, a exactamente 180°. Cauda Draconis — el eje lunar que define dónde el cielo y la eclíptica se cruzan." },
 };
 
-const _STAR_DESC = "Estrella fija del catálogo hermético. Las estrellas fijas son la referencia inmóvil contra la que se miden los movimientos planetarios. Su posición cambia solo por la precesión de los equinoccios (~50\"/año).";
+const _STAR_DESC = "Estrella fija del catálogo hermético. Las estrellas son la referencia inmóvil del instrumento — el fondo eterno contra el que se miden todos los movimientos planetarios. Su posición varía solo por la precesión de los equinoccios, ~50\" por año.";
 
 function _bodyModalOpen(name, data){
   const info = _BODY_INFO[name] || { glyph:"★", desc: _STAR_DESC };
@@ -960,8 +960,13 @@ function _bodyModalOpenAspecto(asp){
 
 function _onCanvasClick(e){
   if(modoOculus) return;
-  const cx = e.clientX, cy = e.clientY;
-  const TAP_R = 22;
+  // Convertir coordenadas de ventana a coordenadas del canvas
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const cx = (e.clientX - rect.left) * scaleX;
+  const cy = (e.clientY - rect.top)  * scaleY;
+  const TAP_R = 28; // radio de detección generoso para móvil
 
   // ── Modo Astrolabio — usar hitboxes de drawRete ──────────────────
   if(modoAstrolabio){
@@ -2596,6 +2601,23 @@ const zodiacSignos=["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑",
 const zodiacNombres=["Aries","Tauro","Géminis","Cáncer","Leo","Virgo","Libra","Escorpio","Sagitario","Capricornio","Acuario","Piscis"];
 
 function drawEcliptic(vis){
+  // Registrar hitboxes de signos siempre — independiente de capas.casas
+  {
+    let T=(julianDate()-2451545)/36525;
+    let eps=trueObliquity(T);
+    _zodHits = [];
+    for(let i=0;i<12;i++){
+      let lonDeg=i*30+15;
+      let lon=lonDeg*deg2rad;
+      let ra0=Math.atan2(Math.sin(lon)*Math.cos(eps),Math.cos(lon));
+      let dec0=Math.asin(Math.sin(eps)*Math.sin(lon));
+      let {ra,dec}=eclipticPointRotated(ra0,dec0);
+      let p=project(ra,dec);
+      if(p.alt<=0) continue;
+      let fs=Math.round(radius*0.028);
+      _zodHits.push({i, x:p.x, y:p.y, r:fs*1.6});
+    }
+  }
   if(!capas.casas) return;
   let T=(julianDate()-2451545)/36525;
   let eps=trueObliquity(T);
@@ -2625,7 +2647,6 @@ function drawEcliptic(vis){
 
   // Signos zodiacales con rotación aplicada
   let alphaSigno=Math.max(0.25, vis*0.55+0.25);
-  _zodHits = []; // resetear cada frame
   for(let i=0;i<12;i++){
     let lonDeg=i*30+15;
     let lon=lonDeg*deg2rad;
