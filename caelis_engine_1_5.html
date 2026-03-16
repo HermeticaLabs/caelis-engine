@@ -185,6 +185,37 @@ button:hover{background:rgba(255,255,255,0.18);}
   font-size:10px; color:rgba(180,165,255,0.70);
   margin-top:2px; text-align:right;
 }
+/* ======= PANEL ECLIPSES ======= */
+#eclipsesPanel{
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.72);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:14px; padding:0;
+  color:rgba(255,255,255,0.88);
+  font-family:'Georgia',serif; font-size:11.5px; line-height:1.7;
+  width:680px; max-width:96vw;
+  backdrop-filter:blur(10px);
+  pointer-events:all; user-select:none;
+  display:none;
+}
+#eclipsesPanel.open{ display:block; }
+#eclipsesHeader{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 16px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.07); cursor:pointer;
+}
+#eclipsesHeader h3{ margin:0; font-size:13px; letter-spacing:0.06em; color:rgba(140,190,255,0.95); }
+#eclipsesBody{ padding:12px 16px; }
+#eclipsesResults{ margin-top:12px; border-top:1px solid rgba(255,255,255,0.07); padding-top:10px; }
+#eclipsesResults table{ width:100%; border-collapse:collapse; font-size:11px; }
+#eclipsesResults th{ color:rgba(140,190,255,0.75); font-weight:normal; text-align:left;
+  padding:3px 6px; border-bottom:1px solid rgba(255,255,255,0.07); }
+#eclipsesResults td{ padding:3px 6px; color:rgba(255,255,255,0.85);
+  border-bottom:1px solid rgba(255,255,255,0.04); }
+#eclipsesResults td.ecl-solar{ color:rgba(255,220,100,0.95); }
+#eclipsesResults td.ecl-lunar{ color:rgba(140,190,255,0.95); }
+#eclipsesResults td.ecl-vis{ color:rgba(160,220,160,0.90); }
+#eclipsesResults td.ecl-novis{ color:rgba(255,255,255,0.35); }
 /* ======= PANEL ATACIR ======= */
 #atacirPanel{
   position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
@@ -408,6 +439,14 @@ button:hover{background:rgba(255,255,255,0.18);}
   }
   .atc-col { padding:8px 10px; }
 
+  /* Panel Eclipses — full width en móvil */
+  #eclipsesPanel {
+    bottom:60px; left:0; right:0;
+    transform:none; width:100% !important;
+    max-width:100vw; border-radius:14px 14px 0 0;
+    max-height:60vh; overflow-y:auto;
+  }
+
   /* OculusUI — más compacta */
   #oculusUI {
     bottom:10px; padding:7px 10px; gap:4px;
@@ -572,6 +611,7 @@ button:hover{background:rgba(255,255,255,0.18);}
   <button id="btnAspectos" onclick="toggleCapa('aspectos')"       title="Aspectos astrológicos">⚹ Aspectos</button>
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnAtacir" onclick="toggleAtacirPanel()" title="Nodos lunares · Atacir">☊ Atacir</button>
+  <button id="btnEclipses" onclick="toggleEclipsesPanel()" title="Calculadora de Eclipses">⊗ Eclipses</button>
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnTransformare" onclick="transformareAstralis()" title="Transformare Astralis — Transmutar a Oculus">✦ Transmutare</button>
 </div>
@@ -623,6 +663,59 @@ button:hover{background:rgba(255,255,255,0.18);}
       </div>
     </div>
     <div id="atacirResults"></div>
+  </div>
+</div>
+
+<!-- ======= PANEL ECLIPSES ======= -->
+<div id="eclipsesPanel">
+  <div id="eclipsesHeader" onclick="toggleEclipsesPanel()">
+    <h3>⊗ Calculadora de Eclipses</h3>
+    <span style="color:rgba(255,255,255,0.4);font-size:11px;">▼ cerrar</span>
+  </div>
+  <div id="eclipsesBody">
+    <div class="atc-cols">
+      <!-- Rango -->
+      <div class="atc-col" style="flex:0.9;">
+        <h4>⏱ Rango</h4>
+        <div class="atc-row">
+          <label>Desde</label>
+          <select id="ecl-range" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:5px;color:rgba(255,255,255,0.90);font-family:'Georgia',serif;font-size:11px;padding:3px 6px;">
+            <option value="0.5">± 6 meses</option>
+            <option value="1" selected>± 1 año</option>
+            <option value="2">± 2 años</option>
+          </select>
+        </div>
+        <div style="font-size:10px;color:rgba(180,165,255,0.55);margin-top:6px;line-height:1.6;">
+          Busca desde el tiempo<br>actual del instrumento.
+        </div>
+        <div style="font-size:10px;color:rgba(140,190,255,0.55);margin-top:4px;line-height:1.5;">
+          Solar ☀ · Lunar ☽<br>Total · Anular · Parcial
+        </div>
+      </div>
+      <!-- Ubicación -->
+      <div class="atc-col">
+        <h4>📍 Ubicación del Observador <span id="_eclVersionBadge" style="font-size:9px;"></span></h4>
+        <div class="atc-row"><label>Lat</label><input type="number" id="ecl-lat" value="-33.45" step="0.01" min="-90" max="90"></div>
+        <div class="atc-row"><label>Lon</label><input type="number" id="ecl-lon" value="-70.66" step="0.01" min="-180" max="180"></div>
+        <button class="atc-btn" onclick="_eclGeolocate()" style="margin-top:6px;">📍 Geolocalizar</button>
+      </div>
+      <!-- Acción -->
+      <div class="atc-col" style="flex:0.7;">
+        <h4>⚙ Tipo</h4>
+        <div class="atc-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+          <label style="min-width:unset;display:flex;gap:6px;align-items:center;">
+            <input type="checkbox" id="ecl-solar" checked style="accent-color:rgba(255,220,100,0.9);"> ☀ Solares
+          </label>
+          <label style="min-width:unset;display:flex;gap:6px;align-items:center;">
+            <input type="checkbox" id="ecl-lunar" checked style="accent-color:rgba(140,190,255,0.9);"> ☽ Lunares
+          </label>
+        </div>
+        <button class="atc-btn" onclick="calcEclipses()" style="margin-top:14px;background:rgba(140,190,255,0.10);border-color:rgba(140,190,255,0.35);color:rgba(180,220,255,0.95);">
+          Calcular ▶
+        </button>
+      </div>
+    </div>
+    <div id="eclipsesResults"></div>
   </div>
 </div>
 
@@ -4069,10 +4162,294 @@ function _renderTablaAspectos(aspectos, colA, colB, vacioMsg){
   return html;
 }
 
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CALCULADORA DE ECLIPSES — Meeus Cap.54                     ║
+// ║  Detecta eclipses solares y lunares usando las series de     ║
+// ║  lunarPhaseJDE() ya validadas. Sin dependencias nuevas.      ║
+// ║  Visibilidad georeferenciada por altitud solar/lunar.        ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ── Toggle del panel ────────────────────────────────────────────
+function toggleEclipsesPanel(){
+  let p = document.getElementById("eclipsesPanel");
+  let b = document.getElementById("btnEclipses");
+  // Cerrar Atacir si está abierto
+  let ap = document.getElementById("atacirPanel");
+  if(ap && ap.classList.contains("open")){
+    ap.classList.remove("open");
+    let ba = document.getElementById("btnAtacir");
+    if(ba){ ba.style.background=""; ba.style.borderColor=""; }
+  }
+  p.classList.toggle("open");
+  let open = p.classList.contains("open");
+  if(b){ b.style.background  = open ? "rgba(140,190,255,0.18)" : ""; }
+  if(b){ b.style.borderColor = open ? "rgba(140,190,255,0.50)" : ""; }
+  if(open){
+    // Sincronizar lat/lon del observador actual
+    let latDeg = lat * rad2deg;
+    let lonDeg = lon * rad2deg;
+    let elLat = document.getElementById("ecl-lat");
+    let elLon = document.getElementById("ecl-lon");
+    if(elLat) elLat.value = latDeg.toFixed(2);
+    if(elLon) elLon.value = lonDeg.toFixed(2);
+    _eclApplyFreeState();
+  }
+}
+
+// ── Estado free/premium del panel ───────────────────────────────
+function _eclApplyFreeState(){
+  let badge = document.getElementById("_eclVersionBadge");
+  if(badge){
+    if(_isPremium){
+      badge.textContent = "✦ Premium";
+      badge.style.color = "rgba(160,220,160,0.80)";
+    } else {
+      badge.textContent = "🔒 Free";
+      badge.style.color = "rgba(220,180,80,0.70)";
+    }
+  }
+  // Rango y checkboxes: solo Premium puede cambiarlos
+  let selRange = document.getElementById("ecl-range");
+  let chkSolar = document.getElementById("ecl-solar");
+  let chkLunar = document.getElementById("ecl-lunar");
+  [selRange, chkSolar, chkLunar].forEach(el => {
+    if(!el) return;
+    el.disabled    = !_isPremium;
+    el.style.opacity = _isPremium ? "1" : "0.45";
+  });
+}
+
+// ── Geolocalización ─────────────────────────────────────────────
+function _eclGeolocate(){
+  if(!navigator.geolocation){ alert("Geolocalización no disponible."); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    let elLat = document.getElementById("ecl-lat");
+    let elLon = document.getElementById("ecl-lon");
+    if(elLat) elLat.value = pos.coords.latitude.toFixed(4);
+    if(elLon) elLon.value = pos.coords.longitude.toFixed(4);
+  }, () => alert("No se pudo obtener la ubicación."));
+}
+
+// ── Núcleo matemático: detectar eclipses ────────────────────────
+// Basado en Meeus Cap.54 — criterio de F (argumento de latitud lunar)
+// F se extrae de los mismos términos que usa lunarPhaseJDE().
+function _eclGetF(k, phase){
+  // F: argumento de latitud de la Luna en el momento de la fase
+  // Meeus Cap.49 fórmula (mismo k_ que lunarPhaseJDE)
+  const k_ = k + phase;
+  const T  = k_ / 1236.85;
+  const F  = ((160.7108 + 390.67050284*k_ - 0.0016118*T*T - 0.00000227*T*T*T) % 360 + 360) % 360;
+  return F; // grados
+}
+
+// Magnitud aproximada del eclipse solar (Meeus 54.1)
+// u: parámetro de penumbra — negativo = sin eclipse
+function _eclSolarMagnitude(F, distKm){
+  let sinF = Math.abs(Math.sin(F * deg2rad));
+  // Umbral de posibilidad: |sinF| < 0.36
+  if(sinF >= 0.36) return null;
+  // Tipo según distancia lunar y F
+  // perigeo medio ~356500 km, apogeo medio ~406700 km
+  let isPerigeo = distKm < 375000;
+  let isCentral = sinF < 0.15;
+  if(!isCentral){
+    return { tipo: "Parcial", subtipo: "solar", magnitud: 1 - sinF/0.36 };
+  }
+  return {
+    tipo: isPerigeo ? "Total" : "Anular",
+    subtipo: "solar",
+    magnitud: 1 - sinF/0.15
+  };
+}
+
+// Magnitud aproximada del eclipse lunar (Meeus 54.2)
+function _eclLunarMagnitude(F){
+  let sinF = Math.abs(Math.sin(F * deg2rad));
+  // Umbral de posibilidad: |sinF| < 0.40
+  if(sinF >= 0.40) return null;
+  if(sinF < 0.26){
+    return { tipo: "Total", subtipo: "lunar", magnitud: 1 - sinF/0.26 };
+  }
+  return { tipo: "Parcial", subtipo: "lunar", magnitud: 1 - sinF/0.40 };
+}
+
+// ── Visibilidad georeferenciada ──────────────────────────────────
+// Retorna true si el cuerpo está sobre el horizonte en jde para (latDeg, lonDeg)
+function _eclVisibleAt(jde, latDeg, lonDeg, isSolar){
+  // Inyectar JD y ubicación temporalmente
+  let savedOffset = timeOffset, savedLat = lat, savedLon = lon;
+  let savedSpeed  = timeSpeed;
+  let targetUnix  = (jde - 2440587.5) * 86400;
+  timeOffset = targetUnix - Date.now()/1000;
+  timeSpeed  = 0;
+  lat = latDeg * deg2rad;
+  lon = lonDeg * deg2rad;
+  R_TIERRA = geocentricRadius();
+  // Calcular altitud
+  let pos    = isSolar ? sunPosition() : moonPosition();
+  let LST_   = getLST();
+  let HA     = LST_ - pos.ra;
+  let altRad = Math.asin(
+    Math.sin(pos.dec)*Math.sin(lat) + Math.cos(pos.dec)*Math.cos(lat)*Math.cos(HA)
+  );
+  // Restaurar
+  timeOffset = savedOffset; timeSpeed = savedSpeed;
+  lat = savedLat; lon = savedLon;
+  R_TIERRA = geocentricRadius();
+  return altRad * rad2deg > -1.0; // con margen de refracción
+}
+
+// ── Función principal de cálculo ─────────────────────────────────
+function calcEclipses(){
+  let resDiv = document.getElementById("eclipsesResults");
+  if(!resDiv) return;
+
+  let latDeg  = parseFloat(document.getElementById("ecl-lat")?.value) || (lat * rad2deg);
+  let lonDeg  = parseFloat(document.getElementById("ecl-lon")?.value) || (lon * rad2deg);
+  let ranioY  = _isPremium ? parseFloat(document.getElementById("ecl-range")?.value || "1") : 1;
+  let doSolar = _isPremium ? (document.getElementById("ecl-solar")?.checked ?? true) : true;
+  let doLunar = _isPremium ? (document.getElementById("ecl-lunar")?.checked ?? true) : true;
+
+  resDiv.innerHTML = `<div style="text-align:center;padding:10px;color:rgba(180,165,255,0.60);font-size:11px;">
+    Calculando eclipses…</div>`;
+
+  // JD central = tiempo actual del engine
+  let jdCenter = julianDate();
+  let jdMin    = jdCenter - ranioY * 365.25;
+  let jdMax    = jdCenter + ranioY * 365.25;
+
+  // k inicial: luna nueva más cercana a jdMin
+  let k0 = Math.floor((jdMin - 2451550.09766) / 29.530588861);
+  let k1 = Math.ceil( (jdMax - 2451550.09766) / 29.530588861);
+
+  let eclipses = [];
+
+  for(let k = k0; k <= k1; k++){
+    // ── Eclipse solar: fase luna nueva (phase=0) ──
+    if(doSolar){
+      let jde  = lunarPhaseJDE(k, 0);
+      if(jde >= jdMin && jde <= jdMax){
+        let F    = _eclGetF(k, 0);
+        let dist = lunarDistELP(jde);
+        let mag  = _eclSolarMagnitude(F, dist);
+        if(mag){
+          let visible = _eclVisibleAt(jde, latDeg, lonDeg, true);
+          eclipses.push({
+            jde, tipo: mag.tipo, subtipo: mag.subtipo,
+            magnitud: mag.magnitud, dist, visible
+          });
+        }
+      }
+    }
+    // ── Eclipse lunar: fase luna llena (phase=0.5) ──
+    if(doLunar){
+      let jde  = lunarPhaseJDE(k, 0.5);
+      if(jde >= jdMin && jde <= jdMax){
+        let F   = _eclGetF(k, 0.5);
+        let mag = _eclLunarMagnitude(F);
+        if(mag){
+          let visible = _eclVisibleAt(jde, latDeg, lonDeg, false);
+          eclipses.push({
+            jde, tipo: mag.tipo, subtipo: mag.subtipo,
+            magnitud: mag.magnitud, dist: null, visible
+          });
+        }
+      }
+    }
+  }
+
+  eclipses.sort((a,b) => a.jde - b.jde);
+
+  // ── Gate freemium: Free = solo 1 resultado ──
+  if(!_isPremium){
+    // Mostrar solo el próximo eclipse (jde >= jdCenter)
+    let proximos = eclipses.filter(e => e.jde >= jdCenter);
+    let muestra  = proximos.length > 0 ? [proximos[0]] : (eclipses.length > 0 ? [eclipses[0]] : []);
+    resDiv.innerHTML = _eclRenderTabla(muestra, latDeg, lonDeg) + _eclRenderPremiumBanner();
+    return;
+  }
+
+  // ── Premium: tabla completa ──
+  if(eclipses.length === 0){
+    resDiv.innerHTML = `<div class="note" style="text-align:center;padding:10px;">
+      No se encontraron eclipses en el rango seleccionado.</div>`;
+    return;
+  }
+  resDiv.innerHTML = _eclRenderTabla(eclipses, latDeg, lonDeg);
+}
+
+// ── Render tabla de resultados ───────────────────────────────────
+function _eclRenderTabla(eclipses, latDeg, lonDeg){
+  if(eclipses.length === 0) return `<div class="note" style="text-align:center;padding:8px;">Sin eclipses en el rango.</div>`;
+
+  // Convertir JDE a fecha UTC legible
+  function jdeToStr(jde){
+    let d = new Date((jde - 2440587.5) * 86400000);
+    return d.toISOString().slice(0,16).replace("T"," ") + " UTC";
+  }
+
+  let rows = eclipses.map(e => {
+    let isSolar  = e.subtipo === "solar";
+    let tipoCell = isSolar
+      ? `<td class="ecl-solar">☀ ${e.tipo}</td>`
+      : `<td class="ecl-lunar">☽ ${e.tipo}</td>`;
+    let visCell  = e.visible
+      ? `<td class="ecl-vis">✓ Visible</td>`
+      : `<td class="ecl-novis">— No visible</td>`;
+    let distCell = e.dist
+      ? `<td style="color:rgba(255,255,255,0.55);">${Math.round(e.dist).toLocaleString()} km</td>`
+      : `<td style="color:rgba(255,255,255,0.25);">—</td>`;
+    let magPct   = (e.magnitud * 100).toFixed(0) + "%";
+    return `<tr>
+      ${tipoCell}
+      <td style="color:rgba(255,255,255,0.80);">${jdeToStr(e.jde)}</td>
+      ${visCell}
+      ${distCell}
+      <td style="color:rgba(180,165,255,0.70);">${magPct}</td>
+    </tr>`;
+  }).join("");
+
+  return `<table>
+    <thead><tr>
+      <th>Tipo</th>
+      <th>Fecha UTC</th>
+      <th>Visibilidad (${latDeg.toFixed(1)}°, ${lonDeg.toFixed(1)}°)</th>
+      <th>Dist. Lunar</th>
+      <th>Magnitud</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="note" style="font-size:10px;color:rgba(255,255,255,0.30);margin-top:6px;">
+    Meeus Cap.54 · visibilidad = cuerpo sobre el horizonte en el momento del máximo
+  </div>`;
+}
+
+// ── Banner Premium ───────────────────────────────────────────────
+function _eclRenderPremiumBanner(){
+  return `<div style="margin-top:10px;padding:10px 12px;background:rgba(140,190,255,0.06);
+              border:1px solid rgba(140,190,255,0.20);border-radius:8px;text-align:center;">
+    <div style="font-size:11px;color:rgba(140,190,255,0.80);margin-bottom:6px;">
+      🔒 <b>Caelis Premium</b> incluye todos los eclipses del rango,<br>
+      selección de tipo, rango configurable (±6m / ±1a / ±2a) y visibilidad georreferenciada.
+    </div>
+    <button onclick="_clOpenModal()" style="background:linear-gradient(135deg,#b8920a,#7a5f05);
+      border:none;border-radius:6px;color:#fff8e0;font-size:11.5px;
+      padding:7px 18px;cursor:pointer;letter-spacing:0.06em;">
+      ✦ Activar Premium
+    </button>
+  </div>`;
+}
 
 function toggleAtacirPanel(){
   let p = document.getElementById("atacirPanel");
   let b = document.getElementById("btnAtacir");
+  // Cerrar Eclipses si está abierto
+  let ep = document.getElementById("eclipsesPanel");
+  if(ep && ep.classList.contains("open")){
+    ep.classList.remove("open");
+    let be = document.getElementById("btnEclipses");
+    if(be){ be.style.background=""; be.style.borderColor=""; }
+  }
   p.classList.toggle("open");
   let open = p.classList.contains("open");
   if(b){ b.style.background   = open ? "rgba(220,180,80,0.18)" : ""; }
@@ -6184,6 +6561,7 @@ function transformareAstralis(){
     fx("infoPanel",1,0,400);
     fx("eclPanel",  1,0,400);
     const ap = $("atacirPanel"); if(ap){ ap.classList.remove("open"); ap.style.display=""; }
+    const ep = $("eclipsesPanel"); if(ep){ ep.classList.remove("open"); ep.style.display=""; }
 
     fadeEl(canvas,1,0,TX_IN_MS*0.85);
     animateVortex(spawnCaelisParticles(true), TX_IN_MS, ()=>{
