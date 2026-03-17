@@ -926,11 +926,9 @@ button:hover{background:rgba(255,255,255,0.18);}
     </div>
     <div class="ia-type-btns">
       <div class="ia-type-btn active" id="iaTypeActual" onclick="_iaSetType('actual')">⊙ Cielo actual</div>
-      <div class="ia-type-btn" id="iaTypeTransitos" onclick="_iaSetType('transitos')">↺ Tránsitos sobre natal</div>
+      <div class="ia-type-btn" id="iaTypeContexto" onclick="_iaSetType('contexto')">↺ Último cálculo</div>
     </div>
-    <div id="iaNatalHint" style="display:none;font-size:10px;color:rgba(220,180,80,0.65);margin-bottom:8px;">
-      ↑ Requiere Carta Natal configurada en el panel Atacir
-    </div>
+    <div id="iaNatalHint" style="display:none;font-size:10px;color:rgba(180,220,140,0.80);margin-bottom:8px;"></div>
     <button onclick="generarLecturaIA()" id="iaBtnGenerar"
       style="width:100%;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
              background:rgba(160,120,255,0.14);border:1px solid rgba(160,120,255,0.40);
@@ -4196,6 +4194,9 @@ function calcAtacir(){
     <button onclick="exportarTexto()" class="atc-btn" style="flex:1;background:rgba(180,160,255,0.10);border-color:rgba(180,160,255,0.35);color:rgba(200,185,255,0.95);">
       📋 Copiar texto
     </button>
+    <button onclick="leerAtacir()" class="atc-btn" style="flex:1;background:rgba(160,120,255,0.12);border-color:rgba(160,120,255,0.40);color:rgba(200,170,255,0.95);">
+      ✦ Leer con IA
+    </button>
   </div>`;
 
   document.getElementById("atacirResults").innerHTML = html;
@@ -4863,6 +4864,22 @@ function calcPanchanga(){
     </div>`;
 
   resDiv.innerHTML = freeRows + (_isPremium ? premiumRows : premiumBanner);
+
+  // Guardar contexto IA si es Premium
+  if(_isPremium){
+    const panCtx = {
+      tithi, tithiIdx, paksha,
+      vara, naks, yogaName, yogaIdx, karanaName,
+      ayanDeg, sunSid, moonSid, jde,
+    };
+    window._caelisContext = { type:"panchanga", panchanga: panCtx, snapshot: getSnapshot() };
+    const btnLeer = document.createElement("button");
+    btnLeer.className = "atc-btn";
+    btnLeer.textContent = "✦ Leer Panchanga con IA";
+    btnLeer.style.cssText = "width:100%;margin-top:10px;background:rgba(160,120,255,0.12);border-color:rgba(160,120,255,0.40);color:rgba(200,170,255,0.95);";
+    btnLeer.onclick = () => leerPanchanga(panCtx);
+    resDiv.appendChild(btnLeer);
+  }
 }
 
 // ── Sync del panel Panchanga con el tiempo del engine ────────────────────────
@@ -4878,19 +4895,100 @@ function _panSyncNow(){
   if(elLon) elLon.value = (lon*rad2deg).toFixed(2);
 }
 
+
 // ── Toggle panel Panchanga ───────────────────────────────────────────────────
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  LECTURA HERMÉTICA IA — Interpretación via Cloudflare Worker           ║
-// ║  Usa getSnapshot() + calcAspectosTransito() como fuente de datos.      ║
-// ║  La llamada a Anthropic se hace desde el Worker (key nunca en cliente). ║
+// ║  LECTURA HERMÉTICA IA v2.0                                             ║
+// ║  Sistema de contexto global + 5 tipos de lectura especializados        ║
+// ║  Botones contextuales en cada panel + panel ✦ Leer independiente       ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
-let _iaType = "actual"; // "actual" | "transitos"
+// Contexto global — cada panel lo actualiza al calcular
+window._caelisContext = null;
 
+let _iaType = "actual";
+
+// ── Helper central: llama al Worker con cualquier payload ────────────────────
+async function _iaCallWorker(payload, targetDiv){
+  if(!_isPremium){
+    targetDiv.textContent = "🔒 La Lectura Hermética IA es una función Premium.\nActiva tu licencia para acceder.";
+    targetDiv.classList.add("visible"); return;
+  }
+  const workerURL = (localStorage.getItem("_caelis_ia_worker") || "").trim();
+  if(!workerURL){
+    targetDiv.textContent = "⚠ Configura la URL del Worker en el panel ✦ Leer.";
+    targetDiv.classList.add("visible"); return;
+  }
+  const licenseKey = localStorage.getItem(_CL_STORE) || "";
+  if(!licenseKey){
+    targetDiv.textContent = "⚠ No se encontró tu clave Premium. Actívala primero.";
+    targetDiv.classList.add("visible"); return;
+  }
+  targetDiv.classList.remove("visible");
+  targetDiv.textContent = "";
+  const spinner = document.getElementById("iaSpinner");
+  if(spinner) spinner.classList.add("visible");
+  try {
+    const res  = await fetch(workerURL, {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "X-Caelis-License": licenseKey },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    targetDiv.textContent = data.interpretation || "Sin respuesta.";
+    targetDiv.classList.add("visible");
+  } catch(err){
+    targetDiv.textContent = `⚠ ${err.message}`;
+    targetDiv.classList.add("visible");
+  } finally {
+    if(spinner) spinner.classList.remove("visible");
+  }
+}
+
+// ── Lectura desde el Atacir ──────────────────────────────────────────────────
+async function leerAtacir(){
+  const resDiv = document.getElementById("iaResult");
+  const snapshot = getSnapshot();
+  const rxDate = document.getElementById("rx-date")?.value;
+  const rxTime = document.getElementById("rx-time")?.value || "12:00";
+  const rxLat  = parseFloat(document.getElementById("rx-lat")?.value);
+  const rxLon  = parseFloat(document.getElementById("rx-lon")?.value);
+  if(!rxDate || isNaN(rxLat) || isNaN(rxLon)){
+    resDiv.textContent = "⚠ Configura la Carta Natal en el panel Atacir primero.";
+    resDiv.classList.add("visible"); return;
+  }
+  function dtJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
+  const natal    = getSnapshotAt(dtJD(rxDate,rxTime), rxLat, rxLon);
+  natal.fecha    = `${rxDate} ${rxTime} UTC`;
+  const transitos = calcAspectosTransito(natal, snapshot);
+  window._caelisContext = { type:"atacir", snapshot, natal, transitos };
+  toggleIAPanel();
+  await _iaCallWorker({ type:"atacir", snapshot, natal, transitos }, resDiv);
+}
+
+// ── Lectura desde la Sinastría ───────────────────────────────────────────────
+async function leerSinastria(snapA, snapB, aspectos, fechaA, fechaB){
+  const resDiv = document.getElementById("iaResult");
+  const sData  = { snapA, snapB, aspectos, fechaA, fechaB };
+  window._caelisContext = { type:"sinastria", sinastria: sData };
+  toggleIAPanel();
+  await _iaCallWorker({ type:"sinastria", sinastria: sData }, resDiv);
+}
+
+// ── Lectura desde el Panchanga ───────────────────────────────────────────────
+async function leerPanchanga(data){
+  const resDiv = document.getElementById("iaResult");
+  const snap   = getSnapshot();
+  window._caelisContext = { type:"panchanga", panchanga: data, snapshot: snap };
+  toggleIAPanel();
+  await _iaCallWorker({ type:"panchanga", panchanga: data, snapshot: snap }, resDiv);
+}
+
+// ── Panel IA — toggle y controles ────────────────────────────────────────────
 function toggleIAPanel(){
   const p  = document.getElementById("iaPanel");
   const b  = document.getElementById("btnIA");
-  // Cerrar otros paneles
   ["atacirPanel","eclipsesPanel","panchaPanel"].forEach(id => {
     const el = document.getElementById(id);
     if(el && el.classList.contains("open")){
@@ -4905,10 +5003,31 @@ function toggleIAPanel(){
   if(b){ b.style.background  = open ? "rgba(160,120,255,0.20)" : ""; }
   if(b){ b.style.borderColor = open ? "rgba(160,120,255,0.55)" : ""; }
   if(open){
-    // Restaurar Worker URL guardada
     const saved = localStorage.getItem("_caelis_ia_worker");
     const inp   = document.getElementById("iaWorkerInput");
     if(saved && inp) inp.value = saved;
+    _iaUpdateContextLabel();
+  }
+}
+
+function _iaUpdateContextLabel(){
+  const ctx  = window._caelisContext;
+  const hint = document.getElementById("iaNatalHint");
+  if(!hint) return;
+  if(ctx){
+    const labels = {
+      atacir:    "✓ Atacir calculado — tránsitos listos para interpretar",
+      sinastria: "✓ Sinastría calculada — vínculo listo para interpretar",
+      panchanga: "✓ Panchanga calculado — almanaque listo para interpretar",
+      natal:     "✓ Carta natal — lista para interpretar",
+      actual:    "✓ Cielo actual",
+    };
+    hint.textContent = labels[ctx.type] || "";
+    hint.style.display = "block";
+    hint.style.color   = "rgba(180,220,140,0.80)";
+  } else {
+    hint.textContent = "";
+    hint.style.display = "none";
   }
 }
 
@@ -4919,102 +5038,23 @@ function _iaSaveWorker(val){
 function _iaSetType(type){
   _iaType = type;
   document.getElementById("iaTypeActual")?.classList.toggle("active", type==="actual");
-  document.getElementById("iaTypeTransitos")?.classList.toggle("active", type==="transitos");
-  const hint = document.getElementById("iaNatalHint");
-  if(hint) hint.style.display = type==="transitos" ? "block" : "none";
-  // Limpiar resultado anterior al cambiar tipo
+  document.getElementById("iaTypeContexto")?.classList.toggle("active", type==="contexto");
   const res = document.getElementById("iaResult");
   if(res){ res.textContent=""; res.classList.remove("visible"); }
 }
 
 async function generarLecturaIA(){
-  if(!_isPremium){
-    document.getElementById("iaResult").textContent =
-      "🔒 La Lectura Hermética IA es una función Premium.\n" +
-      "Activa tu licencia para acceder a la interpretación.";
-    document.getElementById("iaResult").classList.add("visible");
-    return;
-  }
-
-  const workerURL = (document.getElementById("iaWorkerInput")?.value || "").trim();
-  if(!workerURL){
-    document.getElementById("iaResult").textContent =
-      "⚠ Ingresa la URL de tu Worker de Cloudflare.\n" +
-      "Consulta docs/ia-worker.md para configurarlo.";
-    document.getElementById("iaResult").classList.add("visible");
-    return;
-  }
-
-  // Obtener clave de licencia del storage
-  const licenseKey = localStorage.getItem(_CL_STORE) || "";
-  if(!licenseKey){
-    document.getElementById("iaResult").textContent =
-      "⚠ No se encontró tu clave Premium. Actívala primero.";
-    document.getElementById("iaResult").classList.add("visible");
-    return;
-  }
-
-  // Mostrar spinner
-  const spinner = document.getElementById("iaSpinner");
-  const resDiv  = document.getElementById("iaResult");
-  const btn     = document.getElementById("iaBtnGenerar");
-  spinner.classList.add("visible");
-  resDiv.classList.remove("visible");
-  btn.disabled = true;
-  btn.textContent = "Consultando…";
-
+  const resDiv = document.getElementById("iaResult");
+  const btn    = document.getElementById("iaBtnGenerar");
+  if(btn){ btn.disabled=true; btn.textContent="Consultando…"; }
   try {
-    // Snapshot del cielo actual
-    const snapshot = getSnapshot();
-
-    // Payload según tipo de lectura
-    const payload = { type: _iaType, snapshot };
-
-    if(_iaType === "transitos"){
-      // Intentar obtener la carta natal desde los inputs del Atacir
-      const rxDate = document.getElementById("rx-date")?.value;
-      const rxTime = document.getElementById("rx-time")?.value || "12:00";
-      const rxLat  = parseFloat(document.getElementById("rx-lat")?.value);
-      const rxLon  = parseFloat(document.getElementById("rx-lon")?.value);
-
-      if(!rxDate || isNaN(rxLat) || isNaN(rxLon)){
-        throw new Error("Configura la Carta Natal en el panel Atacir primero.");
-      }
-      function dateToJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
-      const jdRx  = dateToJD(rxDate, rxTime);
-      const natal = getSnapshotAt(jdRx, rxLat, rxLon);
-      natal.fecha = `${rxDate} ${rxTime} UTC`;
-      const transitos = calcAspectosTransito(natal, snapshot);
-      payload.natal    = natal;
-      payload.transitos = transitos;
+    if(_iaType === "contexto" && window._caelisContext){
+      await _iaCallWorker({ ...window._caelisContext }, resDiv);
+    } else {
+      await _iaCallWorker({ type:"actual", snapshot: getSnapshot() }, resDiv);
     }
-
-    // Llamar al Worker
-    const res = await fetch(workerURL, {
-      method:  "POST",
-      headers: {
-        "Content-Type":      "application/json",
-        "X-Caelis-License":  licenseKey,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if(!res.ok){
-      throw new Error(data.error || `Error ${res.status}`);
-    }
-
-    resDiv.textContent = data.interpretation || "Sin respuesta.";
-    resDiv.classList.add("visible");
-
-  } catch(err){
-    resDiv.textContent = `⚠ ${err.message}`;
-    resDiv.classList.add("visible");
   } finally {
-    spinner.classList.remove("visible");
-    btn.disabled    = false;
-    btn.textContent = "✦ Generar lectura";
+    if(btn){ btn.disabled=false; btn.textContent="✦ Generar lectura"; }
   }
 }
 
@@ -5110,9 +5150,25 @@ function calcSinastria(){
   }
 
   resDiv.innerHTML = html;
-}
 
-// ── Switch de tabs en el Atacir ───────────────────────────────────────────────
+  // Guardar contexto para la IA si es Premium
+  if(_isPremium){
+    function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
+    const _sCtx = {
+      snapA: rxA, snapB: rxB,
+      aspectos: aspectos,
+      fechaA: `${A.date} ${A.time} UTC`,
+      fechaB: `${B.date} ${B.time} UTC`,
+    };
+    window._caelisContext = { type:"sinastria", sinastria: _sCtx };
+    const btnLeer = document.createElement("button");
+    btnLeer.className = "atc-btn";
+    btnLeer.textContent = "✦ Leer sinastría con IA";
+    btnLeer.style.cssText = "width:100%;margin-top:10px;background:rgba(160,120,255,0.12);border-color:rgba(160,120,255,0.40);color:rgba(200,170,255,0.95);";
+    btnLeer.onclick = () => leerSinastria(_sCtx.snapA, _sCtx.snapB, _sCtx.aspectos, _sCtx.fechaA, _sCtx.fechaB);
+    resDiv.appendChild(btnLeer);
+  }
+}
 function _atcTab(which){
   ["atacir","sinastria"].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle("active", t===which);
