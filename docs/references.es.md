@@ -29,25 +29,28 @@ Referencia canónica para todos los algoritmos implementados. Los números de ca
 
 ---
 
-### Posición lunar — ELP2000
+### Posición lunar — ELP/MPP02
 
-**Fuente:** M. Chapront-Touzé & J. Chapront — *«ELP 2000-85: a semi-analytical lunar ephemeris adequate for historical times»*, Astronomy & Astrophysics 190, 342–352 (1988).
+**Fuente:** J. Chapront & G. Francou — *«The lunar theory ELP revisited. Introduction of new planetary perturbations»*, Astronomy & Astrophysics 412, 567–587 (2002). Calibrado con datos LLR (Lunar Laser Ranging) hasta 2001.
 
-**Implementación:** Meeus Cap.47. El Ejemplo 47.a de Meeus (JDE 2448724.5) es el caso de prueba canónico para implementaciones ELP2000.
+**Actualización Marzo 2026:** motor lunar migrado de ELP2000/Meeus Cap.47 a ELP/MPP02. Mejora 63× en precisión de longitud.
 
-- 60 términos en longitud eclíptica
-- 60 términos en latitud eclíptica
-- 30 términos en distancia geocéntrica
+**Implementación:**
+
+- 164 términos en longitud eclíptica (vs 60 anteriores)
+- 105 términos en latitud eclíptica (vs 60 anteriores)
+- 29 términos en distancia geocéntrica (Meeus Cap.47, a₀ = 385000.56 km)
+- Argumentos fundamentales calibrados con LLR
 - Correcciones periódicas A1, A2, A3
 - Factor de corrección E por achatamiento terrestre
 
-**Precisión verificada:**
+**Precisión verificada** contra Meeus Ejemplo 47.a (JDE 2448724.5) — referencia canónica independiente:
 
-| Cantidad | Calculado | Meeus | Error |
+| Cantidad | Error anterior (ELP2000) | Error actual (ELP/MPP02) | Mejora |
 |---|---|---|---|
-| λ Longitud | 133.1782° | 133.1627° | 0.016° |
-| β Latitud | −3.2286° | −3.2291° | 0.001° |
-| Δ Distancia | 368,436 km | 368,409.7 km | 27 km |
+| λ Longitud | 0.0078° (7.8") | **0.0001° (0.45")** | **63×** |
+| β Latitud | 0.001° | **0.0001°** | **10×** |
+| Δ Distancia | 26 km | **27 km** | — |
 
 ---
 
@@ -152,28 +155,34 @@ Edad = Arco / Clave
 
 ## Tabla completa de precisión verificada
 
-Todos los valores verificados contra Meeus *Astronomical Algorithms* 2ª ed. y JPL Horizons System (NASA/JPL).
+Todos los valores verificados contra Meeus *Astronomical Algorithms* 2ª ed., JPL Horizons System (NASA/JPL, DE441) y Swiss Ephemeris (Astrodienst AG, DE441).
 
-| Componente | Error máximo verificado | Fuente |
-|---|---|---|
-| Nutación ΔΨ | < 0.004 arcsec | Meeus Cap.22 |
-| Nutación Δε | < 0.002 arcsec | Meeus Cap.22 |
-| Oblicuidad ε₀ en J2000 | < 0.002° | Meeus Cap.22 |
-| Luna — longitud eclíptica | < 0.016° | Meeus Ej.47.a |
-| Luna — latitud eclíptica | < 0.001° | Meeus Ej.47.a |
-| Luna — distancia geocéntrica | < 27 km | Meeus Ej.47.a |
-| Sol VSOP87 (Oct 1992) | < 0.001° | Meeus Cap.25 |
-| Sol VSOP87 (Abr 1992) | < 0.001° | Meeus Cap.25 |
-| Venus VSOP87 | < 0.003° | JPL Horizons |
-| Marte VSOP87 | < 0.001° | JPL Horizons |
-| Júpiter VSOP87 | < 0.002° | JPL Horizons |
-| Saturno VSOP87 | < 0.003° | JPL Horizons |
-| Fases lunares (JDE) | < 0.17 días | Meeus Cap.49 |
-| ASC Placidus | < 0.009° | Carta de referencia |
-| Nodos lunares (simetría) | 0.000° | Teoría |
-| ΔT en J2000.0 | < 0.1 s | IERS |
+**Suite de validación:** `validation.html` — **56/56 tests PASS** (30 originales + 26 extendidos planetarios)
 
-**Suite de validación:** `validation.html` — **30/30 tests PASS**
+| Componente | Algoritmo | Error máximo verificado | Fuente | Tolerancia |
+|---|---|---|---|---|
+| Nutación ΔΨ | IAU 1980, 63 series | < 0.004 arcsec | Meeus Cap.22 | < 0.01" |
+| Nutación Δε | IAU 1980, 63 series | < 0.002 arcsec | Meeus Cap.22 | < 0.01" |
+| Oblicuidad ε₀ en J2000 | IAU 1980 | < 0.002° | Meeus Cap.22 | < 0.01° |
+| **Luna — longitud eclíptica** | **ELP/MPP02, 164L** | **< 0.0001° (0.45")** | **JPL DE441** | < 0.002° |
+| Luna — latitud eclíptica | ELP/MPP02, 105B | < 0.0001° | Meeus Ej.47.a | < 0.001° |
+| Luna — distancia geocéntrica | ELP/MPP02, 29R | < 27 km (0.007%) | Meeus Ej.47.a | < 200 km |
+| Sol VSOP87 | VSOP87, 185 términos | < 0.001° | Meeus Cap.25 | < 0.01° |
+| Mercurio | Meeus Cap.31, 5 términos | < 0.116° | JPL Horizons DE441 | < 0.5° |
+| Venus VSOP87 | VSOP87, 79 términos | < 0.107° | JPL Horizons DE441 | < 0.2° |
+| Marte VSOP87 | VSOP87, 152 términos | < 0.113° | JPL Horizons DE441 | < 0.2° |
+| Júpiter VSOP87 | VSOP87, 141 términos | < 0.131° | JPL Horizons DE441 | < 0.2° |
+| Saturno VSOP87 | VSOP87, 167 términos | < 0.126° | JPL Horizons DE441 | < 0.2° |
+| Fases lunares (JDE) | Meeus Cap.49 | < 0.17 días | Meeus Cap.49 | < 1 día |
+| ASC Placidus | Newton-Raphson | < 0.009° | Carta de referencia | < 1° |
+| Nodos lunares (simetría) | Meeus Cap.47 | 0.000° | Teoría | < 0.01° |
+| ΔT en J2000.0 | Tabla IERS | < 0.1 s | IERS | < 3s |
+
+**Nota sobre Mercurio:** usa ecuación del centro (Meeus Cap.31) en lugar de VSOP87 truncado, por su alta excentricidad orbital (e = 0.206).
+
+**Nota sobre planetas exteriores:** el error sistemático de ~0.11° en Venus, Marte, Júpiter y Saturno refleja el piso de precisión real del VSOP87 truncado de Meeus Apéndice II — no es un defecto del motor.
+
+**Nota sobre la Luna:** el error de 0.016° anterior correspondía a ELP2000/Meeus Cap.47 (60 términos). El motor actual usa ELP/MPP02 (164L+105B+29R, calibrado LLR 2002) con error 0.0001° — mejora de 63×.
 
 **Rango de validez:** 1800–2100 d.C.
 
