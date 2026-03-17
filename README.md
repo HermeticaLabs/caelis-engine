@@ -2,9 +2,9 @@
 
 **A mathematical astronomical modeling engine for symbolic celestial observation.**
 
-Caelis Engine computes real planetary positions using professional-grade algorithms (VSOP87, ELP/MPP02), renders them as a living symbolic instrument, and exposes a cycle, resonance, eclipse, and Vedic calendar analysis framework — all in a single HTML file with zero dependencies.
+Caelis Engine v2.0 computes real planetary positions using professional-grade algorithms (VSOP87, ELP/MPP02), renders them as a living symbolic instrument, and exposes a cycle, resonance, eclipse, Vedic calendar, synastry, and AI-powered hermetic interpretation framework — all in a single HTML file with zero dependencies.
 
-[**→ Live Demo**](https://hermeticalabs.github.io/caelis-engine/caelis_engine_1_5.html) · [**Docs**](#documentation) · [**License**](#license) · [**Ko-fi**](https://ko-fi.com/hermeticalabs)
+[**→ Live Demo**](https://hermeticalabs.github.io/caelis-engine/) · [**Docs**](#documentation) · [**License**](#license) · [**Ko-fi**](https://ko-fi.com/hermeticalabs)
 
 ---
 
@@ -34,6 +34,7 @@ Symbol → Structure → Simulation
 - Houses, aspects, transits and progressions via the **Atacir** analysis panel (with **Synastry** tab)
 - Calculates **solar and lunar eclipses** with georeferenced visibility (Meeus Cap.54, Premium)
 - Displays **Vedic Panchanga** — Tithi, Vara, Nakshatra, Yoga, Karana with Lahiri ayanamsa
+- Generates **AI hermetic interpretations** of the current sky and active transits via Cloudflare Worker + Claude (Premium)
 
 ---
 
@@ -52,6 +53,7 @@ Symbol → Structure → Simulation
 | Vedic Panchanga (5 elements) | ✓ | no | rarely |
 | Synastry cross-aspects | ✓ | no | no |
 | Equinox/solstice markers + modal | ✓ | no | no |
+| AI hermetic interpretation (Premium) | ✓ | no | no |
 | Single file, runs in browser | ✓ | no | no |
 | Modular architecture | ✓ | varies | no |
 
@@ -61,7 +63,8 @@ Symbol → Structure → Simulation
 
 ```
 caelis-engine/
-├── caelis_engine_1_5.html     ← Full instrument (single file, runs standalone) — 7,875 lines
+├── caelis_engine_2_0.html     ← Full instrument (single file, runs standalone) — 8,116 lines
+├── index.html                 ← GitHub Pages entry point (identical to above)
 ├── validation.html            ← Precision test suite — 56/56 PASS
 └── src/
     ├── astro/
@@ -74,7 +77,7 @@ caelis-engine/
 
 **TimeEngine** — time as a first-class variable. Julian date conversion, sidereal time, time offset control, speed multiplier (from 1 second/frame to 1 year/frame).
 
-**Atacir** — the analytical layer. Natal and transit aspects, planetary cycles, synodic periods, resonance detection, Placidus house progression, primary directions (Al-Biruni / Ptolemy), synastry, Vedic Panchanga.
+**Atacir** — the analytical layer. Natal and transit aspects, planetary cycles, synodic periods, resonance detection, Placidus house progression, primary directions (Al-Biruni / Ptolemy), synastry, Vedic Panchanga, AI hermetic interpretation.
 
 ---
 
@@ -105,7 +108,7 @@ caelis-engine/
 
 ### Why Mercury uses a different algorithm
 
-Mercury's orbital eccentricity is e = 0.206 — the highest of the classical planets. The VSOP87 truncated series from Meeus Appendix II accumulates significant errors for Mercury because truncation removes terms that are non-negligible at high eccentricity. The equation of center (Meeus Cap.31, 5 terms) is more stable and produces lower errors. Measured error: Δ < 0.12° vs JPL Horizons DE441.
+Mercury's orbital eccentricity is e = 0.206 — the highest of the classical planets. The VSOP87 truncated series from Meeus Appendix II accumulates significant errors for Mercury. The equation of center (Meeus Cap.31, 5 terms) is more stable. Measured error: Δ < 0.12° vs JPL Horizons DE441.
 
 ### Note on VSOP87 error pattern
 
@@ -126,7 +129,7 @@ All results verified — **56/56 tests PASS** — against JPL Horizons (DE441), 
 
 ### Moon · ELP/MPP02 (Chapront & Francou 2002, A&A 412)
 
-*Upgraded March 2026: 63× improvement in longitude vs previous ELP2000/Meeus Cap.47 implementation.*
+*63× improvement in longitude vs previous ELP2000/Meeus Cap.47 implementation.*
 
 | Quantity | Computed | Reference | Δ | Source |
 |---|---|---|---|---|
@@ -134,7 +137,7 @@ All results verified — **56/56 tests PASS** — against JPL Horizons (DE441), 
 | β Ecliptic latitude | −3.2292° | −3.2291° | **0.0001°** | Meeus Ex.47.a |
 | Δ Geocentric distance | 368,437 km | 368,409.7 km | **27 km (0.007%)** | Meeus Ex.47.a |
 
-### Planets · JPL Horizons (DE441) — extended validation, 4 dates per planet (2025–2026)
+### Planets · JPL Horizons (DE441) — 4 dates per planet, 2025–2026
 
 | Planet | Algorithm | Max Δ vs JPL | Max Δ vs Swiss Eph. |
 |---|---|---|---|
@@ -164,8 +167,7 @@ All results verified — **56/56 tests PASS** — against JPL Horizons (DE441), 
 
 ```bash
 git clone https://github.com/HermeticaLabs/caelis-engine
-# Open caelis_engine_1_5.html in any modern browser
-# No install. No build. No server required.
+# Open index.html in any modern browser — no install, no build, no server.
 ```
 
 Or use the modules in Node.js:
@@ -174,36 +176,45 @@ Or use the modules in Node.js:
 const AstroCore = require('./src/astro/AstroCore.js');
 Object.assign(global, AstroCore);
 
-// Set observer globals
 global.lat = -33.45 * Math.PI/180;
 global.lon = -70.66 * Math.PI/180;
 global.R_TIERRA = 6371.0;
 
-// Inject a Julian Date for computation
 const jde = 2451545.0; // J2000.0
 const nowJD = Date.now()/86400000 + 2440587.5;
 global.timeOffset = (jde - nowJD) * 86400;
 
-const sunLon  = AstroCore.sunLonEcl();       // ecliptic longitude in degrees
-const moonLon = AstroCore.moonLonEcl();
-const marsLon = AstroCore.planetLonEcl('Marte');
-
-console.log(sunLon, moonLon, marsLon);
+console.log(AstroCore.sunLonEcl(), AstroCore.moonLonEcl());
 ```
 
 Run the precision test suite:
 
 ```bash
-# Open in browser via local server
 node -e "const h=require('http'),f=require('fs'),p=require('path');h.createServer((req,res)=>{let fp='.'+req.url;if(fp==='./') fp='./index.html';f.readFile(fp,(e,d)=>{if(e){res.writeHead(404);res.end()}else{const ext=p.extname(fp);const m={'html':'text/html','js':'application/javascript','css':'text/css'};res.writeHead(200,{'Content-Type':m[ext.slice(1)]||'text/plain'});res.end(d)}})}).listen(8080,()=>console.log('http://localhost:8080'))"
 # Then open http://localhost:8080/validation.html
 ```
 
 ---
 
+## AI Hermetic Interpretation (Premium)
+
+Caelis Engine v2.0 includes AI-powered hermetic interpretation via a Cloudflare Worker proxy. The interpretation is generated by Claude (Anthropic) using the exact astronomical data computed by the engine.
+
+**Worker endpoint:** `https://caelis-ia.hermeticalabs.workers.dev`
+
+The Worker validates your Premium license key (same SHA-256 mechanism as the instrument) and proxies the request to the Anthropic API. Your Anthropic API key is stored as an encrypted secret in Cloudflare — never exposed to the client.
+
+**Reading types:**
+- **Current sky** — interprets the current simulated sky snapshot
+- **Active transits** — interprets active transits against a natal chart (from Atacir inputs)
+
+To use: open `✦ Leer` in the instrument toolbar, paste the Worker URL, and generate.
+
+---
+
 ## Freemium model
 
-Caelis Engine uses a freemium model. Premium is a **one-time payment of $12 USD** via Ko-fi — no subscription, no annual renewal. The license key activates in-browser and works offline indefinitely.
+Premium is a **one-time payment of $12 USD** — no subscription, no annual renewal.
 
 | Feature | Free | Premium |
 |---|---|---|
@@ -217,6 +228,7 @@ Caelis Engine uses a freemium model. Premium is a **one-time payment of $12 USD*
 | Panchanga — Nakshatra + Yoga + Karana | — | ✓ with countdown |
 | Synastry — 3 most exact aspects | ✓ | ✓ |
 | Synastry — full table + antiscia | — | ✓ |
+| AI hermetic interpretation | — | ✓ current sky + transits |
 | JSON export | Natal only | ✓ complete |
 
 [**→ Get Premium — $12 USD one-time**](https://ko-fi.com/hermeticalabs)
@@ -231,10 +243,12 @@ Caelis Engine uses a freemium model. Premium is a **one-time payment of $12 USD*
 - [x] Vedic Panchanga — 5 elements (Tithi, Vara, Nakshatra, Yoga, Karana) + Lahiri ayanamsa
 - [x] Synastry — cross-chart aspects + antiscia, tab in Atacir panel
 - [x] Extended validation — 56/56 tests vs JPL Horizons DE441 + Swiss Ephemeris DE441
+- [x] AI hermetic interpretation — Cloudflare Worker + Claude, current sky + active transits
+- [ ] Exhaustive mathematical validation v2.0 — extended JPL/Swiss comparison suite
 - [ ] ELP/MPP02 extended R-series (Chapront & Francou 2002 coefficients → dist < 10 km)
 - [ ] IAU 2000A nutation (1365 terms → ~0.1 mas)
+- [ ] Google Play Store
 - [ ] REST API layer for embedding in external apps
-- [ ] WebAssembly kernel for high-performance batch computation
 - [ ] IAU 2006 precession
 
 ---

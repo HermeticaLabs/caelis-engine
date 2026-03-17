@@ -2,9 +2,9 @@
 
 **Motor matemático de modelado astronómico para la observación celeste simbólica.**
 
-Caelis Engine calcula posiciones planetarias reales usando algoritmos de precisión profesional (VSOP87, ELP/MPP02), las renderiza como un instrumento simbólico vivo, y expone un framework de análisis de ciclos, resonancias, eclipses y calendario védico — todo en un único archivo HTML, sin dependencias.
+Caelis Engine v2.0 calcula posiciones planetarias reales usando algoritmos de precisión profesional (VSOP87, ELP/MPP02), las renderiza como un instrumento simbólico vivo, y expone un framework de análisis de ciclos, resonancias, eclipses, calendario védico, sinastría e interpretación hermética por IA — todo en un único archivo HTML, sin dependencias.
 
-[**→ Demo en vivo**](https://hermeticalabs.github.io/caelis-engine/caelis_engine_1_5.html) · [**Documentación**](#documentación) · [**Licencia**](#licencia) · [**Ko-fi**](https://ko-fi.com/hermeticalabs)
+[**→ Demo en vivo**](https://hermeticalabs.github.io/caelis-engine/) · [**Documentación**](#documentación) · [**Licencia**](#licencia) · [**Ko-fi**](https://ko-fi.com/hermeticalabs)
 
 ---
 
@@ -34,6 +34,7 @@ Símbolo → Estructura → Simulación
 - Casas, aspectos, tránsitos y progresiones vía el panel de análisis **Atacir** (con tab de **Sinastría**)
 - Calcula **eclipses solares y lunares** con visibilidad georeferenciada (Meeus Cap.54, Premium)
 - Muestra el **Panchanga védico** — Tithi, Vara, Nakshatra, Yoga, Karana con Ayanamsa Lahiri
+- Genera **interpretaciones herméticas por IA** del cielo actual y tránsitos activos via Cloudflare Worker + Claude (Premium)
 
 ---
 
@@ -52,6 +53,7 @@ Símbolo → Estructura → Simulación
 | Panchanga védico (5 elementos) | ✓ | no | raramente |
 | Sinastría aspectos cruzados | ✓ | no | no |
 | Marcadores equinoccios/solsticios | ✓ | no | no |
+| Interpretación hermética IA (Premium) | ✓ | no | no |
 | Archivo único, corre en browser | ✓ | no | no |
 | Arquitectura modular | ✓ | varía | no |
 
@@ -61,7 +63,8 @@ Símbolo → Estructura → Simulación
 
 ```
 caelis-engine/
-├── caelis_engine_1_5.html     ← Instrumento completo (archivo único, standalone) — 7.875 líneas
+├── caelis_engine_2_0.html     ← Instrumento completo (archivo único, standalone) — 8.116 líneas
+├── index.html                 ← Punto de entrada GitHub Pages (idéntico al anterior)
 ├── validation.html            ← Suite de precisión — 56/56 PASS
 └── src/
     ├── astro/
@@ -69,12 +72,6 @@ caelis-engine/
     ├── TimeEngine.js          ← Fechas julianas, tiempo sidéreo, control temporal
     └── Atacir.js              ← Análisis de ciclos, aspectos, resonancias, sinastría, Panchanga
 ```
-
-**AstroCore** — el núcleo matemático. Algoritmos de posición planetaria (VSOP87, ELP/MPP02), transformaciones de coordenadas (eclíptica → ecuatorial → horizontal), cómputo de fase lunar, detección de eclipses (Meeus Cap.54), bisección de equinoccios/solsticios, Ayanamsa Lahiri, datos de estrellas fijas.
-
-**TimeEngine** — el tiempo como variable de primera clase. Conversión de fecha juliana, tiempo sidéreo, control de offset temporal, multiplicador de velocidad (desde 1 segundo/frame hasta 1 año/frame).
-
-**Atacir** — la capa analítica. Aspectos natales y de tránsito, ciclos planetarios, períodos sinódicos, detección de resonancias, progresión de casas Placidus, direcciones primarias (Al-Biruni / Ptolomeo), sinastría, Panchanga védico.
 
 ---
 
@@ -92,7 +89,7 @@ caelis-engine/
 | **Casas Placidus** | Meeus Cap.38 | Newton-Raphson < 1×10⁻⁹ rad | Cúspides I–XII |
 | **Fases lunares** | Meeus Cap.49 | Serie completa + corrección W | JDE Luna nueva, cuartos, llena |
 | **Apsis lunares** | Meeus Cap.50 | Series periódicas | JDE perigeo y apogeo |
-| **Detección de eclipses** | Meeus Cap.54 | Criterio argumento F | Solar (total/anular/parcial) · Lunar (total/parcial) |
+| **Detección de eclipses** | Meeus Cap.54 | Criterio argumento F | Solar (total/anular/parcial) · Lunar |
 | **Equinoccios/Solsticios** | Bisección VSOP87 sobre sunLonEcl() | Precisión < 1 min | Cruces del Sol en 0°, 90°, 180°, 270° |
 | **Ayanamsa Lahiri** | IAU 1955, Lahiri | 23.85282° + 0.013972°/año desde J2000 | Base sidérea védica |
 | **Aberración anual** | Diferencial numérico | Δτ = 0.001 siglos | Todos los cuerpos |
@@ -103,30 +100,13 @@ caelis-engine/
 | **ΔT** | Tabla IERS 1620–2100 | Interpolación lineal + polinomio | Todos los JDE |
 | **Direcciones primarias (Atacir)** | Ptolomeo / Al-Biruni | Método de ascensión oblicua | Carta natal |
 
-### Por qué Mercurio usa un algoritmo diferente
-
-La excentricidad orbital de Mercurio es e = 0.206 — la más alta de los planetas clásicos. El VSOP87 truncado de Meeus Apéndice II acumula errores significativos para Mercurio porque la truncación elimina términos no despreciables a alta excentricidad. La ecuación del centro (Meeus Cap.31, 5 términos) es más estable. Error medido: Δ < 0.12° vs JPL Horizons DE441.
-
-### Nota sobre el patrón de error del VSOP87 truncado
-
-El offset sistemático de ~0.11° observado en Venus, Marte, Júpiter y Saturno refleja el piso de precisión real de las **series VSOP87 truncadas de Meeus Apéndice II** — no es un defecto del motor. Las series VSOP87 completas alcanzan < 1 arcsegundo; la serie truncada de Meeus alcanza < 8 arcminutos (0.13°). Todas las mediciones están dentro de la tolerancia declarada. Rango de validez: 1800–2100 d.C.
-
 ---
 
-## Precisión
+## Precisión verificada
 
-Todos los resultados verificados — **56/56 tests PASS** — contra JPL Horizons (DE441), Swiss Ephemeris (DE441) y Meeus Astronomical Algorithms 2ª ed.
+**56/56 tests PASS** contra JPL Horizons (DE441), Swiss Ephemeris (DE441) y Meeus Astronomical Algorithms 2ª ed.
 
-### Sol · VSOP87 (Meeus Cap.25)
-
-| Fecha | Calculado | Referencia | Δ | Fuente |
-|---|---|---|---|---|
-| 1992-10-13 00:00 TT | 199.9066° | 199.906° | **0.0006°** | Meeus Cap.25 Ej.25.a |
-| 1992-04-12 00:00 TT | 22.3399° | 22.340° | **0.0001°** | Meeus Cap.25 |
-
-### Luna · ELP/MPP02 (Chapront & Francou 2002, A&A 412)
-
-*Actualizado Marzo 2026: mejora 63× en longitud vs implementación anterior ELP2000/Meeus Cap.47.*
+### Luna · ELP/MPP02 — 63× mejora vs implementación anterior
 
 | Cantidad | Calculado | Referencia | Δ | Fuente |
 |---|---|---|---|---|
@@ -134,7 +114,7 @@ Todos los resultados verificados — **56/56 tests PASS** — contra JPL Horizon
 | β Latitud eclíptica | −3.2292° | −3.2291° | **0.0001°** | Meeus Ej.47.a |
 | Δ Distancia geocéntrica | 368.437 km | 368.409,7 km | **27 km (0.007%)** | Meeus Ej.47.a |
 
-### Planetas · JPL Horizons (DE441) — validación extendida, 4 fechas por planeta (2025–2026)
+### Planetas · JPL Horizons (DE441) — 4 fechas por planeta, 2025–2026
 
 | Planeta | Algoritmo | Δ max vs JPL | Δ max vs Swiss Eph. |
 |---|---|---|---|
@@ -144,19 +124,7 @@ Todos los resultados verificados — **56/56 tests PASS** — contra JPL Horizon
 | Júpiter | VSOP87, 141 términos | < 0.131° | < 0.131° |
 | Saturno | VSOP87, 167 términos | < 0.126° | < 0.126° |
 
-### Otros componentes
-
-| Componente | Resultado | Fuente |
-|---|---|---|
-| Nutación IAU 1980 ΔΨ | error < 0.004 arcsec | Meeus Cap.22 |
-| Nutación IAU 1980 Δε | error < 0.002 arcsec | Meeus Cap.22 |
-| Oblicuidad ε₀ en J2000 | error < 0.002° | Meeus Cap.22 |
-| Fases lunares (JDE) | error < 0.17 días | Meeus Cap.49 |
-| Cúspides Placidus | 12/12, error < 0.009° | Carta de referencia |
-| Nodos lunares | Nodo Sur = Nodo Norte + 180° exacto | Teoría |
-| ΔT en J2000.0 | error < 0.1 s | IERS |
-
-**Rango de validez:** 1800–2100 d.C. (series VSOP87 truncadas, Meeus App.II).
+**Rango de validez:** 1800–2100 d.C.
 
 ---
 
@@ -164,46 +132,30 @@ Todos los resultados verificados — **56/56 tests PASS** — contra JPL Horizon
 
 ```bash
 git clone https://github.com/HermeticaLabs/caelis-engine
-# Abre caelis_engine_1_5.html en cualquier browser moderno
-# Sin instalación. Sin build. Sin servidor.
+# Abre index.html en cualquier browser moderno — sin instalación, sin build, sin servidor.
 ```
 
-O usa los módulos en Node.js:
+---
 
-```javascript
-const AstroCore = require('./src/astro/AstroCore.js');
-Object.assign(global, AstroCore);
+## Interpretación Hermética IA (Premium)
 
-// Globals del observador
-global.lat = -33.45 * Math.PI/180;
-global.lon = -70.66 * Math.PI/180;
-global.R_TIERRA = 6371.0;
+Caelis Engine v2.0 incluye interpretación hermética por IA via un Cloudflare Worker proxy. La interpretación es generada por Claude (Anthropic) usando los datos astronómicos exactos calculados por el motor.
 
-// Inyectar una Fecha Juliana para el cálculo
-const jde = 2451545.0; // J2000.0
-const nowJD = Date.now()/86400000 + 2440587.5;
-global.timeOffset = (jde - nowJD) * 86400;
+**Worker endpoint:** `https://caelis-ia.hermeticalabs.workers.dev`
 
-const lonSol   = AstroCore.sunLonEcl();          // longitud eclíptica en grados
-const lonLuna  = AstroCore.moonLonEcl();
-const lonMarte = AstroCore.planetLonEcl('Marte');
+El Worker valida tu clave Premium (mismo mecanismo SHA-256 del instrumento) y hace el proxy a la API de Anthropic. Tu API key de Anthropic vive encriptada en Cloudflare — nunca expuesta al cliente.
 
-console.log(lonSol, lonLuna, lonMarte);
-```
+**Tipos de lectura:**
+- **Cielo actual** — interpreta el snapshot del cielo simulado actual
+- **Tránsitos activos** — interpreta los tránsitos activos sobre una carta natal (desde los inputs del Atacir)
 
-Ejecutar la suite de precisión:
-
-```bash
-# Iniciar servidor local
-node -e "const h=require('http'),f=require('fs'),p=require('path');h.createServer((req,res)=>{let fp='.'+req.url;if(fp==='./') fp='./index.html';f.readFile(fp,(e,d)=>{if(e){res.writeHead(404);res.end()}else{const ext=p.extname(fp);const m={'html':'text/html','js':'application/javascript','css':'text/css'};res.writeHead(200,{'Content-Type':m[ext.slice(1)]||'text/plain'});res.end(d)}})}).listen(8080,()=>console.log('http://localhost:8080'))"
-# Abrir http://localhost:8080/validation.html
-```
+Para usar: abre `✦ Leer` en la barra de controles, pega la URL del Worker, genera.
 
 ---
 
 ## Modelo Freemium
 
-Caelis Engine usa un modelo freemium. Premium es un **pago único de $12 USD** vía Ko-fi — sin suscripción, sin renovación anual. La clave de licencia se activa en el browser y funciona offline indefinidamente.
+Premium es un **pago único de $12 USD** — sin suscripción, sin renovación anual.
 
 | Característica | Free | Premium |
 |---|---|---|
@@ -217,6 +169,7 @@ Caelis Engine usa un modelo freemium. Premium es un **pago único de $12 USD** v
 | Panchanga — Nakshatra + Yoga + Karana | — | ✓ con cuenta atrás |
 | Sinastría — 3 aspectos más exactos | ✓ | ✓ |
 | Sinastría — tabla completa + antiscias | — | ✓ |
+| Interpretación hermética IA | — | ✓ cielo actual + tránsitos |
 | Exportación JSON | Solo natales | ✓ completo |
 
 [**→ Activar Premium — $12 USD pago único**](https://ko-fi.com/hermeticalabs)
@@ -231,17 +184,19 @@ Caelis Engine usa un modelo freemium. Premium es un **pago único de $12 USD** v
 - [x] Panchanga védico — 5 elementos (Tithi, Vara, Nakshatra, Yoga, Karana) + Ayanamsa Lahiri
 - [x] Sinastría — aspectos cruzados + antiscias, tab en el panel Atacir
 - [x] Validación extendida — 56/56 tests vs JPL Horizons DE441 + Swiss Ephemeris DE441
+- [x] Interpretación hermética IA — Cloudflare Worker + Claude, cielo actual + tránsitos activos
+- [ ] Validación matemática exhaustiva v2.0 — suite ampliada JPL/Swiss
 - [ ] Serie R extendida ELP/MPP02 (coef. Chapront & Francou 2002 → dist < 10 km)
 - [ ] Nutación IAU 2000A (1365 términos → ~0.1 mas)
+- [ ] Google Play Store
 - [ ] Capa API REST para integración en aplicaciones externas
-- [ ] Núcleo WebAssembly para cómputo batch de alta performance
 - [ ] Precesión IAU 2006
 
 ---
 
 ## Documentación
 
-- [AstroCore API](docs/astrocore.es.md) — Núcleo matemático: VSOP87, ELP/MPP02, transformaciones de coordenadas, casas Placidus, nodos lunares, fases, eclipses, ayanamsa
+- [AstroCore API](docs/astrocore.es.md) — Núcleo matemático: VSOP87, ELP/MPP02, transformaciones, casas Placidus, nodos lunares, fases, eclipses, ayanamsa
 - [TimeEngine API](docs/timeengine.es.md) — Control temporal, fechas julianas, tiempo sidéreo, snapshots astronómicos completos
 - [Atacir — Análisis de Ciclos](docs/atacir.es.md) — Direcciones primarias, aspectos natales y de tránsito, ciclos, resonancias, sinastría, Panchanga
 - [Referencias matemáticas](docs/references.es.md) — Algoritmos fuente, fórmulas y tabla completa de 56 tests de precisión
