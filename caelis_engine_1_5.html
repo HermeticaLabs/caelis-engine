@@ -185,6 +185,43 @@ button:hover{background:rgba(255,255,255,0.18);}
   font-size:10px; color:rgba(180,165,255,0.70);
   margin-top:2px; text-align:right;
 }
+/* ======= PANEL PANCHANGA ======= */
+#panchaPanel{
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.72);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:14px; padding:0;
+  color:rgba(255,255,255,0.88);
+  font-family:'Georgia',serif; font-size:11.5px; line-height:1.7;
+  width:580px; max-width:96vw;
+  backdrop-filter:blur(10px);
+  pointer-events:all; user-select:none;
+  display:none;
+}
+#panchaPanel.open{ display:block; }
+#panchaHeader{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 16px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.07); cursor:pointer;
+}
+#panchaHeader h3{ margin:0; font-size:13px; letter-spacing:0.06em; color:rgba(180,220,140,0.95); }
+#panchaBody{ padding:12px 16px; }
+#panchaResults{ margin-top:10px; border-top:1px solid rgba(255,255,255,0.07); padding-top:10px; }
+.pancha-row{ display:flex; align-items:baseline; gap:8px; margin-bottom:5px; }
+.pancha-lbl{ color:rgba(180,165,255,0.70); font-size:10.5px; min-width:78px; }
+.pancha-val{ color:rgba(255,255,255,0.92); font-size:11.5px; flex:1; }
+.pancha-cd{ color:rgba(180,220,140,0.75); font-size:10px; }
+/* ── Tabs del Atacir ── */
+.atc-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+.atc-tab{
+  flex:1; padding:5px 8px; text-align:center; font-size:10.5px;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.10);
+  border-radius:6px; cursor:pointer; color:rgba(255,255,255,0.55);
+  font-family:'Georgia',serif;
+}
+.atc-tab.active{ background:rgba(220,180,80,0.14); border-color:rgba(220,180,80,0.40); color:rgba(220,180,80,0.95); }
+.atc-tab-content{ display:none; }
+.atc-tab-content.active{ display:block; }
 /* ======= PANEL ECLIPSES ======= */
 #eclipsesPanel{
   position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
@@ -447,6 +484,14 @@ button:hover{background:rgba(255,255,255,0.18);}
     max-height:60vh; overflow-y:auto;
   }
 
+  /* Panel Panchanga — full width en móvil */
+  #panchaPanel {
+    bottom:60px; left:0; right:0;
+    transform:none; width:100% !important;
+    max-width:100vw; border-radius:14px 14px 0 0;
+    max-height:60vh; overflow-y:auto;
+  }
+
   /* OculusUI — más compacta */
   #oculusUI {
     bottom:10px; padding:7px 10px; gap:4px;
@@ -612,6 +657,7 @@ button:hover{background:rgba(255,255,255,0.18);}
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnAtacir" onclick="toggleAtacirPanel()" title="Nodos lunares · Atacir">☊ Atacir</button>
   <button id="btnEclipses" onclick="toggleEclipsesPanel()" title="Calculadora de Eclipses">⊗ Eclipses</button>
+  <button id="btnPanchanga" onclick="togglePanchaPanel()" title="Panchanga — Almanaque védico">☽ Panchanga</button>
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnTransformare" onclick="transformareAstralis()" title="Transformare Astralis — Transmutar a Oculus">✦ Transmutare</button>
 </div>
@@ -619,49 +665,91 @@ button:hover{background:rgba(255,255,255,0.18);}
 <!-- ======= PANEL ATACIR ======= -->
 <div id="atacirPanel">
   <div id="atacirHeader" onclick="toggleAtacirPanel()">
-    <h3>☊ Nodos · Atacir (Direcciones Primarias)</h3>
+    <h3>☊ Nodos · Atacir</h3>
     <span style="color:rgba(255,255,255,0.4);font-size:11px;">▼ cerrar</span>
   </div>
   <div id="atacirBody">
-    <div class="atc-cols">
-      <!-- Radix -->
-      <div class="atc-col">
-        <h4>♈ Carta Natal (Radix)</h4>
-        <div class="atc-row"><label>Fecha</label><input type="date" id="rx-date" value="1990-01-01"></div>
-        <div class="atc-row"><label>Hora</label><input type="time" id="rx-time" value="12:00" step="60"></div>
-        <div class="atc-row"><label>Lat</label><input type="number" id="rx-lat" value="-33.45" step="0.01" min="-90" max="90"></div>
-        <div class="atc-row"><label>Lon</label><input type="number" id="rx-lon" value="-70.66" step="0.01" min="-180" max="180"></div>
-        <div id="rx-preview" style="font-size:10px;color:rgba(180,165,255,0.60);margin-top:4px;">—</div>
-        <button class="atc-btn" id="btnNatal" onclick="toggleNatal()" style="margin-top:6px;background:rgba(255,215,55,0.08);border-color:rgba(255,215,55,0.30);color:rgba(255,215,55,0.85);">
-          ✦ Ver cielo natal
-        </button>
-      </div>
-      <!-- Tránsito -->
-      <div class="atc-col">
-        <h4>⊙ Momento Actual (Tránsito) <span id="_atcTransitoLock" style="font-size:9px;color:rgba(220,180,80,0.60);"></span></h4>
-        <div class="atc-row"><label>Fecha</label><input type="date" id="tr-date"></div>
-        <div class="atc-row"><label>Hora</label><input type="time" id="tr-time" step="60"></div>
-        <div class="atc-row"><label>Lat</label><input type="number" id="tr-lat" step="0.01" min="-90" max="90"></div>
-        <div class="atc-row"><label>Lon</label><input type="number" id="tr-lon" step="0.01" min="-180" max="180"></div>
-        <button class="atc-btn" onclick="syncTransitoNow()">↺ Sincronizar con ahora</button>
-      </div>
-      <!-- Key -->
-      <div class="atc-col" style="flex:0.55;">
-        <h4>⚙ Configuración</h4>
-        <div class="atc-row"><label>Clave</label>
-          <select id="atc-key" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:5px;color:rgba(255,255,255,0.90);font-family:'Georgia',serif;font-size:11px;padding:3px 6px;">
-            <option value="1.0">Ptolomeo (1°/año)</option>
-            <option value="0.8219" selected>Naibod (0.8219°/año)</option>
-            <option value="0.9856">Solar (0.9856°/año)</option>
-          </select>
+    <!-- ── Tabs ── -->
+    <div class="atc-tabs">
+      <div class="atc-tab active" id="tab-atacir"   onclick="_atcTab('atacir')">⟡ Atacir</div>
+      <div class="atc-tab"       id="tab-sinastria" onclick="_atcTab('sinastria')">⚭ Sinastría</div>
+    </div>
+
+    <!-- ── Tab Atacir ── -->
+    <div class="atc-tab-content active" id="tc-atacir">
+      <div class="atc-cols">
+        <!-- Radix -->
+        <div class="atc-col">
+          <h4>♈ Carta Natal (Radix)</h4>
+          <div class="atc-row"><label>Fecha</label><input type="date" id="rx-date" value="1990-01-01"></div>
+          <div class="atc-row"><label>Hora</label><input type="time" id="rx-time" value="12:00" step="60"></div>
+          <div class="atc-row"><label>Lat</label><input type="number" id="rx-lat" value="-33.45" step="0.01" min="-90" max="90"></div>
+          <div class="atc-row"><label>Lon</label><input type="number" id="rx-lon" value="-70.66" step="0.01" min="-180" max="180"></div>
+          <div id="rx-preview" style="font-size:10px;color:rgba(180,165,255,0.60);margin-top:4px;">—</div>
+          <button class="atc-btn" id="btnNatal" onclick="toggleNatal()" style="margin-top:6px;background:rgba(255,215,55,0.08);border-color:rgba(255,215,55,0.30);color:rgba(255,215,55,0.85);">
+            ✦ Ver cielo natal
+          </button>
         </div>
-        <div style="font-size:10px;color:rgba(180,165,255,0.55);margin-top:6px;line-height:1.5;">
-          Atacir = arco de dirección<br>por ascensión oblicua.<br>
-          Edad = Arco ÷ Clave.
+        <!-- Tránsito -->
+        <div class="atc-col">
+          <h4>⊙ Momento Actual (Tránsito) <span id="_atcTransitoLock" style="font-size:9px;color:rgba(220,180,80,0.60);"></span></h4>
+          <div class="atc-row"><label>Fecha</label><input type="date" id="tr-date"></div>
+          <div class="atc-row"><label>Hora</label><input type="time" id="tr-time" step="60"></div>
+          <div class="atc-row"><label>Lat</label><input type="number" id="tr-lat" step="0.01" min="-90" max="90"></div>
+          <div class="atc-row"><label>Lon</label><input type="number" id="tr-lon" step="0.01" min="-180" max="180"></div>
+          <button class="atc-btn" onclick="syncTransitoNow()">↺ Sincronizar con ahora</button>
         </div>
-        <button class="atc-btn" onclick="calcAtacir()" style="margin-top:14px;">Calcular Atacir ▶</button>
+        <!-- Key -->
+        <div class="atc-col" style="flex:0.55;">
+          <h4>⚙ Configuración</h4>
+          <div class="atc-row"><label>Clave</label>
+            <select id="atc-key" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:5px;color:rgba(255,255,255,0.90);font-family:'Georgia',serif;font-size:11px;padding:3px 6px;">
+              <option value="1.0">Ptolomeo (1°/año)</option>
+              <option value="0.8219" selected>Naibod (0.8219°/año)</option>
+              <option value="0.9856">Solar (0.9856°/año)</option>
+            </select>
+          </div>
+          <div style="font-size:10px;color:rgba(180,165,255,0.55);margin-top:6px;line-height:1.5;">
+            Atacir = arco de dirección<br>por ascensión oblicua.<br>
+            Edad = Arco ÷ Clave.
+          </div>
+          <button class="atc-btn" onclick="calcAtacir()" style="margin-top:14px;">Calcular Atacir ▶</button>
+        </div>
       </div>
     </div>
+
+    <!-- ── Tab Sinastría ── -->
+    <div class="atc-tab-content" id="tc-sinastria">
+      <div class="atc-cols">
+        <!-- Persona A -->
+        <div class="atc-col">
+          <h4>♈ Persona A</h4>
+          <div class="atc-row"><label>Fecha</label><input type="date" id="sin-a-date" value="1990-01-01"></div>
+          <div class="atc-row"><label>Hora</label><input type="time" id="sin-a-time" value="12:00" step="60"></div>
+          <div class="atc-row"><label>Lat</label><input type="number" id="sin-a-lat" value="-33.45" step="0.01" min="-90" max="90"></div>
+          <div class="atc-row"><label>Lon</label><input type="number" id="sin-a-lon" value="-70.66" step="0.01" min="-180" max="180"></div>
+        </div>
+        <!-- Persona B -->
+        <div class="atc-col">
+          <h4>♎ Persona B</h4>
+          <div class="atc-row"><label>Fecha</label><input type="date" id="sin-b-date" value="1995-01-01"></div>
+          <div class="atc-row"><label>Hora</label><input type="time" id="sin-b-time" value="12:00" step="60"></div>
+          <div class="atc-row"><label>Lat</label><input type="number" id="sin-b-lat" value="-33.45" step="0.01" min="-90" max="90"></div>
+          <div class="atc-row"><label>Lon</label><input type="number" id="sin-b-lon" value="-70.66" step="0.01" min="-180" max="180"></div>
+        </div>
+        <!-- Info -->
+        <div class="atc-col" style="flex:0.55;">
+          <h4>⚭ Sinastría</h4>
+          <div style="font-size:10px;color:rgba(180,165,255,0.55);line-height:1.6;">
+            Aspectos entre las<br>posiciones natales<br>de dos personas.
+          </div>
+          <button class="atc-btn" onclick="calcSinastria()" style="margin-top:14px;background:rgba(200,140,255,0.10);border-color:rgba(200,140,255,0.35);color:rgba(220,170,255,0.95);">
+            Calcular ⚭
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="atacirResults"></div>
   </div>
 </div>
@@ -716,6 +804,41 @@ button:hover{background:rgba(255,255,255,0.18);}
       </div>
     </div>
     <div id="eclipsesResults"></div>
+  </div>
+</div>
+
+<!-- ======= PANEL PANCHANGA ======= -->
+<div id="panchaPanel">
+  <div id="panchaHeader" onclick="togglePanchaPanel()">
+    <h3>☽ Panchanga — Almanaque Védico</h3>
+    <span style="color:rgba(255,255,255,0.4);font-size:11px;">▼ cerrar</span>
+  </div>
+  <div id="panchaBody">
+    <div class="atc-cols">
+      <!-- Momento -->
+      <div class="atc-col">
+        <h4>⏱ Momento</h4>
+        <div class="atc-row"><label>Fecha</label><input type="date" id="pan-date"></div>
+        <div class="atc-row"><label>Hora</label><input type="time" id="pan-time" step="60"></div>
+        <div class="atc-row"><label>Lat</label><input type="number" id="pan-lat" step="0.01" min="-90" max="90"></div>
+        <div class="atc-row"><label>Lon</label><input type="number" id="pan-lon" step="0.01" min="-180" max="180"></div>
+        <button class="atc-btn" onclick="_panSyncNow()" style="margin-top:6px;">↺ Sincronizar con ahora</button>
+      </div>
+      <!-- Info -->
+      <div class="atc-col" style="flex:0.65;">
+        <h4>☽ Panchanga</h4>
+        <div style="font-size:10px;color:rgba(180,165,255,0.55);line-height:1.6;">
+          Almanaque védico de 5 elementos.<br>
+          Ayanamsa Lahiri (IAU).<br><br>
+          <span style="color:rgba(220,180,80,0.65);">Free: Tithi + Vara</span><br>
+          <span style="color:rgba(180,220,140,0.65);">Premium: los 5 completos</span>
+        </div>
+        <button class="atc-btn" onclick="calcPanchanga()" style="margin-top:12px;background:rgba(180,220,140,0.10);border-color:rgba(180,220,140,0.35);color:rgba(200,240,160,0.95);">
+          Calcular ☽
+        </button>
+      </div>
+    </div>
+    <div id="panchaResults"></div>
   </div>
 </div>
 
@@ -4386,16 +4509,397 @@ function _renderTablaAspectos(aspectos, colA, colB, vacioMsg){
 // ║  Visibilidad georeferenciada por altitud solar/lunar.        ║
 // ╚══════════════════════════════════════════════════════════════╝
 
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  PANCHANGA — Almanaque védico de 5 elementos                           ║
+// ║  Base: Ayanamsa Lahiri (IAU), longitudes ELP/MPP02 + VSOP87            ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
+// ── Ayanamsa Lahiri ──────────────────────────────────────────────────────────
+// Lahiri (1955), valor adoptado por el gobierno indio y la IAU.
+// ayanamsa(T) en grados, T = siglos julianos desde J2000.0
+// Valor J2000.0 ≈ 23.853° (23°51'12")
+// Fórmula: Lahiri base + precesión IAU 1980 simplificada
+function _lahiriAyanamsa(T){
+  // Precesión general (Meeus Cap.21, fórmula de Lieske)
+  // ayanamsa crece ~50.3" por año = 0.013972° por año
+  return 23.85282 + 0.013972 * T * 100;  // T en siglos → ×100 para años
+}
+
+// Convertir longitud tropical a sidérea (restar ayanamsa)
+function _toSidereal(lonTropical, T){
+  return ((lonTropical - _lahiriAyanamsa(T)) % 360 + 360) % 360;
+}
+
+// ── Tablas Panchanga ─────────────────────────────────────────────────────────
+// 30 Tithis (tithi 1-15 Shukla, 16-30 Krishna/Amavasya)
+const _TITHIS = [
+  "Pratipada","Dvitiya","Tritiya","Chaturthi","Panchami",
+  "Shashthi","Saptami","Ashtami","Navami","Dashami",
+  "Ekadashi","Dvadashi","Trayodashi","Chaturdashi","Purnima",
+  "Pratipada","Dvitiya","Tritiya","Chaturthi","Panchami",
+  "Shashthi","Saptami","Ashtami","Navami","Dashami",
+  "Ekadashi","Dvadashi","Trayodashi","Chaturdashi","Amavasya"
+];
+// Paksha (quincena)
+const _PAKSHA = (i) => i < 15 ? "Shukla (creciente)" : "Krishna (menguante)";
+
+// 7 Varas (días de la semana) — desde domingo
+const _VARAS = [
+  { name:"Ravivara",  glyph:"☉", planet:"Sol",      desc:"Domingo — vitalidad y poder solar." },
+  { name:"Somavara",  glyph:"☽", planet:"Luna",     desc:"Lunes — mente, emociones y ciclos." },
+  { name:"Mangalavara",glyph:"♂",planet:"Marte",    desc:"Martes — energía, acción y determinación." },
+  { name:"Budhavara", glyph:"☿", planet:"Mercurio", desc:"Miércoles — intelecto, comunicación." },
+  { name:"Guruvara",  glyph:"♃", planet:"Júpiter",  desc:"Jueves — sabiduría, expansión, dharma." },
+  { name:"Shukravara",glyph:"♀", planet:"Venus",    desc:"Viernes — belleza, armonía, relaciones." },
+  { name:"Shanivara", glyph:"♄", planet:"Saturno",  desc:"Sábado — disciplina, karma, tiempo." },
+];
+
+// 27 Nakshatras (360°/27 = 13°20' cada uno)
+const _NAKSHATRAS = [
+  { name:"Ashvini",        ruler:"Ketu",    deg:0,     desc:"Inicio rápido, curación, transporte." },
+  { name:"Bharani",        ruler:"Venus",   deg:13.33, desc:"Creación y destrucción, transformación." },
+  { name:"Krittika",       ruler:"Sol",     deg:26.67, desc:"Fuego purificador, agudeza, corte." },
+  { name:"Rohini",         ruler:"Luna",    deg:40.00, desc:"Fertilidad, crecimiento, atracción." },
+  { name:"Mrigashira",     ruler:"Marte",   deg:53.33, desc:"Búsqueda, curiosidad, viaje." },
+  { name:"Ardra",          ruler:"Rahu",    deg:66.67, desc:"Tormenta, esfuerzo, renovación." },
+  { name:"Punarvasu",      ruler:"Júpiter", deg:80.00, desc:"Retorno, abundancia, bondad." },
+  { name:"Pushya",         ruler:"Saturno", deg:93.33, desc:"Nutrición, prosperidad, devoción." },
+  { name:"Ashlesha",       ruler:"Mercurio",deg:106.67,desc:"Penetración, intuición, veneno y cura." },
+  { name:"Magha",          ruler:"Ketu",    deg:120.00,desc:"Poder ancestral, trono, autoridad." },
+  { name:"Purva Phalguni", ruler:"Venus",   deg:133.33,desc:"Descanso, placer, creatividad." },
+  { name:"Uttara Phalguni",ruler:"Sol",     deg:146.67,desc:"Alianza, contrato, lealtad." },
+  { name:"Hasta",          ruler:"Luna",    deg:160.00,desc:"Habilidad manual, ingenio, alcance." },
+  { name:"Chitra",         ruler:"Marte",   deg:173.33,desc:"Brillo, arte, arquitectura cósmica." },
+  { name:"Svati",          ruler:"Rahu",    deg:186.67,desc:"Independencia, viento, adaptación." },
+  { name:"Vishakha",       ruler:"Júpiter", deg:200.00,desc:"Meta intensa, dualidad, propósito." },
+  { name:"Anuradha",       ruler:"Saturno", deg:213.33,desc:"Devoción, amistad, perseverancia." },
+  { name:"Jyeshtha",       ruler:"Mercurio",deg:226.67,desc:"Protección, liderazgo, seniority." },
+  { name:"Mula",           ruler:"Ketu",    deg:240.00,desc:"Raíces, investigación, disolución." },
+  { name:"Purva Ashadha",  ruler:"Venus",   deg:253.33,desc:"Invencibilidad, purificación, agua." },
+  { name:"Uttara Ashadha", ruler:"Sol",     deg:266.67,desc:"Victoria final, integridad, universal." },
+  { name:"Shravana",       ruler:"Luna",    deg:280.00,desc:"Escucha, aprendizaje, conexión." },
+  { name:"Dhanishtha",     ruler:"Marte",   deg:293.33,desc:"Riqueza, ritmo, abundancia." },
+  { name:"Shatabhisha",    ruler:"Rahu",    deg:306.67,desc:"Curación, misterio, soledad." },
+  { name:"Purva Bhadrapada",ruler:"Júpiter",deg:320.00,desc:"Fuego, transformación espiritual." },
+  { name:"Uttara Bhadrapada",ruler:"Saturno",deg:333.33,desc:"Profundidad, sabiduría, lluvia." },
+  { name:"Revati",         ruler:"Mercurio",deg:346.67,desc:"Finalización, viaje, compasión." },
+];
+
+// 27 Yogas (sumas de sol+luna sidéreo / 13.333°)
+const _YOGAS = [
+  "Vishkamba","Priti","Ayushman","Saubhagya","Shobhana",
+  "Atiganda","Sukarma","Dhriti","Shula","Ganda",
+  "Vriddhi","Dhruva","Vyaghata","Harshana","Vajra",
+  "Siddhi","Vyatipata","Variyan","Parigha","Shiva",
+  "Siddha","Sadhya","Shubha","Shukla","Brahma",
+  "Mahendra","Vaidhriti"
+];
+
+// 11 Karanas (mitad de un Tithi = 6°). Los 4 primeros son fijos, los 7 siguientes se repiten.
+const _KARANAS_MOVILES  = ["Bava","Balava","Kaulava","Taitila","Garija","Vanija","Vishti"];
+const _KARANAS_FIJOS    = ["Shakuni","Chatushpada","Naga","Kimstughna"];
+
+function _getKarana(lonDiff){
+  // lonDiff = (moonLon - sunLon + 360) % 360
+  const step = Math.floor(lonDiff / 6); // 0-59
+  if(step === 0) return _KARANAS_FIJOS[3];       // Kimstughna — primer medio del primer tithi
+  if(step >= 57) return _KARANAS_FIJOS[step - 57]; // últimos 3: Shakuni, Chatushpada, Naga
+  return _KARANAS_MOVILES[(step - 1) % 7];
+}
+
+// ── Bisección para next-change de un elemento védico ─────────────────────────
+// f(jde) → índice del elemento. Busca el JDE donde cambia el índice.
+function _nextChange(jde0, stepDays, maxDays, indexFn){
+  const idx0 = indexFn(jde0);
+  const nowJD = Date.now()/86400000 + 2440587.5;
+  let jd = jde0;
+  // Avanzar en pasos hasta encontrar cambio
+  for(let d = 0; d < maxDays; d += stepDays){
+    const jd1 = jde0 + d + stepDays;
+    if(indexFn(jd1) !== idx0){
+      // Bisección
+      let a = jde0 + d, b = jd1;
+      for(let i = 0; i < 28; i++){
+        const mid = (a + b) / 2;
+        if(indexFn(mid) !== idx0) b = mid; else a = mid;
+      }
+      return (a + b) / 2;
+    }
+  }
+  return null;
+}
+
+// Calcular posiciones lunares/solares para un JDE dado (sin afectar el engine)
+function _lonAtJDE(jde, isMoon){
+  const nowJD = Date.now()/86400000 + 2440587.5;
+  const saved = timeOffset;
+  timeOffset  = (jde - nowJD)*86400 - deltaT(jde);
+  const lon   = isMoon ? moonLonEcl() : sunLonEcl();
+  timeOffset  = saved;
+  return lon;
+}
+
+// ── Función principal de cálculo ─────────────────────────────────────────────
+function calcPanchanga(){
+  const resDiv = document.getElementById("panchaResults");
+  if(!resDiv) return;
+
+  // Leer inputs
+  const dateStr = document.getElementById("pan-date")?.value;
+  const timeStr = document.getElementById("pan-time")?.value || "12:00";
+  const latDeg  = parseFloat(document.getElementById("pan-lat")?.value) || (lat*rad2deg);
+  const lonDeg  = parseFloat(document.getElementById("pan-lon")?.value) || (lon*rad2deg);
+
+  if(!dateStr){
+    resDiv.innerHTML = `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Ingresa una fecha.</p>`;
+    return;
+  }
+
+  const jde = new Date(`${dateStr}T${timeStr}:00Z`).getTime()/86400000 + 2440587.5;
+  const T   = (jde - 2451545) / 36525;
+
+  // Longitudes
+  const sunLon  = _lonAtJDE(jde, false);
+  const moonLon = _lonAtJDE(jde, true);
+  const sunSid  = _toSidereal(sunLon, T);
+  const moonSid = _toSidereal(moonLon, T);
+  const ayanDeg = _lahiriAyanamsa(T);
+
+  // ── 1. Tithi ─────────────────────────────────────────────────────────────
+  const lonDiff   = ((moonLon - sunLon) + 360) % 360;
+  const tithiIdx  = Math.floor(lonDiff / 12);       // 0–29
+  const tithiName = _TITHIS[tithiIdx];
+  const paksha    = _PAKSHA(tithiIdx);
+  const tithiPct  = ((lonDiff % 12) / 12 * 100).toFixed(0);
+  // Cuenta atrás al próximo Tithi
+  const jdeNextTithi = _nextChange(jde, 0.25, 2,
+    (j) => Math.floor((((_lonAtJDE(j,true) - _lonAtJDE(j,false))+360)%360) / 12));
+
+  // ── 2. Vara ──────────────────────────────────────────────────────────────
+  // Día de la semana: JDE 0 = lunes → (floor(jde + 1.5) % 7)
+  const varaIdx = Math.floor(jde + 1.5) % 7;
+  const vara    = _VARAS[varaIdx];
+
+  // ── 3. Nakshatra ─────────────────────────────────────────────────────────
+  const naksIdx  = Math.floor(moonSid / (360/27));   // 0–26
+  const naks     = _NAKSHATRAS[naksIdx];
+  const naksPct  = ((moonSid % (360/27)) / (360/27) * 100).toFixed(0);
+  const jdeNextNaks = _nextChange(jde, 0.25, 3,
+    (j) => Math.floor(_toSidereal(_lonAtJDE(j,true), (j-2451545)/36525) / (360/27)));
+
+  // ── 4. Yoga ──────────────────────────────────────────────────────────────
+  const yogaSum = (sunSid + moonSid) % 360;
+  const yogaIdx = Math.floor(yogaSum / (360/27));    // 0–26
+  const yogaName= _YOGAS[yogaIdx];
+  const yogaPct = ((yogaSum % (360/27)) / (360/27) * 100).toFixed(0);
+  const jdeNextYoga = _nextChange(jde, 0.1, 2,
+    (j) => { const T2=(j-2451545)/36525;
+      return Math.floor((_toSidereal(_lonAtJDE(j,false),T2)+_toSidereal(_lonAtJDE(j,true),T2))%360 / (360/27)); });
+
+  // ── 5. Karana ────────────────────────────────────────────────────────────
+  const karanaName = _getKarana(lonDiff);
+  const karanaPct  = ((lonDiff % 6) / 6 * 100).toFixed(0);
+  const jdeNextKarana = _nextChange(jde, 0.1, 1,
+    (j) => _getKarana((((_lonAtJDE(j,true)-_lonAtJDE(j,false))+360)%360)));
+
+  // ── Formatear cuenta atrás ────────────────────────────────────────────────
+  function cdStr(jdeNext){
+    if(!jdeNext) return "—";
+    const diff = (jdeNext - jde) * 86400;
+    const h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60);
+    return h > 0 ? `en ${h}h ${m}m` : `en ${m}m`;
+  }
+
+  // ── Ayanamsa display ─────────────────────────────────────────────────────
+  const aD = Math.floor(ayanDeg);
+  const aM = Math.floor((ayanDeg - aD) * 60);
+  const aS = Math.floor(((ayanDeg - aD) * 60 - aM) * 60);
+  const ayanStr = `${aD}°${aM}'${aS}"`;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  const freeRows = `
+    <div class="pancha-row">
+      <span class="pancha-lbl">Ayanamsa</span>
+      <span class="pancha-val" style="color:rgba(180,165,255,0.70);">Lahiri ${ayanStr}</span>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:6px 0;">
+    <div class="pancha-row">
+      <span class="pancha-lbl">① Tithi</span>
+      <span class="pancha-val"><b>${tithiName}</b> (${tithiIdx+1}) · ${paksha}</span>
+      <span class="pancha-cd">${cdStr(jdeNextTithi)} · ${tithiPct}%</span>
+    </div>
+    <div class="pancha-row">
+      <span class="pancha-lbl">② Vara</span>
+      <span class="pancha-val"><b>${vara.name}</b> ${vara.glyph} · ${vara.planet}</span>
+    </div>`;
+
+  const premiumRows = `
+    <div class="pancha-row">
+      <span class="pancha-lbl">③ Nakshatra</span>
+      <span class="pancha-val"><b>${naks.name}</b> (${naksIdx+1}) · ${naks.ruler}</span>
+      <span class="pancha-cd">${cdStr(jdeNextNaks)} · ${naksPct}%</span>
+    </div>
+    <div class="pancha-row">
+      <span class="pancha-lbl">④ Yoga</span>
+      <span class="pancha-val"><b>${yogaName}</b> (${yogaIdx+1})</span>
+      <span class="pancha-cd">${cdStr(jdeNextYoga)} · ${yogaPct}%</span>
+    </div>
+    <div class="pancha-row">
+      <span class="pancha-lbl">⑤ Karana</span>
+      <span class="pancha-val"><b>${karanaName}</b></span>
+      <span class="pancha-cd">${cdStr(jdeNextKarana)} · ${karanaPct}%</span>
+    </div>`;
+
+  const premiumBanner = `
+    <div style="margin-top:10px;padding:8px 12px;background:rgba(180,220,140,0.06);
+                border:1px solid rgba(180,220,140,0.20);border-radius:8px;text-align:center;">
+      <div style="font-size:10.5px;color:rgba(180,220,140,0.75);margin-bottom:5px;">
+        🔒 <b>Caelis Premium</b> incluye Nakshatra, Yoga y Karana con cuenta atrás al próximo cambio.
+      </div>
+      <button onclick="_clOpenModal()" style="background:linear-gradient(135deg,#b8920a,#7a5f05);
+        border:none;border-radius:6px;color:#fff8e0;font-size:11px;padding:6px 16px;cursor:pointer;">
+        ✦ Activar Premium
+      </button>
+    </div>`;
+
+  resDiv.innerHTML = freeRows + (_isPremium ? premiumRows : premiumBanner);
+}
+
+// ── Sync del panel Panchanga con el tiempo del engine ────────────────────────
+function _panSyncNow(){
+  const now = new Date(currentTime()*1000);
+  const elD = document.getElementById("pan-date");
+  const elT = document.getElementById("pan-time");
+  const elLat = document.getElementById("pan-lat");
+  const elLon = document.getElementById("pan-lon");
+  if(elD) elD.value = now.toISOString().slice(0,10);
+  if(elT) elT.value = now.toISOString().slice(11,16);
+  if(elLat) elLat.value = (lat*rad2deg).toFixed(2);
+  if(elLon) elLon.value = (lon*rad2deg).toFixed(2);
+}
+
+// ── Toggle panel Panchanga ───────────────────────────────────────────────────
+function togglePanchaPanel(){
+  const p  = document.getElementById("panchaPanel");
+  const b  = document.getElementById("btnPanchanga");
+  // Cerrar otros paneles
+  ["atacirPanel","eclipsesPanel"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.classList.contains("open")){
+      el.classList.remove("open");
+      const btnId = id === "atacirPanel" ? "btnAtacir" : "btnEclipses";
+      const bn = document.getElementById(btnId);
+      if(bn){ bn.style.background=""; bn.style.borderColor=""; }
+    }
+  });
+  p.classList.toggle("open");
+  const open = p.classList.contains("open");
+  if(b){ b.style.background  = open ? "rgba(180,220,140,0.18)" : ""; }
+  if(b){ b.style.borderColor = open ? "rgba(180,220,140,0.50)" : ""; }
+  if(open){ _panSyncNow(); calcPanchanga(); }
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  SINASTRÍA — Aspectos cruzados entre dos cartas natales                ║
+// ║  Reutiliza calcAspectosTransito(rxA, rxB) y calcSimetrias(rx)          ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
+function calcSinastria(){
+  const resDiv = document.getElementById("atacirResults");
+  if(!resDiv) return;
+
+  function getInputs(pfx){
+    return {
+      date: document.getElementById(`sin-${pfx}-date`)?.value,
+      time: document.getElementById(`sin-${pfx}-time`)?.value || "12:00",
+      lat:  parseFloat(document.getElementById(`sin-${pfx}-lat`)?.value),
+      lon:  parseFloat(document.getElementById(`sin-${pfx}-lon`)?.value),
+    };
+  }
+  const A = getInputs("a"), B = getInputs("b");
+  if(!A.date || !B.date || isNaN(A.lat) || isNaN(B.lat)){
+    resDiv.innerHTML = `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Complete los campos de ambas personas.</p>`;
+    return;
+  }
+
+  function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
+  const rxA = getSnapshotAt(toJD(A.date,A.time), A.lat, A.lon);
+  const rxB = getSnapshotAt(toJD(B.date,B.time), B.lat, B.lon);
+
+  // Aspectos cruzados A→B y B→A
+  const aspAB = calcAspectosTransito(rxA, rxB); // A sobre B
+  const aspBA = calcAspectosTransito(rxB, rxA); // B sobre A
+  // Combinar y deduplicar por el par de planetas (evitar duplicados simétricos)
+  const seen = new Set();
+  const aspectos = [...aspAB, ...aspBA].filter(a => {
+    const key = [a.nmTr,a.nmRx,a.asp].sort().join("|");
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  }).sort((a,b) => b.exactitud - a.exactitud);
+
+  // Free: 3 aspectos más exactos
+  const muestra = _isPremium ? aspectos : aspectos.slice(0,3);
+
+  let html = `<div style="font-size:10px;color:rgba(180,165,255,0.60);margin-bottom:8px;">
+    ⚭ ${A.date} × ${B.date} — ${aspectos.length} aspectos cruzados
+  </div>`;
+
+  html += _renderTablaAspectos(muestra, "Persona A", "Persona B", "Sin aspectos mayores.");
+
+  if(_isPremium){
+    // Simetrías de A proyectadas sobre B
+    const simAB = calcSimetrias(rxA);
+    if(simAB.antiscia.length > 0){
+      html += `<div style="font-size:10.5px;color:rgba(180,165,255,0.70);margin:10px 0 4px;">
+        Antiscia A sobre B</div>`;
+      html += _renderTablaAspectos(simAB.antiscia.map(s => ({
+        nmTr:s.nmA, nmRx:s.nmB, glTr:"↔", glRx:"↔",
+        asp:"Antiscia", sim:"↔", orb:s.dif.toFixed(2), exactitud:1-s.dif/3
+      })), "A","B","Sin antiscias.");
+    }
+  } else {
+    html += `<div style="margin-top:10px;padding:8px 12px;background:rgba(200,140,255,0.06);
+              border:1px solid rgba(200,140,255,0.20);border-radius:8px;text-align:center;">
+      <div style="font-size:10.5px;color:rgba(200,140,255,0.75);margin-bottom:5px;">
+        🔒 <b>Premium</b> muestra todos los aspectos + antiscias y simetrías de sinastría.
+      </div>
+      <button onclick="_clOpenModal()" style="background:linear-gradient(135deg,#b8920a,#7a5f05);
+        border:none;border-radius:6px;color:#fff8e0;font-size:11px;padding:6px 16px;cursor:pointer;">
+        ✦ Activar Premium
+      </button>
+    </div>`;
+  }
+
+  resDiv.innerHTML = html;
+}
+
+// ── Switch de tabs en el Atacir ───────────────────────────────────────────────
+function _atcTab(which){
+  ["atacir","sinastria"].forEach(t => {
+    document.getElementById(`tab-${t}`)?.classList.toggle("active", t===which);
+    document.getElementById(`tc-${t}`)?.classList.toggle("active", t===which);
+  });
+  // Limpiar resultados al cambiar de tab
+  const res = document.getElementById("atacirResults");
+  if(res) res.innerHTML = "";
+}
+
 // ── Toggle del panel ────────────────────────────────────────────
 function toggleEclipsesPanel(){
   let p = document.getElementById("eclipsesPanel");
   let b = document.getElementById("btnEclipses");
-  // Cerrar Atacir si está abierto
+  // Cerrar Atacir y Panchanga si están abiertos
   let ap = document.getElementById("atacirPanel");
   if(ap && ap.classList.contains("open")){
     ap.classList.remove("open");
     let ba = document.getElementById("btnAtacir");
     if(ba){ ba.style.background=""; ba.style.borderColor=""; }
+  }
+  let pp = document.getElementById("panchaPanel");
+  if(pp && pp.classList.contains("open")){
+    pp.classList.remove("open");
+    let bp = document.getElementById("btnPanchanga");
+    if(bp){ bp.style.background=""; bp.style.borderColor=""; }
   }
   p.classList.toggle("open");
   let open = p.classList.contains("open");
@@ -4660,12 +5164,18 @@ function _eclRenderPremiumBanner(){
 function toggleAtacirPanel(){
   let p = document.getElementById("atacirPanel");
   let b = document.getElementById("btnAtacir");
-  // Cerrar Eclipses si está abierto
+  // Cerrar Eclipses y Panchanga si están abiertos
   let ep = document.getElementById("eclipsesPanel");
   if(ep && ep.classList.contains("open")){
     ep.classList.remove("open");
     let be = document.getElementById("btnEclipses");
     if(be){ be.style.background=""; be.style.borderColor=""; }
+  }
+  let pp = document.getElementById("panchaPanel");
+  if(pp && pp.classList.contains("open")){
+    pp.classList.remove("open");
+    let bp = document.getElementById("btnPanchanga");
+    if(bp){ bp.style.background=""; bp.style.borderColor=""; }
   }
   p.classList.toggle("open");
   let open = p.classList.contains("open");
@@ -6788,6 +7298,7 @@ function transformareAstralis(){
     fx("eclPanel",  1,0,400);
     const ap = $("atacirPanel"); if(ap){ ap.classList.remove("open"); ap.style.display=""; }
     const ep = $("eclipsesPanel"); if(ep){ ep.classList.remove("open"); ep.style.display=""; }
+    const pp = $("panchaPanel"); if(pp){ pp.classList.remove("open"); pp.style.display=""; }
 
     fadeEl(canvas,1,0,TX_IN_MS*0.85);
     animateVortex(spawnCaelisParticles(true), TX_IN_MS, ()=>{
