@@ -746,6 +746,11 @@ button:hover{background:rgba(255,255,255,0.18);}
     <div class="row"><span class="lbl">ASC</span><span class="val" id="ip-asc">—</span></div>
     <div class="row"><span class="lbl">MC</span><span class="val" id="ip-mc">—</span></div>
     <hr class="sep">
+    <div class="row" id="ip-seq-row" title="Próximo equinoccio/solsticio" style="cursor:pointer;" onclick="_seqClickFromPanel()">
+      <span class="lbl" id="ip-seq-lbl">—</span>
+      <span class="val" style="color:rgba(220,180,80,0.85);" id="ip-seq-val">—</span>
+    </div>
+    <hr class="sep">
     <div class="cursor-section">
       <div class="row"><span class="lbl" id="ip-obj-lbl">—</span><span class="val" id="ip-obj-lon">—</span></div>
       <div class="row"><span class="lbl">Alt</span><span class="val" id="ip-obj-alt">—</span></div>
@@ -1147,11 +1152,25 @@ function _onCanvasClick(e){
       return;
     }
   }
+
+  // 5. Equinoccios y solsticios
+  for(const hit of _seqHits){
+    const dx = cx - hit.x, dy = cy - hit.y;
+    if(dx*dx + dy*dy <= hit.r*hit.r*2.5){
+      _bodyModalOpenSolsticio(hit.idx);
+      return;
+    }
+  }
 }
 
 // ── Toggle panel info ────────────────────────────────────────────
-function _toggleInfoPanel(){
-  const panel = document.getElementById("infoPanel");
+// Click en la fila del panel → abre modal del próximo evento
+function _seqClickFromPanel(){
+  const seq = _getSeqCached();
+  if(seq && seq.next) _bodyModalOpenSolsticio(seq.next.idx);
+}
+
+function _toggleInfoPanel(){  const panel = document.getElementById("infoPanel");
   const btn   = document.getElementById("_infoPanelToggle");
   const collapsed = panel.classList.toggle("collapsed");
   btn.textContent = collapsed ? "▸" : "▾";
@@ -1211,9 +1230,10 @@ function fmtAz(az){
 }
 let centerX, centerY, radius;
 // Arrays de hitboxes para click/tap — se llenan en cada frame
-let _zodHits  = []; // [{i, x, y, r}]  — signos zodiacales (Caelis 2D)
-let _aspHits  = []; // [{asp, x, y}]   — aspectos activos (Caelis 2D)
+let _zodHits  = []; // [{i, x, y, r}]         — signos zodiacales (Caelis 2D)
+let _aspHits  = []; // [{asp, x, y}]           — aspectos activos (Caelis 2D)
 let _astroHits = []; // [{type, name/i, x, y, r}] — hits en modo astrolabio
+let _seqHits  = []; // [{idx, x, y, r}]        — equinoccios/solsticios (Caelis 2D)
 const deg2rad  = Math.PI/180;
 const rad2deg  = 180/Math.PI;
 const C_LIGHT  = 173.1446326;
@@ -2704,6 +2724,148 @@ function eclipticPointRotated(ra0, dec0){
 const zodiacSignos=["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
 const zodiacNombres=["Aries","Tauro","Géminis","Cáncer","Leo","Virgo","Libra","Escorpio","Sagitario","Capricornio","Acuario","Piscis"];
 
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  EQUINOCCIOS Y SOLSTICIOS — bisección sobre VSOP87                 ║
+// ║  nextSolEquinox(targetLon): JDE exacto del próximo cruce solar     ║
+// ║  Precisión < 1 minuto. Sin tablas — usa sunLonEcl() directamente.  ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+// Los 4 eventos del año solar hermético:
+// 0° ♈ Equinoccio vernal  — inicio de Aries   (N: Primavera, S: Otoño)
+// 90° ♋ Solsticio de junio — inicio de Cáncer  (N: Verano,   S: Invierno)
+// 180° ♎ Equinoccio otoñal — inicio de Libra   (N: Otoño,    S: Primavera)
+// 270° ♑ Solsticio de dic  — inicio de Capricornio (N: Invierno, S: Verano)
+const _SEQ_DATA = [
+  { lon:  0, glyph:"♈", glyphColor:"rgba(140,200,255,0.95)", // azul equinoccio
+    nameN:"Equinoccio de Primavera", nameS:"Equinoccio de Otoño",
+    desc:"El Sol cruza el ecuador celeste hacia el norte. Igualdad de día y noche." },
+  { lon: 90, glyph:"♋", glyphColor:"rgba(255,215,55,0.98)",  // dorado solsticio verano
+    nameN:"Solsticio de Verano",     nameS:"Solsticio de Invierno",
+    desc:"El Sol alcanza su máxima declinación norte. Día más largo en el hemisferio norte." },
+  { lon:180, glyph:"♎", glyphColor:"rgba(140,200,255,0.90)", // azul equinoccio
+    nameN:"Equinoccio de Otoño",     nameS:"Equinoccio de Primavera",
+    desc:"El Sol cruza el ecuador celeste hacia el sur. Igualdad de día y noche." },
+  { lon:270, glyph:"♑", glyphColor:"rgba(160,210,255,0.85)", // azul frío invierno
+    nameN:"Solsticio de Invierno",   nameS:"Solsticio de Verano",
+    desc:"El Sol alcanza su máxima declinación sur. Día más corto en el hemisferio norte." },
+];
+
+// Inyectar un JDE en el engine y obtener la longitud solar
+function _sunLonAtJDE(jde){
+  const nowJD  = Date.now()/86400000 + 2440587.5;
+  const saved  = timeOffset;
+  timeOffset   = (jde - nowJD)*86400 - deltaT(jde);
+  const lon    = sunLonEcl();
+  timeOffset   = saved;
+  return lon;
+}
+
+// Bisección para encontrar el JDE exacto en que sunLon cruza targetLon
+// Busca dentro de una ventana de ±200 días desde jdStart
+function nextSolEquinox(targetLon, jdStart){
+  // Avanzar de 10 en 10 días hasta encontrar el cruce
+  let jd0 = jdStart || julianDate();
+  let lo0 = _sunLonAtJDE(jd0);
+
+  for(let step = 0; step < 40; step++){
+    let jd1   = jd0 + 10;
+    let lo1   = _sunLonAtJDE(jd1);
+    // Detectar cruce: manejar el wrap 360°→0°
+    let d0 = ((lo0 - targetLon + 360) % 360);  // distancia angular desde target
+    let d1 = ((lo1 - targetLon + 360) % 360);
+    if(d0 > 180) d0 -= 360;
+    if(d1 > 180) d1 -= 360;
+    if(d0 * d1 < 0){
+      // Cruce detectado — bisección de 30 iteraciones (precisión ~0.2s)
+      let a = jd0, b = jd1;
+      for(let i = 0; i < 30; i++){
+        let mid = (a + b) / 2;
+        let lm  = _sunLonAtJDE(mid);
+        let dm  = ((lm - targetLon + 360) % 360);
+        if(dm > 180) dm -= 360;
+        let da  = (((_sunLonAtJDE(a) - targetLon + 360) % 360) + 360) % 360;
+        if(da > 180) da -= 360;
+        if(da * dm < 0) b = mid; else a = mid;
+      }
+      return (a + b) / 2;
+    }
+    jd0 = jd1; lo0 = lo1;
+  }
+  return null; // no encontrado en 400 días
+}
+
+// Retorna el evento anterior y el próximo desde el tiempo actual del engine
+function getCurrentSeason(){
+  const jdNow = julianDate();
+  const isS   = (lat * rad2deg) < 0; // hemisferio sur
+
+  // Calcular los 4 JDEs más cercanos (anterior y próximo para cada uno)
+  let events = [];
+  for(let idx = 0; idx < 4; idx++){
+    const d = _SEQ_DATA[idx];
+    // Buscar desde 200 días atrás para encontrar el anterior
+    const jdPrev = nextSolEquinox(d.lon, jdNow - 200);
+    const jdNext = nextSolEquinox(d.lon, jdNow + 1);
+    if(jdPrev) events.push({ idx, jde:jdPrev, isPrev: jdPrev < jdNow, name: isS ? d.nameS : d.nameN });
+    if(jdNext) events.push({ idx, jde:jdNext, isPrev: false, name: isS ? d.nameS : d.nameN });
+  }
+  events.sort((a,b) => a.jde - b.jde);
+
+  // El anterior: mayor JDE < jdNow. El próximo: menor JDE > jdNow.
+  const prev = events.filter(e => e.jde < jdNow).pop();
+  const next = events.find(e => e.jde >= jdNow);
+  return { prev, next, isS };
+}
+
+function _seqJDEtoStr(jde){
+  const d = new Date((jde - 2440587.5)*86400000);
+  return d.toISOString().slice(0,16).replace("T"," ") + " UTC";
+}
+
+function _seqCountdown(jde){
+  const diff = (jde - julianDate()) * 86400; // segundos
+  if(diff < 0) return null;
+  const days = Math.floor(diff / 86400);
+  const hrs  = Math.floor((diff % 86400) / 3600);
+  const min  = Math.floor((diff % 3600)  / 60);
+  if(days > 0) return `en ${days}d ${hrs}h`;
+  if(hrs  > 0) return `en ${hrs}h ${min}m`;
+  return `en ${min} min`;
+}
+
+// Cache: recalcular solo cada ~30 frames (≈0.5s a 60fps)
+let _seqCache = null, _seqCacheTick = 0;
+function _getSeqCached(){
+  _seqCacheTick++;
+  if(!_seqCache || _seqCacheTick % 60 === 0){
+    _seqCache = getCurrentSeason();
+  }
+  return _seqCache;
+}
+
+// Modal del evento solar
+function _bodyModalOpenSolsticio(idx){
+  const d    = _SEQ_DATA[idx];
+  const isS  = (lat * rad2deg) < 0;
+  const name = isS ? d.nameS : d.nameN;
+  // Calcular JDEs exactos desde el tiempo actual
+  const jdNow  = julianDate();
+  const jdPrev = nextSolEquinox(d.lon, jdNow - 200);
+  const jdNext = nextSolEquinox(d.lon, jdNow + 1);
+  const countdown = jdNext ? _seqCountdown(jdNext) : "—";
+  const rows =
+    `<div class="bm-row"><span class="bm-lbl">Longitud solar</span><span class="bm-val">${d.lon}° ${d.glyph}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Anterior</span><span class="bm-val">${jdPrev ? _seqJDEtoStr(jdPrev) : "—"}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Próximo</span><span class="bm-val">${jdNext ? _seqJDEtoStr(jdNext) : "—"}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Cuenta atrás</span><span class="bm-val">${countdown}</span></div>` +
+    `<div class="bm-row"><span class="bm-lbl">Hemisferio</span><span class="bm-val">${isS ? "Sur" : "Norte"}</span></div>`;
+  document.getElementById("_bodyModalGlyph").textContent = d.glyph;
+  document.getElementById("_bodyModalName").textContent  = name;
+  document.getElementById("_bodyModalData").innerHTML    = rows;
+  document.getElementById("_bodyModalDesc").textContent  = d.desc;
+  document.getElementById("_bodyModal").classList.add("open");
+}
+
 function drawEcliptic(vis){
   // Registrar hitboxes de signos siempre — independiente de capas.casas
   {
@@ -2772,6 +2934,61 @@ function drawEcliptic(vis){
 
     if(isNear(mouseX,mouseY,p.x,p.y,fs)){
       drawLabel(p.x,p.y,zodiacNombres[i],"rgba(220,180,80,0.98)");
+    }
+  }
+
+  // ── Marcadores de equinoccios y solsticios ───────────────────────────
+  // 4 puntos cardinales del año solar: ♈0° ♋90° ♎180° ♑270°
+  // Solo se dibujan cuando la capa casas está activa (ya estamos dentro del if)
+  _seqHits = [];
+  const sunLon  = sunLonEcl(); // longitud solar actual
+  const seq     = _getSeqCached();
+  for(let idx = 0; idx < 4; idx++){
+    const d   = _SEQ_DATA[idx];
+    const lon = d.lon * deg2rad;
+    const ra0 = Math.atan2(Math.sin(lon)*Math.cos(eps), Math.cos(lon));
+    const dec0= Math.asin(Math.sin(eps)*Math.sin(lon));
+    const {ra, dec} = eclipticPointRotated(ra0, dec0);
+    const p   = project(ra, dec);
+    if(p.alt <= 0) continue;
+
+    // ¿Es el Sol cerca de este punto? (dentro de 8°)
+    const angDiff = Math.abs(((sunLon - d.lon + 540) % 360) - 180);
+    const isNearSun = angDiff < 8;
+
+    const fs   = Math.round(radius * 0.033);
+    const r    = fs * 1.5;
+    ctx.save();
+
+    // Halo pulsante si el Sol está cerca
+    if(isNearSun){
+      const pulse = 0.45 + 0.35 * Math.sin(Date.now() / 500);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * 1.8, 0, 2*Math.PI);
+      ctx.fillStyle = d.glyphColor.replace("0.95","0.0").replace("0.98","0.0")
+        .replace(/[\d.]+\)$/, `${pulse * 0.4})`);
+      ctx.fillStyle = `rgba(255,220,80,${pulse * 0.18})`;
+      ctx.fill();
+    }
+
+    // Símbolo zodiacal del punto cardinal
+    ctx.font      = `${fs + 2}px Georgia`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,0.95)";
+    ctx.shadowBlur  = 8;
+    ctx.fillStyle   = d.glyphColor;
+    ctx.fillText(d.glyph, p.x, p.y);
+    ctx.restore();
+
+    // Registrar hitbox
+    _seqHits.push({ idx, x:p.x, y:p.y, r });
+
+    // Label hover
+    if(isNear(mouseX, mouseY, p.x, p.y, r * 1.5)){
+      const isS = (lat * rad2deg) < 0;
+      const nm  = isS ? d.nameS : d.nameN;
+      drawLabel(p.x, p.y, nm, d.glyphColor);
     }
   }
 }
@@ -4700,6 +4917,15 @@ function updateInfoPanel(){
   document.getElementById("ip-asc").textContent = fmtDMS(asc)
     + (system === "placidus" ? " ·P" : "");
   document.getElementById("ip-mc").textContent  = fmtDMS(mc);
+
+  // Próximo equinoccio/solsticio
+  const seq = _getSeqCached();
+  if(seq && seq.next){
+    const d   = _SEQ_DATA[seq.next.idx];
+    const isS = (lat * rad2deg) < 0;
+    document.getElementById("ip-seq-lbl").textContent = (isS ? d.nameS : d.nameN).replace(" de "," ");
+    document.getElementById("ip-seq-val").textContent = _seqCountdown(seq.next.jde) || "—";
+  }
 
   // Cuerpo bajo el cursor
   // Buscar el cuerpo más cercano al mouse
