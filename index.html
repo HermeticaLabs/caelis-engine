@@ -726,7 +726,6 @@ button:hover{background:rgba(255,255,255,0.18);}
   <button id="btnAtacir" onclick="toggleAtacirPanel()" title="Nodos lunares · Atacir">☊ Atacir</button>
   <button id="btnEclipses" onclick="toggleEclipsesPanel()" title="Calculadora de Eclipses">⊗ Eclipses</button>
   <button id="btnPanchanga" onclick="togglePanchaPanel()" title="Panchanga — Almanaque védico">☽ Panchanga</button>
-  <button id="btnIA" onclick="toggleIAPanel()" title="Lectura hermética con IA — Premium">✦ Leer</button>
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnTransformare" onclick="transformareAstralis()" title="Transformare Astralis — Transmutar a Oculus">✦ Transmutare</button>
 </div>
@@ -4194,9 +4193,6 @@ function calcAtacir(){
     <button onclick="exportarTexto()" class="atc-btn" style="flex:1;background:rgba(180,160,255,0.10);border-color:rgba(180,160,255,0.35);color:rgba(200,185,255,0.95);">
       📋 Copiar texto
     </button>
-    <button onclick="leerAtacir()" class="atc-btn" style="flex:1;background:rgba(160,120,255,0.12);border-color:rgba(160,120,255,0.40);color:rgba(200,170,255,0.95);">
-      ✦ Leer con IA
-    </button>
   </div>`;
 
   document.getElementById("atacirResults").innerHTML = html;
@@ -4865,7 +4861,7 @@ function calcPanchanga(){
 
   resDiv.innerHTML = freeRows + (_isPremium ? premiumRows : premiumBanner);
 
-  // Guardar contexto IA si es Premium
+  // Guardar contexto IA silenciosamente (disponible cuando IA esté activa)
   if(_isPremium){
     const panCtx = {
       tithi, tithiIdx, paksha,
@@ -4873,12 +4869,6 @@ function calcPanchanga(){
       ayanDeg, sunSid, moonSid, jde,
     };
     window._caelisContext = { type:"panchanga", panchanga: panCtx, snapshot: getSnapshot() };
-    const btnLeer = document.createElement("button");
-    btnLeer.className = "atc-btn";
-    btnLeer.textContent = "✦ Leer Panchanga con IA";
-    btnLeer.style.cssText = "width:100%;margin-top:10px;background:rgba(160,120,255,0.12);border-color:rgba(160,120,255,0.40);color:rgba(200,170,255,0.95);";
-    btnLeer.onclick = () => leerPanchanga(panCtx);
-    resDiv.appendChild(btnLeer);
   }
 }
 
@@ -5162,12 +5152,6 @@ function calcSinastria(){
       fechaB: `${B.date} ${B.time} UTC`,
     };
     window._caelisContext = { type:"sinastria", sinastria: _sCtx };
-    const btnLeer = document.createElement("button");
-    btnLeer.className = "atc-btn";
-    btnLeer.textContent = "✦ Leer sinastría con IA";
-    btnLeer.style.cssText = "width:100%;margin-top:10px;background:rgba(160,120,255,0.12);border-color:rgba(160,120,255,0.40);color:rgba(200,170,255,0.95);";
-    btnLeer.onclick = () => leerSinastria(_sCtx.snapA, _sCtx.snapB, _sCtx.aspectos, _sCtx.fechaA, _sCtx.fechaB);
-    resDiv.appendChild(btnLeer);
   }
 }
 function _atcTab(which){
