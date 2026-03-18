@@ -4920,7 +4920,7 @@ async function _iaCallWorker(payload, targetDiv){
     targetDiv.classList.add("visible"); return;
   }
   const licenseRaw = localStorage.getItem(_CL_STORE) || "";
-  const licenseKey = licenseRaw.split("|")[0].trim();  // extraer solo la clave, sin el fingerprint
+  const licenseKey = licenseRaw.split("|")[0].trim();  // "CAELIS-XXXX-XXXX-XXXX-XXXX" sin fingerprint
   if(!licenseKey){
     targetDiv.textContent = "⚠ No se encontró tu clave Premium. Actívala primero.";
     targetDiv.classList.add("visible"); return;
