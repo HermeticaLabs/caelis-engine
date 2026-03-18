@@ -4919,7 +4919,8 @@ async function _iaCallWorker(payload, targetDiv){
     targetDiv.textContent = "⚠ Configura la URL del Worker en el panel ✦ Leer.";
     targetDiv.classList.add("visible"); return;
   }
-  const licenseKey = localStorage.getItem(_CL_STORE) || "";
+  const licenseRaw = localStorage.getItem(_CL_STORE) || "";
+  const licenseKey = licenseRaw.split("|")[0].trim();  // extraer solo la clave, sin el fingerprint
   if(!licenseKey){
     targetDiv.textContent = "⚠ No se encontró tu clave Premium. Actívala primero.";
     targetDiv.classList.add("visible"); return;
