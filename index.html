@@ -9,7 +9,7 @@
   Proyecto:  Hermetica Labs
   Repositorio: github.com/HermeticaLabs/caelis-engine
   Creado:    2024
-  Versión:   2.0.0
+  Versión:   2.1.0
   Fecha:     2026-03-11
 
   © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
@@ -37,8 +37,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Caelis Engine — motor astronómico hermético de precisión. VSOP87, ELP/Meeus, nodos lunares, Atacir, proyección estereográfica polar.">
-<meta name="version" content="2.0.0">
-<title>Caelis Engine 2.0 — Hermetica Labs</title>
+<meta name="version" content="2.1.0">
+<title>Caelis Engine 2.1 — Hermetica Labs</title>
 <style>
 *{box-sizing:border-box;}
 body{margin:0;background:#000;overflow:hidden;font-family:'Georgia',serif;}
@@ -686,7 +686,7 @@ button:hover{background:rgba(255,255,255,0.18);}
   <hr>
 
   <div class="legend">
-    <strong>AstroSync</strong> · Caelis Engine 2.0
+    <strong>AstroSync</strong> · Caelis Engine 2.1
   </div>
 </div>
 
@@ -1479,9 +1479,15 @@ function changeSpeed(d){
   timeSpeed  = speedLevels[speedIndex];
   document.getElementById("speedDisplay").innerText = speedLabels[speedIndex];
 }
+function _invalidateAstroCache(){
+  // Invalidar caches de nutation y lunarNodes cuando el tiempo cambia externamente
+  _nutCache = null; _nutCacheT = null;
+  _nodesCache = null; _nodesCacheT = null;
+}
 function resetNow(){
   timeOffset=0; speedIndex=3; timeSpeed=1;
   document.getElementById("speedDisplay").innerText="1x";
+  _invalidateAstroCache();
 }
 function currentTime(){ return Date.now()/1000 + timeOffset; }
 
@@ -1582,7 +1588,10 @@ const nutationTerms=[
   [4,0,-2,2,2,-2,0,1,0]
 ];
 
+// Cache de nutación — se recalcula solo cuando T cambia (> 1e-8 siglos ≈ 3ms)
+let _nutCache = null, _nutCacheT = null;
 function nutation(T){
+  if(_nutCache !== null && Math.abs(T - _nutCacheT) < 1e-8) return _nutCache;
   function posMod(x){let r=x%360;return r<0?r+360:r;}
   let D =posMod(297.85036 +445267.111480*T-0.0019142*T*T+T*T*T/189474)*deg2rad;
   let M =posMod(357.52772 +35999.050340*T -0.0001603*T*T-T*T*T/300000)*deg2rad;
@@ -1595,7 +1604,9 @@ function nutation(T){
     dP+=(r[5]+r[6]*T)*Math.sin(a);
     dE+=(r[7]+r[8]*T)*Math.cos(a);
   }
-  return{deltaPsi:dP*1e-4*deg2rad/3600,deltaEps:dE*1e-4*deg2rad/3600};
+  _nutCache = {deltaPsi:dP*1e-4*deg2rad/3600,deltaEps:dE*1e-4*deg2rad/3600};
+  _nutCacheT = T;
+  return _nutCache;
 }
 function meanObliquity(T){
   return(23.439291111+(-46.8150*T-0.00059*T*T+0.001813*T*T*T)/3600)*deg2rad;
@@ -1627,12 +1638,13 @@ function geocentricRadius(){
 let R_TIERRA = geocentricRadius();
 
 // ======= VSOP87 =======
+// NOTA: Esta función NO usa VSOP87 a pesar de su nombre — usa la Ecuación del Centro
+// de Meeus Cap.31 (5 términos). El VSOP87 truncado de Meeus App.II da ~21° de error
+// para Mercurio por su alta excentricidad (e=0.206). La ecuación del centro es más
+// precisa para este planeta. Error medido: < 0.116° vs JPL Horizons DE441.
+// El nombre "vsop87Mercurio" se mantiene por compatibilidad de interfaz con heliocentricCoords().
 function vsop87Mercurio(T){
-  // Reemplazado con Meeus "Astronomical Algorithms" Cap.31 + ecuación del centro
-  // Precisión ~1' de arco (vs ~21° de error del VSOP87 truncado anterior)
-  // T recibe siglos julianos (la función divide /10 para milenios internamente)
-  // NOTA: esta función recibe T_siglos directamente (heliocentricCoords pasa T sin dividir)
-  // pero el contrato original espera que vsop87 divida /10 — respetamos la interfaz:
+  // Implementación: Meeus Cap.31 + ecuación del centro (5 términos, e=0.206)
   const tau = T / 10; // milenios (para consistencia con las otras vsop87)
   const Tc = tau * 10; // volvemos a siglos para Meeus Cap.31
   // Elementos orbitales medios (Meeus Cap.31, Tabla 31.a)
@@ -3380,34 +3392,38 @@ function getSnapshot(){
 // ======= NODOS LUNARES (Caput / Cauda Draconis) =======
 // Nodo ascendente Ω: Meeus cap 47, ecuación principal.
 // El nodo es el punto donde la Luna cruza la eclíptica hacia el norte.
+// Cache de nodos lunares — se recalcula solo cuando T cambia (> 1e-8 siglos ≈ 3ms)
+let _nodesCache = null, _nodesCacheT = null;
 function lunarNodes(){
-  let T = (julianDate()-2451545)/36525;
+  const T = (julianDate()-2451545)/36525;
+  if(_nodesCache !== null && Math.abs(T - _nodesCacheT) < 1e-8) return _nodesCache;
   function pm(x){return((x%360)+360)%360;}
   // Nodo ascendente medio con correcciones periódicas (Meeus 47.7)
   let Om = pm(125.0445479 - 1934.1362608*T + 0.0020754*T*T + T*T*T/467441 - T*T*T*T/60616000);
   // Correcciones menores
-  let L  = pm(218.3164591+481267.88134236*T);
-  let Ls = pm(280.46646  + 36000.76983*T);   // long media sol
-  let Ms = pm(357.52911  + 35999.05029*T);   // anomalía media sol
-  let Mp = pm(134.96298  + 477198.867398*T); // anomalía media luna
-  let F  = pm(93.27191   + 483202.017538*T);
-  let dOm = -1.4979*Math.sin((2*(F-Om))*deg2rad)
-            -0.1500*Math.sin(Ms*deg2rad)
-            -0.1226*Math.sin(2*F*deg2rad)
-            +0.1176*Math.sin(2*(F-Om)*deg2rad)
-            -0.0801*Math.sin((2*(L-Om)-Mp)*deg2rad);
-  let omega = pm(Om + dOm);
+  const L  = pm(218.3164591+481267.88134236*T);
+  const Ls = pm(280.46646  + 36000.76983*T);   // long media sol
+  const Ms = pm(357.52911  + 35999.05029*T);   // anomalía media sol
+  const Mp = pm(134.96298  + 477198.867398*T); // anomalía media luna
+  const F  = pm(93.27191   + 483202.017538*T);
+  const dOm = -1.4979*Math.sin((2*(F-Om))*deg2rad)
+              -0.1500*Math.sin(Ms*deg2rad)
+              -0.1226*Math.sin(2*F*deg2rad)
+              +0.1176*Math.sin(2*(F-Om)*deg2rad)
+              -0.0801*Math.sin((2*(L-Om)-Mp)*deg2rad);
+  const omega = pm(Om + dOm);
   // Nodo Norte (Caput): lat eclíptica = 0, lon = omega
-  let northRad = omega*deg2rad;
-  let {ra:raN, dec:decN} = eclipticLonToRaDec(omega);
+  const {ra:raN, dec:decN} = eclipticLonToRaDec(omega);
   // Nodo Sur (Cauda): lon = omega + 180
-  let southLon = pm(omega+180);
-  let {ra:raS, dec:decS} = eclipticLonToRaDec(southLon);
-  return {
+  const southLon = pm(omega+180);
+  const {ra:raS, dec:decS} = eclipticLonToRaDec(southLon);
+  _nodesCache = {
     north: {ra:raN, dec:decN, lon_ecl:omega},
     south: {ra:raS, dec:decS, lon_ecl:southLon},
-    omega // nodo ascendente en grados
+    omega
   };
+  _nodesCacheT = T;
+  return _nodesCache;
 }
 
 // Dibujar nodos lunares sobre la eclíptica
@@ -3441,16 +3457,15 @@ function drawNodes(vis){
 // Versión parametrizable de getSnapshot — permite calcular para cualquier
 // momento y lugar sin modificar el estado del motor.
 function getSnapshotAt(jdTarget, latDeg, lonDeg){
-  // Guardar estado actual
-  let savedOffset = timeOffset;
-  let savedLat    = lat, savedLon = lon;
-  let savedSpeed  = timeSpeed, savedIdx = speedIndex;
+  // Guardar estado actual — restaurado en finally aunque ocurra excepción
+  const savedOffset = timeOffset;
+  const savedLat    = lat, savedLon = lon;
+  const savedSpeed  = timeSpeed, savedIdx = speedIndex;
 
   // Inyectar JD objetivo como offset temporal
   // julianDateUTC() = currentTime()/86400 + 2440587.5
-  // → currentTime() = (jd - 2440587.5) * 86400
-  // → timeOffset = currentTime_target - Date.now()/1000
-  let targetUnix = (jdTarget - 2440587.5)*86400;
+  // → timeOffset = (jd - 2440587.5)*86400 - Date.now()/1000
+  const targetUnix = (jdTarget - 2440587.5)*86400;
   timeOffset = targetUnix - Date.now()/1000;
   timeSpeed  = 0; // congelar durante el cálculo
 
@@ -3459,22 +3474,25 @@ function getSnapshotAt(jdTarget, latDeg, lonDeg){
   lon = lonDeg*deg2rad;
   R_TIERRA = geocentricRadius();
 
-  // Calcular snapshot
-  let snap = getSnapshot();
+  let snap;
+  try {
+    // Calcular snapshot
+    snap = getSnapshot();
 
-  // Incluir nodos lunares en el snapshot
-  let nodes = lunarNodes();
-  snap.bodies.NodoNorte = _bodyData(nodes.north.ra, nodes.north.dec);
-  snap.bodies.NodoNorte.lon_ecl = nodes.omega;
-  snap.bodies.NodoSur   = _bodyData(nodes.south.ra, nodes.south.dec);
-  snap.bodies.NodoSur.lon_ecl   = nodes.south.lon_ecl;
-
-  // Restaurar estado
-  timeOffset = savedOffset;
-  timeSpeed  = savedSpeed;
-  speedIndex = savedIdx;
-  lat = savedLat; lon = savedLon;
-  R_TIERRA = geocentricRadius();
+    // Incluir nodos lunares en el snapshot
+    const nodes = lunarNodes();
+    snap.bodies.NodoNorte = _bodyData(nodes.north.ra, nodes.north.dec);
+    snap.bodies.NodoNorte.lon_ecl = nodes.omega;
+    snap.bodies.NodoSur   = _bodyData(nodes.south.ra, nodes.south.dec);
+    snap.bodies.NodoSur.lon_ecl   = nodes.south.lon_ecl;
+  } finally {
+    // Restaurar estado SIEMPRE — incluso si ocurre excepción
+    timeOffset = savedOffset;
+    timeSpeed  = savedSpeed;
+    speedIndex = savedIdx;
+    lat = savedLat; lon = savedLon;
+    R_TIERRA = geocentricRadius();
+  }
 
   return snap;
 }
@@ -3942,17 +3960,78 @@ function renderLunaAtacir(data){
 }
 
 
+// ── calcAtacirCore: núcleo matemático puro — sin DOM, usable en Node.js/API ──
+// Parámetros: fechas ISO (YYYY-MM-DD), tiempos UTC (HH:MM), lat/lon en grados, clave Naibod
+// Retorna: objeto con rx, tr, rows (arcos/edades), aspNatales, aspTransito,
+//          simData, ciclosData, resonData, lunaData, ageNow, key
+function calcAtacirCore(rxDate, rxTime, rxLat, rxLon, trDate, trTime, trLat, trLon, key){
+  function dateToJD(d, t){
+    return new Date(`${d}T${t}:00Z`).getTime()/86400000 + 2440587.5;
+  }
+  const jdRx = dateToJD(rxDate, rxTime);
+  const jdTr = dateToJD(trDate, trTime);
+
+  const rx = getSnapshotAt(jdRx, rxLat, rxLon);
+  const tr = getSnapshotAt(jdTr, trLat, trLon);
+
+  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
+                  Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+  const names  = Object.keys(glyphs);
+
+  const sigASC = {
+    name:"ASC",
+    ra:  eclipticLonToRaDec(rx.houses.asc).ra*rad2deg,
+    dec: eclipticLonToRaDec(rx.houses.asc).dec*rad2deg
+  };
+  const sigMC = {
+    name:"MC",
+    ra:  eclipticLonToRaDec(rx.houses.mc).ra*rad2deg,
+    dec: eclipticLonToRaDec(rx.houses.mc).dec*rad2deg
+  };
+
+  const oaASC = obliqAscension(sigASC.ra, sigASC.dec, rxLat);
+  const oaMC  = obliqAscension(sigMC.ra,  sigMC.dec,  rxLat);
+
+  const rows = [];
+  for(const nm of names){
+    const b = rx.bodies[nm];
+    if(!b) continue;
+    const oaProm = obliqAscension(b.ra, b.dec, rxLat);
+    let arcASC = ((oaProm - oaASC)+360)%360;
+    let arcMC  = ((oaProm - oaMC )+360)%360;
+    if(arcASC > 180) arcASC -= 360;
+    if(arcMC  > 180) arcMC  -= 360;
+    rows.push({glyph:glyphs[nm], name:nm,
+      arcASC, arcMC, ageASC:arcASC/key, ageMC:arcMC/key});
+  }
+
+  const ageNow     = (jdTr - jdRx)/365.25;
+  const aspNatales = calcAspectosNatales(rx);
+  const aspTransito= _isPremium ? calcAspectosTransito(rx, tr) : [];
+  const simData    = _isPremium ? calcSimetrias(rx)            : null;
+  const ciclosData = _isPremium ? calcCiclos(rx, tr)           : null;
+  const resonData  = _isPremium ? calcResonancias(rx, tr)      : null;
+  const lunaData   = _isPremium ? calcLunaAtacir(rx, tr)       : null;
+
+  return { rx, tr, rows, aspNatales, aspTransito,
+           simData, ciclosData, resonData, lunaData,
+           ageNow, key, jdRx, jdTr,
+           rxDate, rxTime, rxLat, rxLon,
+           trDate, trTime, trLat, trLon };
+}
+
+// ── calcAtacir: wrapper UI — solo lee DOM y llama al core ──────────────────
 function calcAtacir(){
-  // Leer inputs
-  let rxDate = document.getElementById("rx-date").value;
-  let rxTime = document.getElementById("rx-time").value || "12:00";
-  let rxLat  = parseFloat(document.getElementById("rx-lat").value);
-  let rxLon  = parseFloat(document.getElementById("rx-lon").value);
-  let trDate = document.getElementById("tr-date").value;
-  let trTime = document.getElementById("tr-time").value || "12:00";
-  let trLat  = parseFloat(document.getElementById("tr-lat").value);
-  let trLon  = parseFloat(document.getElementById("tr-lon").value);
-  let key    = parseFloat(document.getElementById("atc-key").value);
+  // Leer inputs del DOM
+  const rxDate = document.getElementById("rx-date").value;
+  const rxTime = document.getElementById("rx-time").value || "12:00";
+  const rxLat  = parseFloat(document.getElementById("rx-lat").value);
+  const rxLon  = parseFloat(document.getElementById("rx-lon").value);
+  const trDate = document.getElementById("tr-date").value;
+  const trTime = document.getElementById("tr-time").value || "12:00";
+  const trLat  = parseFloat(document.getElementById("tr-lat").value);
+  const trLon  = parseFloat(document.getElementById("tr-lon").value);
+  let   key    = parseFloat(document.getElementById("atc-key").value);
 
   if(!rxDate||!trDate||isNaN(rxLat)||isNaN(rxLon)||isNaN(trLat)||isNaN(trLon)){
     document.getElementById("atacirResults").innerHTML =
@@ -3960,70 +4039,25 @@ function calcAtacir(){
     return;
   }
 
-  // Convertir fechas a JD
-  function dateToJD(dateStr, timeStr){
-    let dt = new Date(`${dateStr}T${timeStr}:00Z`);
-    return dt.getTime()/86400000 + 2440587.5;
+  // Calcular núcleo
+  let data;
+  try {
+    data = calcAtacirCore(rxDate, rxTime, rxLat, rxLon, trDate, trTime, trLat, trLon, key);
+  } catch(e){
+    document.getElementById("atacirResults").innerHTML =
+      `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Error en cálculo: ${e.message}</p>`;
+    return;
   }
-  let jdRx = dateToJD(rxDate, rxTime);
-  let jdTr = dateToJD(trDate, trTime);
 
-  // Snapshots
-  let rx = getSnapshotAt(jdRx, rxLat, rxLon);
-  let tr = getSnapshotAt(jdTr, trLat, trLon);
+  const { rx, tr, rows, aspNatales, aspTransito,
+          simData, ciclosData, resonData, lunaData,
+          ageNow, jdRx } = data;
 
-  // Preview Radix
+  // Preview Radix (único acceso DOM aquí)
   document.getElementById("rx-preview").textContent =
     `JD ${jdRx.toFixed(2)} · ASC ${rx.houses.asc.toFixed(1)}° · MC ${rx.houses.mc.toFixed(1)}°`;
 
-  // Cuerpos a considerar como promissores
-  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
-                  Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
-  const names  = Object.keys(glyphs);
-
-  // Significadores: ASC y MC del Radix
-  let sigASC = {
-    name:"ASC",
-    ra:  eclipticLonToRaDec(rx.houses.asc).ra*rad2deg,
-    dec: eclipticLonToRaDec(rx.houses.asc).dec*rad2deg
-  };
-  let sigMC = {
-    name:"MC",
-    ra:  eclipticLonToRaDec(rx.houses.mc).ra*rad2deg,
-    dec: eclipticLonToRaDec(rx.houses.mc).dec*rad2deg
-  };
-
-  // Calcular arcos para cada promissor → ASC y MC del Radix
-  let rows = [];
-  for(let nm of names){
-    let b = rx.bodies[nm];
-    if(!b) continue;
-
-    // OA del promissor en Radix
-    let oaProm = obliqAscension(b.ra, b.dec, rxLat);
-
-    // OA del ASC radix
-    let oaASC  = obliqAscension(sigASC.ra, sigASC.dec, rxLat);
-    // OA del MC radix
-    let oaMC   = obliqAscension(sigMC.ra,  sigMC.dec,  rxLat);
-
-    // Arco de dirección = promissor − significador (módulo 360)
-    let arcASC = ((oaProm - oaASC)+360)%360;
-    let arcMC  = ((oaProm - oaMC )+360)%360;
-    // Normalizar: arcos > 180° se interpretan como retrógrados (-360+arc)
-    if(arcASC > 180) arcASC -= 360;
-    if(arcMC  > 180) arcMC  -= 360;
-
-    let ageASC = arcASC / key;
-    let ageMC  = arcMC  / key;
-
-    rows.push({glyph:glyphs[nm], name:nm, arcASC, arcMC, ageASC, ageMC});
-  }
-
-  // Edad del nativo en el momento del tránsito
-  let ageNow = (jdTr - jdRx)/365.25;
-
-  // Renderizar tabla
+  // Renderizar tabla de arcos/edades
   let html = `
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
     <span style="font-size:11px;color:rgba(220,180,80,0.80);">
@@ -4041,20 +4075,18 @@ function calcAtacir(){
       <th>Arco → MC</th><th>Edad → MC</th>
     </tr>`;
 
-  for(let r of rows){
-    let b = rx.bodies[r.name];
-    let lonStr = b ? b.lon_ecl.toFixed(1)+"°" : "—";
-
-    let fmtArc = (a)=> a >= 0
+  for(const r of rows){
+    const b = rx.bodies[r.name];
+    const lonStr = b ? b.lon_ecl.toFixed(1)+"°" : "—";
+    const fmtArc = (a)=> a >= 0
       ? `<td class="arc">+${a.toFixed(2)}°</td>`
       : `<td class="arc" style="color:rgba(200,140,100,0.9)">${a.toFixed(2)}°</td>`;
-    let fmtAge = (a)=>{
-      let diff = a - ageNow;
-      let cls  = Math.abs(diff) < 2 ? "age" : "";
-      let mark = Math.abs(diff) < 2 ? " ◀" : "";
+    const fmtAge = (a)=>{
+      const diff = a - ageNow;
+      const cls  = Math.abs(diff) < 2 ? "age" : "";
+      const mark = Math.abs(diff) < 2 ? " ◀" : "";
       return `<td class="${cls}">${a.toFixed(2)} a${mark}</td>`;
     };
-
     html += `<tr>
       <td><span class="atc-glyph">${r.glyph}</span> ${r.name}</td>
       <td style="color:rgba(255,255,255,0.55)">${lonStr}</td>
@@ -4070,25 +4102,15 @@ function calcAtacir(){
     Nodos: ☊ Caput (Norte) · ☋ Cauda (Sur).
   </div>`;
 
-  // Calcular aspectos
-  let aspNatales  = calcAspectosNatales(rx);
-
-  // ── FREEMIUM: Free solo muestra 1 aspecto natal (el más exacto), clave Naibod fija ──
+  // ── FREEMIUM: Free solo muestra 1 aspecto natal ──
   if(!_isPremium){
-    // Forzar clave Naibod en free
     key = 0.8219;
-    // Solo el aspecto natal más exacto
-    let mejorAspecto = aspNatales.length > 0 ? [aspNatales[0]] : [];
-
-    // Guardar para exportación limitada
+    const mejorAspecto = aspNatales.length > 0 ? [aspNatales[0]] : [];
     window._lastAtacir = { rx, tr, aspNatales: mejorAspecto, aspTransito: [],
       ageNow, key, rxDate, rxTime, rxLat, rxLon, trDate, trTime, trLat, trLon };
-
-    // Renderizar versión free limitada
-    let htmlMejor = mejorAspecto.length > 0
+    const htmlMejor = mejorAspecto.length > 0
       ? _renderTablaAspectos(mejorAspecto, "Planeta A", "Planeta B", "Sin aspectos.")
       : `<div class="note" style="text-align:center;padding:8px;">Sin aspectos mayores.</div>`;
-
     html += `
   <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
     <div style="font-size:10.5px;color:rgba(220,180,80,0.85);margin-bottom:8px;letter-spacing:0.04em;">
@@ -4108,35 +4130,22 @@ function calcAtacir(){
       </button>
     </div>
   </div>`;
-
     document.getElementById("atacirResults").innerHTML = html;
     return;
   }
 
   // ── PREMIUM: cálculo completo ──
-  let aspTransito = calcAspectosTransito(rx, tr);
-
-  // Guardar para exportación (después de calcular aspectos)
   window._lastAtacir = { rx, tr, aspNatales, aspTransito, ageNow, key,
     rxDate, rxTime, rxLat, rxLon, trDate, trTime, trLat, trLon };
 
-  // HTML de aspectos natales
-  let htmlNatales  = _renderTablaAspectos(aspNatales,
+  const htmlNatales  = _renderTablaAspectos(aspNatales,
     "Planeta A", "Planeta B", "Sin aspectos mayores en el Radix.");
-  // HTML de aspectos de tránsito
-  let htmlTransito = _renderTablaAspectos(aspTransito,
+  const htmlTransito = _renderTablaAspectos(aspTransito,
     "Tránsito", "Natal", "Sin aspectos de tránsito activos.");
-
-  // Montar resultado con tabs
-  // Calcular las 3 nuevas secciones
-  let simData      = calcSimetrias(rx);
-  let ciclosData   = calcCiclos(rx, tr);
-  let resonData    = calcResonancias(rx, tr);
-  let lunaData     = calcLunaAtacir(rx, tr);
-  let htmlLuna     = renderLunaAtacir(lunaData);
-  let htmlSim      = renderSimetrias(simData);
-  let htmlCiclos   = renderCiclos(ciclosData);
-  let htmlReson    = renderResonancias(resonData);
+  const htmlLuna     = renderLunaAtacir(lunaData);
+  const htmlSim      = renderSimetrias(simData);
+  const htmlCiclos   = renderCiclos(ciclosData);
+  const htmlReson    = renderResonancias(resonData);
 
   html += `
   <div id="aspTabs" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
@@ -4227,7 +4236,7 @@ function exportarJSON(){
 
   // Construir objeto limpio y legible
   let out = {
-    motor:   "Caelis Engine 2.0",
+    motor:   "Caelis Engine 2.1",
     version: _isPremium ? "premium" : "free",
     exportado: new Date().toISOString(),
 
@@ -4421,7 +4430,7 @@ function exportarTexto(){
   }
 
   t.push(`  Exportado: ${new Date().toISOString()}`);
-  t.push("  Motor: Caelis Engine 2.0 — VSOP87 / ELP-Meeus");
+  t.push("  Motor: Caelis Engine 2.1 — VSOP87 / ELP-Meeus");
   t.push("");
 
   let texto = t.join("\n");
@@ -4737,69 +4746,92 @@ function _lonAtJDE(jde, isMoon){
 }
 
 // ── Función principal de cálculo ─────────────────────────────────────────────
-function calcPanchanga(){
-  const resDiv = document.getElementById("panchaResults");
-  if(!resDiv) return;
-
-  // Leer inputs
-  const dateStr = document.getElementById("pan-date")?.value;
-  const timeStr = document.getElementById("pan-time")?.value || "12:00";
-  const latDeg  = parseFloat(document.getElementById("pan-lat")?.value) || (lat*rad2deg);
-  const lonDeg  = parseFloat(document.getElementById("pan-lon")?.value) || (lon*rad2deg);
-
-  if(!dateStr){
-    resDiv.innerHTML = `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Ingresa una fecha.</p>`;
-    return;
-  }
-
+// ── calcPanchangaCore: núcleo matemático puro ────────────────────────────────
+// Parámetros: dateStr (YYYY-MM-DD), timeStr (HH:MM UTC)
+// Retorna: objeto con los 5 elementos del Panchanga + ayanamsa + metadatos
+function calcPanchangaCore(dateStr, timeStr){
   const jde = new Date(`${dateStr}T${timeStr}:00Z`).getTime()/86400000 + 2440587.5;
   const T   = (jde - 2451545) / 36525;
 
-  // Longitudes
   const sunLon  = _lonAtJDE(jde, false);
   const moonLon = _lonAtJDE(jde, true);
   const sunSid  = _toSidereal(sunLon, T);
   const moonSid = _toSidereal(moonLon, T);
   const ayanDeg = _lahiriAyanamsa(T);
 
-  // ── 1. Tithi ─────────────────────────────────────────────────────────────
+  // ── 1. Tithi ──────────────────────────────────────────────────────────────
   const lonDiff   = ((moonLon - sunLon) + 360) % 360;
-  const tithiIdx  = Math.floor(lonDiff / 12);       // 0–29
+  const tithiIdx  = Math.floor(lonDiff / 12);
   const tithiName = _TITHIS[tithiIdx];
   const paksha    = _PAKSHA(tithiIdx);
   const tithiPct  = ((lonDiff % 12) / 12 * 100).toFixed(0);
-  // Cuenta atrás al próximo Tithi
   const jdeNextTithi = _nextChange(jde, 0.25, 2,
     (j) => Math.floor((((_lonAtJDE(j,true) - _lonAtJDE(j,false))+360)%360) / 12));
 
-  // ── 2. Vara ──────────────────────────────────────────────────────────────
-  // Día de la semana: JDE 0 = lunes → (floor(jde + 1.5) % 7)
+  // ── 2. Vara ───────────────────────────────────────────────────────────────
   const varaIdx = Math.floor(jde + 1.5) % 7;
   const vara    = _VARAS[varaIdx];
 
-  // ── 3. Nakshatra ─────────────────────────────────────────────────────────
-  const naksIdx  = Math.floor(moonSid / (360/27));   // 0–26
+  // ── 3. Nakshatra ──────────────────────────────────────────────────────────
+  const naksIdx  = Math.floor(moonSid / (360/27));
   const naks     = _NAKSHATRAS[naksIdx];
   const naksPct  = ((moonSid % (360/27)) / (360/27) * 100).toFixed(0);
   const jdeNextNaks = _nextChange(jde, 0.25, 3,
     (j) => Math.floor(_toSidereal(_lonAtJDE(j,true), (j-2451545)/36525) / (360/27)));
 
-  // ── 4. Yoga ──────────────────────────────────────────────────────────────
-  const yogaSum = (sunSid + moonSid) % 360;
-  const yogaIdx = Math.floor(yogaSum / (360/27));    // 0–26
-  const yogaName= _YOGAS[yogaIdx];
-  const yogaPct = ((yogaSum % (360/27)) / (360/27) * 100).toFixed(0);
+  // ── 4. Yoga ───────────────────────────────────────────────────────────────
+  const yogaSum  = (sunSid + moonSid) % 360;
+  const yogaIdx  = Math.floor(yogaSum / (360/27));
+  const yogaName = _YOGAS[yogaIdx];
+  const yogaPct  = ((yogaSum % (360/27)) / (360/27) * 100).toFixed(0);
   const jdeNextYoga = _nextChange(jde, 0.1, 2,
     (j) => { const T2=(j-2451545)/36525;
       return Math.floor((_toSidereal(_lonAtJDE(j,false),T2)+_toSidereal(_lonAtJDE(j,true),T2))%360 / (360/27)); });
 
-  // ── 5. Karana ────────────────────────────────────────────────────────────
+  // ── 5. Karana ─────────────────────────────────────────────────────────────
   const karanaName = _getKarana(lonDiff);
   const karanaPct  = ((lonDiff % 6) / 6 * 100).toFixed(0);
   const jdeNextKarana = _nextChange(jde, 0.1, 1,
     (j) => _getKarana((((_lonAtJDE(j,true)-_lonAtJDE(j,false))+360)%360)));
 
-  // ── Formatear cuenta atrás ────────────────────────────────────────────────
+  return {
+    jde, T, ayanDeg, sunLon, moonLon, sunSid, moonSid,
+    tithiIdx, tithiName, paksha, tithiPct, jdeNextTithi,
+    varaIdx, vara,
+    naksIdx, naks, naksPct, jdeNextNaks,
+    yogaIdx, yogaName, yogaPct, jdeNextYoga,
+    karanaName, karanaPct, jdeNextKarana,
+  };
+}
+
+// ── calcPanchanga: wrapper UI — solo lee DOM y llama al core ──────────────────
+function calcPanchanga(){
+  const resDiv = document.getElementById("panchaResults");
+  if(!resDiv) return;
+
+  // Leer inputs del DOM
+  const dateStr = document.getElementById("pan-date")?.value;
+  const timeStr = document.getElementById("pan-time")?.value || "12:00";
+
+  if(!dateStr){
+    resDiv.innerHTML = `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Ingresa una fecha.</p>`;
+    return;
+  }
+
+  // Llamar al núcleo puro
+  let data;
+  try { data = calcPanchangaCore(dateStr, timeStr); }
+  catch(e){
+    resDiv.innerHTML = `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Error: ${e.message}</p>`;
+    return;
+  }
+
+  const { jde, ayanDeg, tithiIdx, tithiName, paksha, tithiPct, jdeNextTithi,
+          vara, naksIdx, naks, naksPct, jdeNextNaks,
+          yogaIdx, yogaName, yogaPct, jdeNextYoga,
+          karanaName, karanaPct, jdeNextKarana,
+          sunSid, moonSid } = data;
+
   function cdStr(jdeNext){
     if(!jdeNext) return "—";
     const diff = (jdeNext - jde) * 86400;
@@ -4807,13 +4839,11 @@ function calcPanchanga(){
     return h > 0 ? `en ${h}h ${m}m` : `en ${m}m`;
   }
 
-  // ── Ayanamsa display ─────────────────────────────────────────────────────
   const aD = Math.floor(ayanDeg);
   const aM = Math.floor((ayanDeg - aD) * 60);
   const aS = Math.floor(((ayanDeg - aD) * 60 - aM) * 60);
   const ayanStr = `${aD}°${aM}'${aS}"`;
 
-  // ── Render ────────────────────────────────────────────────────────────────
   const freeRows = `
     <div class="pancha-row">
       <span class="pancha-lbl">Ayanamsa</span>
@@ -4864,7 +4894,7 @@ function calcPanchanga(){
   // Guardar contexto IA silenciosamente (disponible cuando IA esté activa)
   if(_isPremium){
     const panCtx = {
-      tithi, tithiIdx, paksha,
+      tithi:tithiName, tithiIdx, paksha,
       vara, naks, yogaName, yogaIdx, karanaName,
       ayanDeg, sunSid, moonSid, jde,
     };
@@ -5074,10 +5104,35 @@ function togglePanchaPanel(){
 // ║  Reutiliza calcAspectosTransito(rxA, rxB) y calcSimetrias(rx)          ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
+// ── calcSinastriaCore: núcleo puro — sin DOM ─────────────────────────────────
+// Parámetros: dateA/timeA/latA/lonA, dateB/timeB/latB/lonB (strings/números)
+// Retorna: { rxA, rxB, aspectos, simAB, fechaA, fechaB }
+function calcSinastriaCore(dateA, timeA, latA, lonA, dateB, timeB, latB, lonB){
+  function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
+  const rxA = getSnapshotAt(toJD(dateA,timeA), latA, lonA);
+  const rxB = getSnapshotAt(toJD(dateB,timeB), latB, lonB);
+
+  // Aspectos cruzados A→B y B→A, deduplicados
+  const aspAB = calcAspectosTransito(rxA, rxB);
+  const aspBA = calcAspectosTransito(rxB, rxA);
+  const seen  = new Set();
+  const aspectos = [...aspAB, ...aspBA].filter(a => {
+    const key = [a.nmTr,a.nmRx,a.asp].sort().join("|");
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  }).sort((a,b) => b.exactitud - a.exactitud);
+
+  const simAB = _isPremium ? calcSimetrias(rxA) : null;
+  return { rxA, rxB, aspectos, simAB,
+           fechaA:`${dateA} ${timeA} UTC`, fechaB:`${dateB} ${timeB} UTC` };
+}
+
+// ── calcSinastria: wrapper UI — solo lee DOM y llama al core ──────────────────
 function calcSinastria(){
   const resDiv = document.getElementById("atacirResults");
   if(!resDiv) return;
 
+  // Leer inputs del DOM
   function getInputs(pfx){
     return {
       date: document.getElementById(`sin-${pfx}-date`)?.value,
@@ -5092,22 +5147,15 @@ function calcSinastria(){
     return;
   }
 
-  function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
-  const rxA = getSnapshotAt(toJD(A.date,A.time), A.lat, A.lon);
-  const rxB = getSnapshotAt(toJD(B.date,B.time), B.lat, B.lon);
+  // Calcular núcleo
+  let data;
+  try { data = calcSinastriaCore(A.date,A.time,A.lat,A.lon, B.date,B.time,B.lat,B.lon); }
+  catch(e){
+    resDiv.innerHTML = `<p style="color:rgba(255,120,100,0.8);font-size:11px;">⚠ Error: ${e.message}</p>`;
+    return;
+  }
 
-  // Aspectos cruzados A→B y B→A
-  const aspAB = calcAspectosTransito(rxA, rxB); // A sobre B
-  const aspBA = calcAspectosTransito(rxB, rxA); // B sobre A
-  // Combinar y deduplicar por el par de planetas (evitar duplicados simétricos)
-  const seen = new Set();
-  const aspectos = [...aspAB, ...aspBA].filter(a => {
-    const key = [a.nmTr,a.nmRx,a.asp].sort().join("|");
-    if(seen.has(key)) return false;
-    seen.add(key); return true;
-  }).sort((a,b) => b.exactitud - a.exactitud);
-
-  // Free: 3 aspectos más exactos
+  const { rxA, rxB, aspectos, simAB, fechaA, fechaB } = data;
   const muestra = _isPremium ? aspectos : aspectos.slice(0,3);
 
   let html = `<div style="font-size:10px;color:rgba(180,165,255,0.60);margin-bottom:8px;">
@@ -5117,9 +5165,7 @@ function calcSinastria(){
   html += _renderTablaAspectos(muestra, "Persona A", "Persona B", "Sin aspectos mayores.");
 
   if(_isPremium){
-    // Simetrías de A proyectadas sobre B
-    const simAB = calcSimetrias(rxA);
-    if(simAB.antiscia.length > 0){
+    if(simAB && simAB.antiscia.length > 0){
       html += `<div style="font-size:10.5px;color:rgba(180,165,255,0.70);margin:10px 0 4px;">
         Antiscia A sobre B</div>`;
       html += _renderTablaAspectos(simAB.antiscia.map(s => ({
@@ -5142,16 +5188,10 @@ function calcSinastria(){
 
   resDiv.innerHTML = html;
 
-  // Guardar contexto para la IA si es Premium
+  // Guardar contexto para la IA
   if(_isPremium){
-    function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
-    const _sCtx = {
-      snapA: rxA, snapB: rxB,
-      aspectos: aspectos,
-      fechaA: `${A.date} ${A.time} UTC`,
-      fechaB: `${B.date} ${B.time} UTC`,
-    };
-    window._caelisContext = { type:"sinastria", sinastria: _sCtx };
+    window._caelisContext = { type:"sinastria", sinastria:
+      { snapA:rxA, snapB:rxB, aspectos, fechaA, fechaB } };
   }
 }
 function _atcTab(which){
@@ -5277,95 +5317,98 @@ function _eclLunarMagnitude(F){
 // ── Visibilidad georeferenciada ──────────────────────────────────
 // Retorna true si el cuerpo está sobre el horizonte en jde para (latDeg, lonDeg)
 function _eclVisibleAt(jde, latDeg, lonDeg, isSolar){
-  // Inyectar JD y ubicación temporalmente
-  let savedOffset = timeOffset, savedLat = lat, savedLon = lon;
-  let savedSpeed  = timeSpeed;
-  let targetUnix  = (jde - 2440587.5) * 86400;
+  // Inyectar JD y ubicación temporalmente — restaurado en finally
+  const savedOffset = timeOffset, savedLat = lat, savedLon = lon;
+  const savedSpeed  = timeSpeed;
+  const targetUnix  = (jde - 2440587.5) * 86400;
   timeOffset = targetUnix - Date.now()/1000;
   timeSpeed  = 0;
   lat = latDeg * deg2rad;
   lon = lonDeg * deg2rad;
   R_TIERRA = geocentricRadius();
-  // Calcular altitud
-  let pos    = isSolar ? sunPosition() : moonPosition();
-  let LST_   = getLST();
-  let HA     = LST_ - pos.ra;
-  let altRad = Math.asin(
-    Math.sin(pos.dec)*Math.sin(lat) + Math.cos(pos.dec)*Math.cos(lat)*Math.cos(HA)
-  );
-  // Restaurar
-  timeOffset = savedOffset; timeSpeed = savedSpeed;
-  lat = savedLat; lon = savedLon;
-  R_TIERRA = geocentricRadius();
-  return altRad * rad2deg > -1.0; // con margen de refracción
+  let result;
+  try {
+    const pos    = isSolar ? sunPosition() : moonPosition();
+    const LST_   = getLST();
+    const HA     = LST_ - pos.ra;
+    const altRad = Math.asin(
+      Math.sin(pos.dec)*Math.sin(lat) + Math.cos(pos.dec)*Math.cos(lat)*Math.cos(HA)
+    );
+    result = altRad * rad2deg > -1.0; // con margen de refracción
+  } finally {
+    // Restaurar SIEMPRE
+    timeOffset = savedOffset; timeSpeed = savedSpeed;
+    lat = savedLat; lon = savedLon;
+    R_TIERRA = geocentricRadius();
+  }
+  return result;
 }
 
 // ── Función principal de cálculo ─────────────────────────────────
-function calcEclipses(){
-  let resDiv = document.getElementById("eclipsesResults");
-  if(!resDiv) return;
-
-  let latDeg  = parseFloat(document.getElementById("ecl-lat")?.value) || (lat * rad2deg);
-  let lonDeg  = parseFloat(document.getElementById("ecl-lon")?.value) || (lon * rad2deg);
-  let ranioY  = _isPremium ? parseFloat(document.getElementById("ecl-range")?.value || "1") : 1;
-  let doSolar = _isPremium ? (document.getElementById("ecl-solar")?.checked ?? true) : true;
-  let doLunar = _isPremium ? (document.getElementById("ecl-lunar")?.checked ?? true) : true;
-
-  resDiv.innerHTML = `<div style="text-align:center;padding:10px;color:rgba(180,165,255,0.60);font-size:11px;">
-    Calculando eclipses…</div>`;
-
-  // JD central = tiempo actual del engine
-  let jdCenter = julianDate();
-  let jdMin    = jdCenter - ranioY * 365.25;
-  let jdMax    = jdCenter + ranioY * 365.25;
-
-  // k inicial: luna nueva más cercana a jdMin
-  let k0 = Math.floor((jdMin - 2451550.09766) / 29.530588861);
-  let k1 = Math.ceil( (jdMax - 2451550.09766) / 29.530588861);
-
-  let eclipses = [];
-
+// ── calcEclipsesCore: núcleo puro — sin DOM ──────────────────────────────────
+// Parámetros: latDeg, lonDeg (observador), ranioY (rango en años),
+//             doSolar/doLunar (tipos), jdCenter (JDE central, default = ahora)
+// Retorna: array de eclipses [{jde, tipo, subtipo, magnitud, dist, visible}]
+function calcEclipsesCore(latDeg, lonDeg, ranioY, doSolar, doLunar, jdCenter){
+  if(jdCenter === undefined) jdCenter = julianDate();
+  const jdMin = jdCenter - ranioY * 365.25;
+  const jdMax = jdCenter + ranioY * 365.25;
+  const k0 = Math.floor((jdMin - 2451550.09766) / 29.530588861);
+  const k1 = Math.ceil( (jdMax - 2451550.09766) / 29.530588861);
+  const eclipses = [];
   for(let k = k0; k <= k1; k++){
-    // ── Eclipse solar: fase luna nueva (phase=0) ──
     if(doSolar){
-      let jde  = lunarPhaseJDE(k, 0);
+      const jde  = lunarPhaseJDE(k, 0);
       if(jde >= jdMin && jde <= jdMax){
-        let F    = _eclGetF(k, 0);
-        let dist = lunarDistELP(jde);
-        let mag  = _eclSolarMagnitude(F, dist);
+        const F    = _eclGetF(k, 0);
+        const dist = lunarDistELP(jde);
+        const mag  = _eclSolarMagnitude(F, dist);
         if(mag){
-          let visible = _eclVisibleAt(jde, latDeg, lonDeg, true);
-          eclipses.push({
-            jde, tipo: mag.tipo, subtipo: mag.subtipo,
-            magnitud: mag.magnitud, dist, visible
-          });
+          const visible = _eclVisibleAt(jde, latDeg, lonDeg, true);
+          eclipses.push({ jde, tipo:mag.tipo, subtipo:mag.subtipo,
+                          magnitud:mag.magnitud, dist, visible });
         }
       }
     }
-    // ── Eclipse lunar: fase luna llena (phase=0.5) ──
     if(doLunar){
-      let jde  = lunarPhaseJDE(k, 0.5);
+      const jde = lunarPhaseJDE(k, 0.5);
       if(jde >= jdMin && jde <= jdMax){
-        let F   = _eclGetF(k, 0.5);
-        let mag = _eclLunarMagnitude(F);
+        const F   = _eclGetF(k, 0.5);
+        const mag = _eclLunarMagnitude(F);
         if(mag){
-          let visible = _eclVisibleAt(jde, latDeg, lonDeg, false);
-          eclipses.push({
-            jde, tipo: mag.tipo, subtipo: mag.subtipo,
-            magnitud: mag.magnitud, dist: null, visible
-          });
+          const visible = _eclVisibleAt(jde, latDeg, lonDeg, false);
+          eclipses.push({ jde, tipo:mag.tipo, subtipo:mag.subtipo,
+                          magnitud:mag.magnitud, dist:null, visible });
         }
       }
     }
   }
-
   eclipses.sort((a,b) => a.jde - b.jde);
+  return eclipses;
+}
 
-  // ── Gate freemium: Free = solo 1 resultado ──
+// ── calcEclipses: wrapper UI — solo lee DOM y llama al core ──────────────────
+function calcEclipses(){
+  const resDiv = document.getElementById("eclipsesResults");
+  if(!resDiv) return;
+
+  // Leer inputs del DOM
+  const latDeg  = parseFloat(document.getElementById("ecl-lat")?.value) || (lat * rad2deg);
+  const lonDeg  = parseFloat(document.getElementById("ecl-lon")?.value) || (lon * rad2deg);
+  const ranioY  = _isPremium ? parseFloat(document.getElementById("ecl-range")?.value || "1") : 1;
+  const doSolar = _isPremium ? (document.getElementById("ecl-solar")?.checked ?? true) : true;
+  const doLunar = _isPremium ? (document.getElementById("ecl-lunar")?.checked ?? true) : true;
+
+  resDiv.innerHTML = `<div style="text-align:center;padding:10px;color:rgba(180,165,255,0.60);font-size:11px;">
+    Calculando eclipses…</div>`;
+
+  const jdCenter = julianDate();
+  const eclipses = calcEclipsesCore(latDeg, lonDeg, ranioY, doSolar, doLunar, jdCenter);
+
+  // ── Gate freemium ──
   if(!_isPremium){
-    // Mostrar solo el próximo eclipse (jde >= jdCenter)
-    let proximos = eclipses.filter(e => e.jde >= jdCenter);
-    let muestra  = proximos.length > 0 ? [proximos[0]] : (eclipses.length > 0 ? [eclipses[0]] : []);
+    const proximos = eclipses.filter(e => e.jde >= jdCenter);
+    const muestra  = proximos.length > 0 ? [proximos[0]] : (eclipses.length > 0 ? [eclipses[0]] : []);
     resDiv.innerHTML = _eclRenderTabla(muestra, latDeg, lonDeg) + _eclRenderPremiumBanner();
     return;
   }
@@ -5649,7 +5692,7 @@ function syncTransitoNow(){
 
 window.AstroSync = {
   name:    "Caelis Engine",
-  version: "2.0.0",
+  version: "2.1.0",
   getSnapshot,
   getSnapshotAt,
   julianDate,
@@ -6365,7 +6408,7 @@ function drawAstrolabio(){
   ctx.font="11px Georgia";
   ctx.fillStyle="rgba(255,255,255,0.18)";
   ctx.textAlign="right"; ctx.textBaseline="bottom";
-  ctx.fillText("Caelis Engine 2.0 · Astrolabio", canvas.width-16, canvas.height-12);
+  ctx.fillText("Caelis Engine 2.1 · Astrolabio", canvas.width-16, canvas.height-12);
   ctx.restore();
 
   timeOffset+=timeSpeed*(1/60);
@@ -6375,7 +6418,7 @@ function drawAstrolabio(){
 
 
 // ══════════════════════════════════════════════════════════════════
-// ASPECTOS ASTROLÓGICOS — Caelis Engine 2.0
+// ASPECTOS ASTROLÓGICOS — Caelis Engine 2.1
 // ══════════════════════════════════════════════════════════════════
 
 const ASPECTOS_VIS = [
@@ -6651,7 +6694,7 @@ function draw(){
   ctx.fillStyle="rgba(255,255,255,0.18)";
   ctx.textAlign="right";
   ctx.textBaseline="bottom";
-  ctx.fillText("Caelis Engine 2.0", canvas.width-16, canvas.height-12);
+  ctx.fillText("Caelis Engine 2.1", canvas.width-16, canvas.height-12);
   ctx.restore();
 
   timeOffset+=timeSpeed*(1/60);
@@ -6663,7 +6706,7 @@ draw();
 initLocation();
 
 // ══════════════════════════════════════════════════════════════════
-// TRANSFORMARE ASTRALIS — Caelis Engine 2.0
+// TRANSFORMARE ASTRALIS — Caelis Engine 2.1
 // ══════════════════════════════════════════════════════════════════
 
 const PHI = 1.61803398875;
@@ -6973,7 +7016,7 @@ function animateFlash(onDone){
 }
 
 // ══════════════════════════════════════════════════════════════════
-// OCULUS 3D ENGINE — Three.js  (Caelis Engine 2.0)
+// OCULUS 3D ENGINE — Three.js  (Caelis Engine 2.1)
 // ══════════════════════════════════════════════════════════════════
 
 // ── Paletas de color (fiel al OCULUS original) ───────────────────
