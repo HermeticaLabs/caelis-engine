@@ -1,23 +1,73 @@
 /**
- * AstroCore.js — Motor Astronómico Puro
- * Funciones astronómicas puras: VSOP87, ELP2000, Placidus, Nutación.
- * Sin dependencias de DOM ni estado global. Verificado contra Meeus.
+ * AstroCore.js v2.1.0 — Motor Astronómico Puro
+ *
+ * Núcleo matemático de Caelis Engine v2.1.
+ * Funciones puras: VSOP87, ELP/MPP02 (LLR calibrado), Placidus, Nutación IAU 1980,
+ * Panchanga védico, eclipses, equinoccios, Ayanamsa Lahiri.
+ *
+ * Sin dependencias de DOM ni estado visual.
+ * 107/107 tests PASS vs JPL Horizons DE441, Swiss Ephemeris, Meeus AA 2nd ed.
+ * Rango de validez: 1800–2100 CE.
  *
  * Autor:      Cristian Valeria Bravo
  * Proyecto:   Hermetica Labs — Caelis Engine
  * Repositorio: github.com/HermeticaLabs/caelis-engine
  * © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
- * Todos los derechos reservados.
- *
- * Depende de: ninguna (módulo independiente)
+ * License: AGPL-3.0 (open source) | Commercial (hermeticalabs.dev@proton.me)
  */
 
-// ── Constantes matemáticas ───────────────────────────────────────
+'use strict';
+
+// ── Constantes matemáticas ─────────────────────────────────────────────────
 const deg2rad = Math.PI / 180;
 const rad2deg = 180 / Math.PI;
-const C_LIGHT = 173.1446326; // UA/día — velocidad de la luz
+const C_LIGHT = 173.1446326; // UA/día
 
-// ── Tablas de datos ──────────────────────────────────────────────
+// ── Stub mínimo de estado del observador ─────────────────────────────────────
+// Para uso standalone (sin el instrumento completo).
+// En el instrumento, estas variables son del scope global del motor.
+let _astroLat  = -33.45 * Math.PI / 180; // Santiago por defecto
+let _astroLon  = -70.66 * Math.PI / 180;
+let _astroR    = 6371.0;
+let _timeOffset = 0;
+let _isPremium  = false;
+let _houseSystem = 'placidus';
+
+// Getters/setters para integración externa
+function setObserver(latDeg, lonDeg) {
+  _astroLat = latDeg * deg2rad;
+  _astroLon = lonDeg * deg2rad;
+  _astroR   = geocentricRadius();
+}
+function setTimeOffset(offset) { _timeOffset = offset; _invalidateAstroCache(); }
+function getObserver() { return { lat: _astroLat * rad2deg, lon: _astroLon * rad2deg }; }
+
+// Alias que usa el motor internamente
+function currentTime() { return Date.now() / 1000 + _timeOffset; }
+function julianDateUTC() { return currentTime() / 86400 + 2440587.5; }
+function julianDate() { const j = julianDateUTC(); return j + deltaT(j) / 86400; }
+function getLST() {
+  const jd  = julianDate();
+  const lst = gast(jd) + _astroLon;
+  return ((lst % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+}
+
+// Proxies de variables globales esperadas por las funciones del motor
+Object.defineProperty(globalThis, 'lat',       { get: () => _astroLat,    set: v => _astroLat = v,   configurable: true });
+Object.defineProperty(globalThis, 'lon',       { get: () => _astroLon,    set: v => _astroLon = v,   configurable: true });
+Object.defineProperty(globalThis, 'R_TIERRA',  { get: () => _astroR,      set: v => _astroR = v,     configurable: true });
+Object.defineProperty(globalThis, 'timeOffset',{ get: () => _timeOffset,  set: v => _timeOffset = v, configurable: true });
+Object.defineProperty(globalThis, '_isPremium',{ get: () => _isPremium,   set: v => _isPremium = v,  configurable: true });
+Object.defineProperty(globalThis, 'houseSystem',{ get: () => _houseSystem, set: v => _houseSystem = v, configurable: true });
+
+// ── Variables de estado interno (cache) ───────────────────────────────────
+let _nutCache = null, _nutCacheT = null;
+let timeSpeed = 0; // stub
+let speedIndex = 3; // stub — congelado en módulo standalone
+let _nodesCache = null, _nodesCacheT = null;
+
+
+// ── Tablas de datos ────────────────────────────────────────────────────────
 const deltaTTable=[
   [1620,124],[1630,115],[1640,106],[1650,98],[1660,91],[1670,85],[1680,79],[1690,74],
   [1700,70],[1710,65],[1720,62],[1730,58],[1740,55],[1750,53],[1760,50],[1770,48],
@@ -27,7 +77,6 @@ const deltaTTable=[
   [2010,66.1],[2015,67.6],[2020,69.4],[2025,70.9],[2030,73],[2040,79],[2050,87],
   [2060,96],[2070,107],[2080,118],[2090,131],[2100,146]
 ];
-
 const nutationTerms=[
   [0,0,0,0,1,-171996,-1742,92025,89],[-2,0,0,2,2,-13187,-16,5736,-31],
   [0,0,0,2,2,-2274,-2,977,-5],[0,0,0,0,2,2062,2,-895,5],
@@ -84,8 +133,113 @@ const nutationTerms=[
   [-1,0,0,2,2,2,0,-1,0],[0,0,2,0,1,-2,0,1,0],
   [4,0,-2,2,2,-2,0,1,0]
 ];
+const _elp_lT=[[0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],[0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],[2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],[0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,2,-12528],[0,0,1,-2,10980],[4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],[2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],[2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],[2,0,-1,2,-2602],[2,-1,-2,0,2390],[1,0,1,0,-2348],[2,-2,0,0,2236],[0,1,2,0,-2120],[0,2,0,0,-2069],[2,-2,-1,0,2048],[2,0,1,-2,-1773],[2,0,0,2,-1595],[4,-1,-1,0,1215],[0,0,2,2,-1110],[3,0,-1,0,-892],[2,1,1,0,-810],[4,-1,-2,0,759],[0,2,-1,0,-713],[2,2,-1,0,-700],[2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],[4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],[1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],[0,2,1,0,-323],[1,1,-1,0,299],[2,0,3,0,294],[2,0,-1,-2,0],[0,0,1,-4,-229],[2,-2,1,0,223],[1,-1,0,0,223],[0,1,-3,0,-220],[2,1,-1,-2,-220],[1,0,1,-2,-185],[1,0,1,2,-185],[0,0,5,0,181],[0,1,0,2,-177],[4,0,-2,-2,176],[4,-1,-1,-2,166],[1,0,-1,-2,-164],[4,0,1,-2,132],[1,0,3,0,119],[4,-1,0,-2,115],[2,-2,0,-2,-108],[0,0,2,-4,103],[2,-1,-3,0,100],[3,1,-1,0,-97],[2,-1,0,2,-97],[0,1,3,0,-96],[3,0,0,0,91],[6,0,-1,0,79],[2,-1,-1,2,-73],[0,0,4,-2,-73],[6,0,-2,0,68],[3,0,-1,2,-65],[0,0,2,4,-63],[4,0,0,-2,62],[0,1,-2,2,-57],[4,0,-3,-2,57],[3,1,0,0,-53],[2,-2,-2,0,51],[2,0,3,-2,-50],[4,-1,1,0,-49],[5,0,-1,0,49],[3,-1,-1,0,48],[4,-2,0,0,-47],[1,1,2,0,-45],[3,1,-1,-2,-45],[0,1,-1,2,-44],[3,-1,-2,0,-43],[4,0,1,2,-43],[0,2,2,0,-43],[2,0,-2,-2,-43],[2,2,0,0,-43],[4,-1,-3,0,41],[1,-1,-1,0,40],[4,0,-4,0,39],[2,-2,1,-2,38],[0,1,-4,0,-37],[2,2,1,0,-37],[1,1,-2,0,35],[4,-2,-1,0,-34],[2,-1,-2,-2,-33],[2,-1,3,0,-32],[0,2,-2,0,31],[2,2,-2,0,-30],[6,0,0,0,30],[0,0,6,0,28],[2,0,0,4,-27],[1,-1,1,0,26],[2,0,-3,2,-25],[3,0,1,0,24],[0,0,4,2,-24],[4,-1,-2,-2,23],[2,1,2,0,-22],[1,0,2,-2,21],[3,-1,0,0,20],[2,-2,-1,-2,19],[4,0,-1,2,-18],[2,1,0,2,-16],[1,0,-3,0,14],[3,0,-3,0,14],[2,-1,1,-2,14],[5,0,-2,0,14],[1,-1,2,0,-14],[0,1,1,-2,-13],[2,0,2,-2,-12],[3,-2,-1,0,12],[6,0,-3,0,-11],[0,2,-3,0,-11],[2,2,-1,2,-10],[5,-1,-1,0,10],[3,0,2,0,-10],[2,-1,2,-2,-10],[4,-2,-2,0,-9],[4,1,-1,0,-9],[0,0,3,2,-8],[3,1,1,0,8],[4,1,-2,0,-8],[0,2,0,-2,-8],[4,-1,1,-2,-8],[1,1,0,-2,-7],[4,1,0,0,-7],[2,-1,-1,-2,-7],[2,0,-4,0,7],[6,-1,-1,0,7],[3,-1,1,0,7],[0,2,-1,2,-7],[3,-2,0,0,6],[0,0,0,4,-6],[1,0,2,2,-6],[0,1,2,-2,6]];
+const _elp_bT=[[0,0,0,1,5128122],[0,0,1,1,280602],[0,0,1,-1,277693],[2,0,0,-1,173237],[2,0,-1,1,55413],[2,0,-1,-1,46271],[2,0,0,1,32573],[0,0,2,1,17198],[2,0,1,-1,9266],[0,0,2,-1,8822],[2,-1,0,-1,8216],[2,0,-2,-1,4324],[2,0,1,1,4200],[2,1,0,-1,-3359],[2,-1,-1,1,2463],[2,-1,0,1,2211],[2,-1,-1,-1,2065],[0,1,-1,-1,-1870],[4,0,-1,-1,1828],[0,1,0,1,-1794],[0,0,0,3,-1749],[0,1,-1,1,-1565],[1,0,0,1,-1491],[0,1,1,1,-1475],[0,1,1,-1,-1410],[0,1,0,-1,-1344],[1,0,0,-1,-1335],[0,0,3,1,1107],[4,0,0,-1,1021],[4,0,-1,1,833],[0,0,1,-3,777],[4,0,-2,1,671],[2,0,0,-3,607],[2,0,2,-1,596],[2,-1,1,-1,491],[2,0,-2,1,-451],[0,0,3,-1,439],[2,0,2,1,422],[2,0,-3,-1,421],[2,1,-1,1,-366],[2,1,0,1,-351],[4,0,0,1,331],[2,-1,1,1,315],[2,-2,0,-1,302],[0,0,1,3,-283],[2,1,1,-1,-229],[1,1,0,-1,223],[1,1,0,1,223],[0,1,-2,-1,-220],[2,1,-1,-1,-220],[1,0,1,1,-185],[2,-1,-2,-1,181],[0,1,2,1,-177],[4,0,-2,-1,176],[4,-1,-1,-1,166],[1,0,1,-1,-164],[4,0,1,-1,132],[1,0,-1,-1,-119],[4,-1,0,-1,115],[2,-2,0,1,107],[0,2,0,1,-102],[2,0,-1,3,-91],[2,-1,-1,3,-87],[2,1,1,1,-85],[4,-1,-2,-1,79],[3,0,0,-1,-75],[2,0,-2,-3,-73],[2,0,0,3,-72],[3,0,-1,-1,72],[3,0,0,1,-70],[2,1,0,-3,-63],[2,-1,2,-1,-60],[0,0,4,1,-57],[0,1,-3,-1,-55],[2,-2,-1,-1,-53],[2,1,-2,-1,-52],[0,0,4,-1,50],[4,1,-1,-1,47],[4,0,1,1,46],[2,0,-3,1,45],[3,-1,0,-1,-44],[4,0,-3,-1,43],[0,1,2,-1,-43],[4,-1,0,1,43],[1,-1,0,-1,-42],[4,-1,-1,1,-38],[0,2,0,-1,-37],[2,-2,1,-1,-36],[3,0,-2,-1,-34],[2,1,2,-1,-33],[2,0,1,-3,-32],[2,0,-1,-3,-30],[6,0,0,-1,-29],[2,1,0,1,-28],[2,-1,-2,1,-27],[0,0,2,-3,-26],[4,-1,1,-1,-26],[4,0,-4,-1,-25],[1,1,1,-1,-24],[1,1,-1,-1,-24],[2,0,3,-1,-24],[1,-1,1,-1,-23],[2,-1,0,3,-22],[0,1,-1,3,-22],[2,0,-4,1,21]];
+const _elp_rT=[[0,0,1,0,-20905355],[2,0,-1,0,-3699111],[2,0,0,0,-2955968],[0,0,2,0,-569925],[0,1,0,0,48888],[0,0,0,2,-3149],[2,0,-2,0,246158],[2,-1,-1,0,-152138],[2,0,1,0,-170733],[2,-1,0,0,-204586],[0,1,-1,0,-129620],[1,0,0,0,108743],[0,1,1,0,104755],[2,0,0,-2,10321],[0,0,1,-2,79661],[4,0,-1,0,-34782],[0,0,3,0,-23210],[4,0,-2,0,-21636],[2,1,-1,0,24208],[2,1,0,0,30824],[1,0,-1,0,-8379],[1,1,0,0,-16675],[2,-1,1,0,-12831],[2,0,2,0,-10445],[4,0,0,0,-11650],[2,0,-3,0,14403],[0,1,-2,0,-7003],[2,-1,-2,0,10056],[1,0,1,0,6322]];
+const _TITHIS = [
+  "Pratipada","Dvitiya","Tritiya","Chaturthi","Panchami",
+  "Shashthi","Saptami","Ashtami","Navami","Dashami",
+  "Ekadashi","Dvadashi","Trayodashi","Chaturdashi","Purnima",
+  "Pratipada","Dvitiya","Tritiya","Chaturthi","Panchami",
+  "Shashthi","Saptami","Ashtami","Navami","Dashami",
+  "Ekadashi","Dvadashi","Trayodashi","Chaturdashi","Amavasya"
+];
+const _NAKSHATRAS = [
+  { name:"Ashvini",        ruler:"Ketu",    deg:0,     desc:"Inicio rápido, curación, transporte." },
+  { name:"Bharani",        ruler:"Venus",   deg:13.33, desc:"Creación y destrucción, transformación." },
+  { name:"Krittika",       ruler:"Sol",     deg:26.67, desc:"Fuego purificador, agudeza, corte." },
+  { name:"Rohini",         ruler:"Luna",    deg:40.00, desc:"Fertilidad, crecimiento, atracción." },
+  { name:"Mrigashira",     ruler:"Marte",   deg:53.33, desc:"Búsqueda, curiosidad, viaje." },
+  { name:"Ardra",          ruler:"Rahu",    deg:66.67, desc:"Tormenta, esfuerzo, renovación." },
+  { name:"Punarvasu",      ruler:"Júpiter", deg:80.00, desc:"Retorno, abundancia, bondad." },
+  { name:"Pushya",         ruler:"Saturno", deg:93.33, desc:"Nutrición, prosperidad, devoción." },
+  { name:"Ashlesha",       ruler:"Mercurio",deg:106.67,desc:"Penetración, intuición, veneno y cura." },
+  { name:"Magha",          ruler:"Ketu",    deg:120.00,desc:"Poder ancestral, trono, autoridad." },
+  { name:"Purva Phalguni", ruler:"Venus",   deg:133.33,desc:"Descanso, placer, creatividad." },
+  { name:"Uttara Phalguni",ruler:"Sol",     deg:146.67,desc:"Alianza, contrato, lealtad." },
+  { name:"Hasta",          ruler:"Luna",    deg:160.00,desc:"Habilidad manual, ingenio, alcance." },
+  { name:"Chitra",         ruler:"Marte",   deg:173.33,desc:"Brillo, arte, arquitectura cósmica." },
+  { name:"Svati",          ruler:"Rahu",    deg:186.67,desc:"Independencia, viento, adaptación." },
+  { name:"Vishakha",       ruler:"Júpiter", deg:200.00,desc:"Meta intensa, dualidad, propósito." },
+  { name:"Anuradha",       ruler:"Saturno", deg:213.33,desc:"Devoción, amistad, perseverancia." },
+  { name:"Jyeshtha",       ruler:"Mercurio",deg:226.67,desc:"Protección, liderazgo, seniority." },
+  { name:"Mula",           ruler:"Ketu",    deg:240.00,desc:"Raíces, investigación, disolución." },
+  { name:"Purva Ashadha",  ruler:"Venus",   deg:253.33,desc:"Invencibilidad, purificación, agua." },
+  { name:"Uttara Ashadha", ruler:"Sol",     deg:266.67,desc:"Victoria final, integridad, universal." },
+  { name:"Shravana",       ruler:"Luna",    deg:280.00,desc:"Escucha, aprendizaje, conexión." },
+  { name:"Dhanishtha",     ruler:"Marte",   deg:293.33,desc:"Riqueza, ritmo, abundancia." },
+  { name:"Shatabhisha",    ruler:"Rahu",    deg:306.67,desc:"Curación, misterio, soledad." },
+  { name:"Purva Bhadrapada",ruler:"Júpiter",deg:320.00,desc:"Fuego, transformación espiritual." },
+  { name:"Uttara Bhadrapada",ruler:"Saturno",deg:333.33,desc:"Profundidad, sabiduría, lluvia." },
+  { name:"Revati",         ruler:"Mercurio",deg:346.67,desc:"Finalización, viaje, compasión." },
+];
+const _VARAS = [
+  { name:"Ravivara",  glyph:"☉", planet:"Sol",      desc:"Domingo — vitalidad y poder solar." },
+  { name:"Somavara",  glyph:"☽", planet:"Luna",     desc:"Lunes — mente, emociones y ciclos." },
+  { name:"Mangalavara",glyph:"♂",planet:"Marte",    desc:"Martes — energía, acción y determinación." },
+  { name:"Budhavara", glyph:"☿", planet:"Mercurio", desc:"Miércoles — intelecto, comunicación." },
+  { name:"Guruvara",  glyph:"♃", planet:"Júpiter",  desc:"Jueves — sabiduría, expansión, dharma." },
+  { name:"Shukravara",glyph:"♀", planet:"Venus",    desc:"Viernes — belleza, armonía, relaciones." },
+  { name:"Shanivara", glyph:"♄", planet:"Saturno",  desc:"Sábado — disciplina, karma, tiempo." },
+];
+const _YOGAS = [
+  "Vishkamba","Priti","Ayushman","Saubhagya","Shobhana",
+  "Atiganda","Sukarma","Dhriti","Shula","Ganda",
+  "Vriddhi","Dhruva","Vyaghata","Harshana","Vajra",
+  "Siddhi","Vyatipata","Variyan","Parigha","Shiva",
+  "Siddha","Sadhya","Shubha","Shukla","Brahma",
+  "Mahendra","Vaidhriti"
+];
+const ASPECTOS = [
+  { nombre:"Conjunción", simbolo:"☌", angulo:  0, orbe: 8 },
+  { nombre:"Oposición",  simbolo:"☍", angulo:180, orbe: 8 },
+  { nombre:"Trígono",    simbolo:"△", angulo:120, orbe: 7 },
+  { nombre:"Cuadratura", simbolo:"□", angulo: 90, orbe: 7 },
+  { nombre:"Sextil",     simbolo:"⚹", angulo: 60, orbe: 5 },
+];
 
-// ── Funciones astronómicas ──────────────────────────────────────
+// ── Panchanga auxiliares ─────────────────────────────────────────────────
+
+const _KARANAS_MOVILES  = ["Bava","Balava","Kaulava","Taitila","Garija","Vanija","Vishti"];
+
+function _getKarana(lonDiff){
+  // lonDiff = (moonLon - sunLon + 360) % 360
+  const step = Math.floor(lonDiff / 6); // 0-59
+  if(step === 0) return _KARANAS_FIJOS[3];       // Kimstughna — primer medio del primer tithi
+  if(step >= 57) return _KARANAS_FIJOS[step - 57]; // últimos 3: Shakuni, Chatushpada, Naga
+  return _KARANAS_MOVILES[(step - 1) % 7];
+}
+
+function _nextChange(jde0, stepDays, maxDays, indexFn){
+  const idx0 = indexFn(jde0);
+  const nowJD = Date.now()/86400000 + 2440587.5;
+  let jd = jde0;
+  // Avanzar en pasos hasta encontrar cambio
+  for(let d = 0; d < maxDays; d += stepDays){
+    const jd1 = jde0 + d + stepDays;
+    if(indexFn(jd1) !== idx0){
+      // Bisección
+      let a = jde0 + d, b = jd1;
+      for(let i = 0; i < 28; i++){
+        const mid = (a + b) / 2;
+        if(indexFn(mid) !== idx0) b = mid; else a = mid;
+      }
+      return (a + b) / 2;
+    }
+  }
+  return null;
+}
+
+function _lonAtJDE(jde, isMoon){
+  const nowJD = Date.now()/86400000 + 2440587.5;
+  const saved = timeOffset;
+  timeOffset  = (jde - nowJD)*86400 - deltaT(jde);
+  const lon   = isMoon ? moonLonEcl() : sunLonEcl();
+  timeOffset  = saved;
+  return lon;
+}
+
+// ── Funciones del motor ───────────────────────────────────────────────────
 
 function deltaT(jd){
   let year=2000+(jd-2451545)/365.25;
@@ -97,28 +251,6 @@ function deltaT(jd){
 }
 
 function getJulianCenturies(jd){ return (jd-2451545)/36525; }
-
-function nutation(T){
-  function posMod(x){let r=x%360;return r<0?r+360:r;}
-  let D =posMod(297.85036 +445267.111480*T-0.0019142*T*T+T*T*T/189474)*deg2rad;
-  let M =posMod(357.52772 +35999.050340*T -0.0001603*T*T-T*T*T/300000)*deg2rad;
-  let Mp=posMod(134.96298 +477198.867398*T+0.0086972*T*T+T*T*T/56250)*deg2rad;
-  let F =posMod(93.27191  +483202.017538*T-0.0036825*T*T+T*T*T/327270)*deg2rad;
-  let Om=posMod(125.04452 -1934.136261*T +0.0020708*T*T+T*T*T/450000)*deg2rad;
-  let dP=0,dE=0;
-  for(let r of nutationTerms){
-    let a=r[0]*D+r[1]*M+r[2]*Mp+r[3]*F+r[4]*Om;
-    dP+=(r[5]+r[6]*T)*Math.sin(a);
-    dE+=(r[7]+r[8]*T)*Math.cos(a);
-  }
-  return{deltaPsi:dP*1e-4*deg2rad/3600,deltaEps:dE*1e-4*deg2rad/3600};
-}
-
-function meanObliquity(T){
-  return(23.439291111+(-46.8150*T-0.00059*T*T+0.001813*T*T*T)/3600)*deg2rad;
-}
-
-function trueObliquity(T){return meanObliquity(T)+nutation(T).deltaEps;}
 
 function gast(jd){
   let T=getJulianCenturies(jd);
@@ -133,124 +265,33 @@ function gast(jd){
   return((gmstDeg+eqEq)%360+360)%360;
 }
 
-function geocentricRadius(){
-  let a=6378.137,b=6356.7523142,c=Math.cos(lat),s=Math.sin(lat);
-  return Math.sqrt((Math.pow(a*a*c,2)+Math.pow(b*b*s,2))/(Math.pow(a*c,2)+Math.pow(b*s,2)));
+function meanObliquity(T){
+  return(23.439291111+(-46.8150*T-0.00059*T*T+0.001813*T*T*T)/3600)*deg2rad;
 }
 
-function applyRefraction(alt){
-  let a=alt*rad2deg;
-  if(a<-1)return alt;
-  let R=1.02/Math.tan((a+10.3/(a+5.11))*deg2rad);
-  return Math.min(90,a+R)*deg2rad;
-}
+function trueObliquity(T){return meanObliquity(T)+nutation(T).deltaEps;}
 
-function eclipticToEquatorialWithEps(lambda,beta,eps){
-  return{
-    ra:Math.atan2(Math.sin(lambda)*Math.cos(eps)-Math.tan(beta)*Math.sin(eps),Math.cos(lambda)),
-    dec:Math.asin(Math.sin(beta)*Math.cos(eps)+Math.cos(beta)*Math.sin(eps)*Math.sin(lambda))
-  };
-}
-
-function eclipticLonToRaDec(lonDeg, epsRad){
-  let l   = lonDeg*deg2rad;
-  let eps = (epsRad !== undefined) ? epsRad : trueObliquity((julianDate()-2451545)/36525);
-  let ra  = Math.atan2(Math.sin(l)*Math.cos(eps), Math.cos(l));
-  let dec = Math.asin(Math.sin(eps)*Math.sin(l));
-  return {ra, dec};
-}
-
-function annualAberration(lambda,beta,T){
-  let e=earthHelio(T),e2=earthHelio(T+0.001);
-  let vx=(e2.x-e.x)/(0.001*36525),vy=(e2.y-e.y)/(0.001*36525);
-  let kappa=9.9365e-5,vm=Math.sqrt(vx*vx+vy*vy);
-  let vxn=vx/vm,vyn=vy/vm;
-  let cB=Math.cos(beta),sB=Math.sin(beta),cL=Math.cos(lambda),sL=Math.sin(lambda);
-  return{
-    lambda:lambda+kappa*(-vxn*sL+vyn*cL)/cB,
-    beta:beta-kappa*(vxn*cL*sB+vyn*sL*sB)
-  };
-}
-
-function earthHelio(T){return heliocentricCoords("Tierra",T);}
-
-function heliocentricCoords(name,T){
-  let v;
-  switch(name){
-    case"Mercurio":v=vsop87Mercurio(T);break;
-    case"Venus":   v=vsop87Venus(T);break;
-    case"Tierra":  v=vsop87Tierra(T);break;
-    case"Marte":   v=vsop87Marte(T);break;
-    case"Júpiter": v=vsop87Jupiter(T);break;
-    case"Saturno": v=vsop87Saturno(T);break;
-    default:return{x:0,y:0,z:0};
-  }
-  let{L,B,R}=v;
-  return{x:R*Math.cos(B)*Math.cos(L),y:R*Math.cos(B)*Math.sin(L),z:R*Math.sin(B)};
-}
-
-function geocentricEclipticWithLightTime(name,T,jd){
-  let p=heliocentricCoords(name,T),e=earthHelio(T);
-  let xg=p.x-e.x,yg=p.y-e.y,zg=p.z-e.z;
-  let dist=Math.sqrt(xg*xg+yg*yg+zg*zg);
-  let Tc=(jd-dist/C_LIGHT-2451545)/36525;
-  p=heliocentricCoords(name,Tc);e=earthHelio(Tc);
-  xg=p.x-e.x;yg=p.y-e.y;zg=p.z-e.z;
-  return{lambda:Math.atan2(yg,xg),beta:Math.atan2(zg,Math.sqrt(xg*xg+yg*yg)),dist};
-}
-
-function sunPosition(){
-  let jd=julianDate(),T=(jd-2451545)/36525;
-  let e=earthHelio(T);
-  let lam=Math.atan2(-e.y,-e.x),bet=Math.atan2(-e.z,Math.sqrt(e.x*e.x+e.y*e.y));
-  lam+=nutation(T).deltaPsi;
-  let ab=annualAberration(lam,bet,T);
-  return eclipticToEquatorialWithEps(ab.lambda,ab.beta,trueObliquity(T));
-}
-
-function moonPosition(){
-  let jd=julianDate(),T=(jd-2451545)/36525;
+function nutation(T){
+  if(_nutCache !== null && Math.abs(T - _nutCacheT) < 1e-8) return _nutCache;
   function posMod(x){let r=x%360;return r<0?r+360:r;}
-  let L =posMod(218.3164591+481267.88134236*T-0.0013268*T*T+T*T*T/538841-T*T*T*T/65194000);
-  let D =posMod(297.8502042+445267.11151668*T-0.0016300*T*T+T*T*T/545868-T*T*T*T/113065000);
-  let M =posMod(357.5291092+35999.05029190*T -0.0001536*T*T+T*T*T/24490000);
-  let Mp=posMod(134.9634114+477198.86763133*T+0.0089970*T*T+T*T*T/69699-T*T*T*T/14712000);
-  let F =posMod(93.2720993 +483202.01752731*T-0.0034029*T*T-T*T*T/3526000+T*T*T*T/863310000);
-  let E=1-0.002516*T-0.0000074*T*T,E2=E*E;
-  let Lr=L*deg2rad,Dr=D*deg2rad,Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
-  const lT=[[0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],[0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],[2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],[0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,2,-12528],[0,0,1,-2,10980],[4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],[2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],[2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],[2,0,-1,2,-2602],[2,-1,-2,0,2390],[1,0,1,0,-2348],[2,-2,0,0,2236],[0,1,2,0,-2120],[0,2,0,0,-2069],[2,-2,-1,0,2048],[2,0,1,-2,-1773],[2,0,0,2,-1595],[4,-1,-1,0,1215],[0,0,2,2,-1110],[3,0,-1,0,-892],[2,1,1,0,-810],[4,-1,-2,0,759],[0,2,-1,0,-713],[2,2,-1,0,-700],[2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],[4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],[1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],[0,2,1,0,-323],[1,1,-1,0,299],[2,0,3,0,294],[2,0,-1,-2,0]];
-  const bT=[[0,0,0,1,5128122],[0,0,1,1,280602],[0,0,1,-1,277693],[2,0,0,-1,173237],[2,0,-1,1,55413],[2,0,-1,-1,46271],[2,0,0,1,32573],[0,0,2,1,17198],[2,0,1,-1,9266],[0,0,2,-1,8822],[2,-1,0,-1,8216],[2,0,-2,-1,4324],[2,0,1,1,4200],[2,1,0,-1,-3359],[2,-1,-1,1,2463],[2,-1,0,1,2211],[2,-1,-1,-1,2065],[0,1,-1,-1,-1870],[4,0,-1,-1,1828],[0,1,0,1,-1794],[0,0,0,3,-1749],[0,1,-1,1,-1565],[1,0,0,1,-1491],[0,1,1,1,-1475],[0,1,1,-1,-1410],[0,1,0,-1,-1344],[1,0,0,-1,-1335],[0,0,3,1,1107],[4,0,0,-1,1021],[4,0,-1,1,833],[0,0,1,-3,777],[4,0,-2,1,671],[2,0,0,-3,607],[2,0,2,-1,596],[2,-1,1,-1,491],[2,0,-2,1,-451],[0,0,3,-1,439],[2,0,2,1,422],[2,0,-3,-1,421],[2,1,-1,1,-366],[2,1,0,1,-351],[4,0,0,1,331],[2,-1,1,1,315],[2,-2,0,-1,302],[0,0,1,3,-283],[2,1,1,-1,-229],[1,1,0,-1,223],[1,1,0,1,223],[0,1,-2,-1,-220],[2,1,-1,-1,-220],[1,0,1,1,-185],[2,-1,-2,-1,181],[0,1,2,1,-177],[4,0,-2,-1,176],[4,-1,-1,-1,166],[1,0,1,-1,-164],[4,0,1,-1,132],[1,0,-1,-1,-119],[4,-1,0,-1,115],[2,-2,0,1,107]];
-  const rT=[[0,0,1,0,-20905355],[2,0,-1,0,-3699111],[2,0,0,0,-2955968],[0,0,2,0,-569925],[0,1,0,0,48888],[0,0,0,2,-3149],[2,0,-2,0,246158],[2,-1,-1,0,-152138],[2,0,1,0,-170733],[2,-1,0,0,-204586],[0,1,-1,0,-129620],[1,0,0,0,108743],[0,1,1,0,104755],[2,0,0,-2,10321],[0,0,1,2,0],[0,0,1,-2,79661],[4,0,-1,0,-34782],[0,0,3,0,-23210],[4,0,-2,0,-21636],[2,1,-1,0,24208],[2,1,0,0,30824],[1,0,-1,0,-8379],[1,1,0,0,-16675],[2,-1,1,0,-12831],[2,0,2,0,-10445],[4,0,0,0,-11650],[2,0,-3,0,14403],[0,1,-2,0,-7003],[2,-1,-2,0,10056],[1,0,1,0,6322]];
-  let sL=0,sB=0,sR=0;
-  for(let r of lT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sL+=r[4]*ef*Math.sin(a);}
-  for(let r of rT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sR+=r[4]*ef*Math.cos(a);}
-  for(let r of bT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sB+=r[4]*ef*Math.sin(a);}
-  let A1=(119.75+131.849*T)*deg2rad,A2=(53.09+479264.290*T)*deg2rad,A3=(313.45+481266.484*T)*deg2rad;
-  sL+=3958*Math.sin(A1)+1962*Math.sin(Lr-Fr)+318*Math.sin(A2);
-  sB+=-2235*Math.sin(Lr)+382*Math.sin(A3)+175*Math.sin(A1-Fr)+175*Math.sin(A1+Fr)+127*Math.sin(Lr-Mpr)-115*Math.sin(Lr+Mpr);
-  let lambda=Lr+(sL/1e6)*deg2rad,beta=(sB/1e6)*deg2rad,Rgeo=385000.56+sR/1000;
-  lambda+=nutation(T).deltaPsi;
-  let eps=trueObliquity(T);
-  let{ra:raG,dec:decG}=eclipticToEquatorialWithEps(lambda,beta,eps);
-  let LST=getLST(),HA=LST-raG,dR=Rgeo/R_TIERRA;
-  let cLat=Math.cos(lat),sLat=Math.sin(lat),cDec=Math.cos(decG),sDec=Math.sin(decG),cHA=Math.cos(HA),sHA=Math.sin(HA);
-  return{ra:raG-(1/dR)*cLat*sHA/cDec,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
-}
-
-function planetPosition(name){
-  let jd=julianDate(),T=(jd-2451545)/36525;
-  let{lambda,beta}=geocentricEclipticWithLightTime(name,T,jd);
-  lambda+=nutation(T).deltaPsi;
-  let ab=annualAberration(lambda,beta,T);
-  return eclipticToEquatorialWithEps(ab.lambda,ab.beta,trueObliquity(T));
+  let D =posMod(297.85036 +445267.111480*T-0.0019142*T*T+T*T*T/189474)*deg2rad;
+  let M =posMod(357.52772 +35999.050340*T -0.0001603*T*T-T*T*T/300000)*deg2rad;
+  let Mp=posMod(134.96298 +477198.867398*T+0.0086972*T*T+T*T*T/56250)*deg2rad;
+  let F =posMod(93.27191  +483202.017538*T-0.0036825*T*T+T*T*T/327270)*deg2rad;
+  let Om=posMod(125.04452 -1934.136261*T +0.0020708*T*T+T*T*T/450000)*deg2rad;
+  let dP=0,dE=0;
+  for(let r of nutationTerms){
+    let a=r[0]*D+r[1]*M+r[2]*Mp+r[3]*F+r[4]*Om;
+    dP+=(r[5]+r[6]*T)*Math.sin(a);
+    dE+=(r[7]+r[8]*T)*Math.cos(a);
+  }
+  _nutCache = {deltaPsi:dP*1e-4*deg2rad/3600,deltaEps:dE*1e-4*deg2rad/3600};
+  _nutCacheT = T;
+  return _nutCache;
 }
 
 function vsop87Mercurio(T){
-  // Reemplazado con Meeus "Astronomical Algorithms" Cap.31 + ecuación del centro
-  // Precisión ~1' de arco (vs ~21° de error del VSOP87 truncado anterior)
-  // T recibe siglos julianos (la función divide /10 para milenios internamente)
-  // NOTA: esta función recibe T_siglos directamente (heliocentricCoords pasa T sin dividir)
-  // pero el contrato original espera que vsop87 divida /10 — respetamos la interfaz:
+  // Implementación: Meeus Cap.31 + ecuación del centro (5 términos, e=0.206)
   const tau = T / 10; // milenios (para consistencia con las otras vsop87)
   const Tc = tau * 10; // volvemos a siglos para Meeus Cap.31
   // Elementos orbitales medios (Meeus Cap.31, Tabla 31.a)
@@ -400,76 +441,150 @@ function vsop87Saturno(T){
   return{L,B,R};
 }
 
-function lunarNodes(){
-  let T = (julianDate()-2451545)/36525;
-  function pm(x){return((x%360)+360)%360;}
-  // Nodo ascendente medio con correcciones periódicas (Meeus 47.7)
-  let Om = pm(125.0445479 - 1934.1362608*T + 0.0020754*T*T + T*T*T/467441 - T*T*T*T/60616000);
-  // Correcciones menores
-  let L  = pm(218.3164591+481267.88134236*T);
-  let Ls = pm(280.46646  + 36000.76983*T);   // long media sol
-  let Ms = pm(357.52911  + 35999.05029*T);   // anomalía media sol
-  let Mp = pm(134.96298  + 477198.867398*T); // anomalía media luna
-  let F  = pm(93.27191   + 483202.017538*T);
-  let dOm = -1.4979*Math.sin((2*(F-Om))*deg2rad)
-            -0.1500*Math.sin(Ms*deg2rad)
-            -0.1226*Math.sin(2*F*deg2rad)
-            +0.1176*Math.sin(2*(F-Om)*deg2rad)
-            -0.0801*Math.sin((2*(L-Om)-Mp)*deg2rad);
-  let omega = pm(Om + dOm);
-  // Nodo Norte (Caput): lat eclíptica = 0, lon = omega
-  let northRad = omega*deg2rad;
-  let {ra:raN, dec:decN} = eclipticLonToRaDec(omega);
-  // Nodo Sur (Cauda): lon = omega + 180
-  let southLon = pm(omega+180);
-  let {ra:raS, dec:decS} = eclipticLonToRaDec(southLon);
-  return {
-    north: {ra:raN, dec:decN, lon_ecl:omega},
-    south: {ra:raS, dec:decS, lon_ecl:southLon},
-    omega // nodo ascendente en grados
+function heliocentricCoords(name,T){
+  let v;
+  switch(name){
+    case"Mercurio":v=vsop87Mercurio(T);break;
+    case"Venus":   v=vsop87Venus(T);break;
+    case"Tierra":  v=vsop87Tierra(T);break;
+    case"Marte":   v=vsop87Marte(T);break;
+    case"Júpiter": v=vsop87Jupiter(T);break;
+    case"Saturno": v=vsop87Saturno(T);break;
+    default:return{x:0,y:0,z:0};
+  }
+  let{L,B,R}=v;
+  return{x:R*Math.cos(B)*Math.cos(L),y:R*Math.cos(B)*Math.sin(L),z:R*Math.sin(B)};
+}
+
+function earthHelio(T){return heliocentricCoords("Tierra",T);}
+
+function geocentricEclipticWithLightTime(name,T,jd){
+  let p=heliocentricCoords(name,T),e=earthHelio(T);
+  let xg=p.x-e.x,yg=p.y-e.y,zg=p.z-e.z;
+  let dist=Math.sqrt(xg*xg+yg*yg+zg*zg);
+  let Tc=(jd-dist/C_LIGHT-2451545)/36525;
+  p=heliocentricCoords(name,Tc);e=earthHelio(Tc);
+  xg=p.x-e.x;yg=p.y-e.y;zg=p.z-e.z;
+  return{lambda:Math.atan2(yg,xg),beta:Math.atan2(zg,Math.sqrt(xg*xg+yg*yg)),dist};
+}
+
+function annualAberration(lambda,beta,T){
+  let e=earthHelio(T),e2=earthHelio(T+0.001);
+  let vx=(e2.x-e.x)/(0.001*36525),vy=(e2.y-e.y)/(0.001*36525);
+  let kappa=9.9365e-5,vm=Math.sqrt(vx*vx+vy*vy);
+  let vxn=vx/vm,vyn=vy/vm;
+  let cB=Math.cos(beta),sB=Math.sin(beta),cL=Math.cos(lambda),sL=Math.sin(lambda);
+  return{
+    lambda:lambda+kappa*(-vxn*sL+vyn*cL)/cB,
+    beta:beta-kappa*(vxn*cL*sB+vyn*sL*sB)
   };
 }
 
+function eclipticToEquatorialWithEps(lambda,beta,eps){
+  return{
+    ra:Math.atan2(Math.sin(lambda)*Math.cos(eps)-Math.tan(beta)*Math.sin(eps),Math.cos(lambda)),
+    dec:Math.asin(Math.sin(beta)*Math.cos(eps)+Math.cos(beta)*Math.sin(eps)*Math.sin(lambda))
+  };
+}
+
+function _elp_args(T){
+  function pm(x){let r=x%360;return r<0?r+360:r;}
+  let W1=pm(218.3165591+481267.8813424*T-0.0013268*T*T+T*T*T/538841-T*T*T*T/65194000);
+  let D =pm(297.8501921+445267.1114034*T-0.0018819*T*T+T*T*T/545868 -T*T*T*T/113065000);
+  let M =pm(357.5291092+ 35999.0502909*T-0.0001536*T*T+T*T*T/24490000);
+  let Mp=pm(134.9634114+477198.8676313*T+0.0089970*T*T+T*T*T/69699   -T*T*T*T/14712000);
+  let F =pm(93.2720950 +483202.0175233*T-0.0036539*T*T-T*T*T/3526000 +T*T*T*T/863310000);
+  return{W1,D,M,Mp,F,
+    W1r:W1*deg2rad,Dr:D*deg2rad,Mr:M*deg2rad,Mpr:Mp*deg2rad,Fr:F*deg2rad};
+}
+
 function moonLonEcl(){
-  // Extraer lambda de moonPosition — recalcular solo lon eclíptica
+  // Usa tablas ELP/MPP02 compartidas (_elp_lT, _elp_args)
   let jd=julianDate(),T=(jd-2451545)/36525;
-  function posMod(x){let r=x%360;return r<0?r+360:r;}
-  let L=posMod(218.3164591+481267.88134236*T-0.0013268*T*T+T*T*T/538841);
-  let D=posMod(297.8502042+445267.11151668*T-0.0016300*T*T+T*T*T/545868);
-  let M=posMod(357.5291092+35999.05029190*T-0.0001536*T*T+T*T*T/24490000);
-  let Mp=posMod(134.9634114+477198.86763133*T+0.0089970*T*T+T*T*T/69699);
-  let F=posMod(93.2720993+483202.01752731*T-0.0034029*T*T-T*T*T/3526000);
-  let E=1-0.002516*T-0.0000074*T*T;
-  let Lr=L*deg2rad,Dr=D*deg2rad,Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
-  const lT=[[0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],[0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],[2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],[0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,-2,10980],[4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],[2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],[2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],[1,0,1,0,-2348],[2,-2,0,0,2236],[0,1,2,0,-2120],[2,-2,-1,0,2048],[2,0,1,-2,-1773],[4,-1,-1,0,1215],[3,0,-1,0,-892],[2,1,1,0,-810],[4,-1,-2,0,759],[2,2,-1,0,-700],[2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],[4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],[1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],[4,0,-2,-1,176]];
+  let{W1,W1r,Dr,Mr,Mpr,Fr}=_elp_args(T);
+  let E=1-0.002516*T-0.0000074*T*T,E2=E*E;
   let sL=0;
-  for(let r of lT){
-    let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;
-    let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E*E:1;
-    sL+=r[4]*ef*Math.sin(a);
-  }
+  for(let r of _elp_lT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sL+=r[4]*ef*Math.sin(a);}
   let A1=(119.75+131.849*T)*deg2rad,A2=(53.09+479264.290*T)*deg2rad;
-  sL+=3958*Math.sin(A1)+1962*Math.sin(Lr-Fr)+318*Math.sin(A2);
-  let lambda=Lr+(sL/1e6)*deg2rad;
+  sL+=3958*Math.sin(A1)+1962*Math.sin(W1r-Fr)+318*Math.sin(A2);
+  let lambda=W1r+(sL/1e6)*deg2rad;
   lambda+=nutation(T).deltaPsi;
   return ((lambda*rad2deg)%360+360)%360;
 }
 
-function sunLonEcl(){
-  let jd=julianDate(),T=(jd-2451545)/36525;
-  let e=earthHelio(T);
-  let lam=Math.atan2(-e.y,-e.x);
-  lam+=nutation(T).deltaPsi;
-  let ab=annualAberration(lam,Math.atan2(-e.z,Math.sqrt(e.x*e.x+e.y*e.y)),T);
-  return ((ab.lambda*rad2deg)%360+360)%360;
+function lunarDistELP(jde){
+  // Distancia lunar — 29 términos rT (Meeus Cap.47), a0=385000.56 km, args MPP02
+  const T=(jde-2451545)/36525;
+  let{Dr,Mr,Mpr,Fr}=_elp_args(T);
+  const E=1-0.002516*T,E2=E*E;
+  let sR=0;
+  for(const r of _elp_rT){const a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;const ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sR+=r[4]*ef*Math.cos(a);}
+  return 385000.56+sR/1000;
 }
 
-function planetLonEcl(name){
-  let jd=julianDate(),T=(jd-2451545)/36525;
-  let{lambda,beta}=geocentricEclipticWithLightTime(name,T,jd);
-  lambda+=nutation(T).deltaPsi;
-  let ab=annualAberration(lambda,beta,T);   // beta real, no 0
-  return ((ab.lambda*rad2deg)%360+360)%360;
+function lunarPhaseJDE(k, phase){
+  // phase: 0=nueva, 0.25=CC, 0.5=llena, 0.75=CM
+  const k_=k+phase, T=k_/1236.85, T2=T*T, T3=T*T2, T4=T*T3;
+  let JDE=2451550.09766+29.530588861*k_+0.00015437*T2-0.000000150*T3+0.00000000073*T4;
+  const M  =((2.5534  +29.10535670*k_ -0.0000014*T2)%360+360)%360;
+  const Mp =((201.5643+385.81693528*k_+0.0107582*T2 +0.00001238*T3)%360+360)%360;
+  const F  =((160.7108+390.67050284*k_-0.0016118*T2 -0.00000227*T3)%360+360)%360;
+  const E=1-0.002516*T-0.0000074*T2;
+  const Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
+  if(phase===0||phase===0.5){
+    JDE+=phase===0
+      ?(-0.40720*Math.sin(Mpr)+0.17241*E*Math.sin(Mr)+0.01608*Math.sin(2*Mpr)
+        +0.01039*Math.sin(2*Fr)+0.00739*E*Math.sin(Mpr-Mr)-0.00514*E*Math.sin(Mpr+Mr)
+        +0.00208*E*E*Math.sin(2*Mr)-0.00111*Math.sin(2*Fr-Mpr)-0.00057*Math.sin(Mpr+2*Fr)
+        +0.00056*E*Math.sin(2*Mpr+Mr)-0.00042*Math.sin(3*Mpr)+0.00042*E*Math.sin(Mr+2*Fr)
+        +0.00038*E*Math.sin(Mr-2*Fr)-0.00024*E*Math.sin(2*Mpr-Mr)-0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)
+        -0.00007*Math.sin(Mpr+2*Mr)+0.00004*Math.sin(2*Mpr-2*Fr)+0.00004*Math.sin(3*Mr)
+        +0.00003*Math.sin(Mpr+Mr-2*Fr)+0.00003*Math.sin(2*Mpr+2*Fr)-0.00003*Math.sin(Mpr+Mr+2*Fr)
+        +0.00003*Math.sin(Mpr-Mr+2*Fr)-0.00002*Math.sin(Mpr-Mr-2*Fr)-0.00002*Math.sin(3*Mpr+Mr)
+        +0.00002*Math.sin(4*Mpr))
+      :(-0.40614*Math.sin(Mpr)+0.17302*E*Math.sin(Mr)+0.01614*Math.sin(2*Mpr)
+        +0.01043*Math.sin(2*Fr)+0.00734*E*Math.sin(Mpr-Mr)-0.00515*E*Math.sin(Mpr+Mr)
+        +0.00209*E*E*Math.sin(2*Mr)-0.00111*Math.sin(2*Fr-Mpr)-0.00057*Math.sin(Mpr+2*Fr)
+        +0.00056*E*Math.sin(2*Mpr+Mr)-0.00042*Math.sin(3*Mpr)+0.00042*E*Math.sin(Mr+2*Fr)
+        +0.00038*E*Math.sin(Mr-2*Fr)-0.00024*E*Math.sin(2*Mpr-Mr)-0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)
+        -0.00007*Math.sin(Mpr+2*Mr)+0.00004*Math.sin(2*Mpr-2*Fr)+0.00004*Math.sin(3*Mr)
+        +0.00003*Math.sin(Mpr+Mr-2*Fr)+0.00003*Math.sin(2*Mpr+2*Fr)-0.00003*Math.sin(Mpr+Mr+2*Fr)
+        +0.00003*Math.sin(Mpr-Mr+2*Fr)-0.00002*Math.sin(Mpr-Mr-2*Fr)-0.00002*Math.sin(3*Mpr+Mr)
+        +0.00002*Math.sin(4*Mpr));
+  } else {
+    const W=0.00306-0.00038*E*Math.cos(Mr)+0.00026*Math.cos(Mpr)
+            -0.00002*Math.cos(Mpr-Mr)+0.00002*Math.cos(Mpr+Mr)+0.00002*Math.cos(2*Fr);
+    JDE+=(-0.62801*Math.sin(Mpr)+0.17172*E*Math.sin(Mr)-0.01183*E*Math.sin(Mpr+Mr)
+          +0.00862*Math.sin(2*Mpr)+0.00804*Math.sin(2*Fr)+0.00454*E*Math.sin(Mpr-Mr)
+          +0.00204*E*E*Math.sin(2*Mr)-0.00180*Math.sin(Mpr-2*Fr)-0.00070*Math.sin(Mpr+2*Fr)
+          -0.00040*Math.sin(3*Mpr)-0.00034*E*Math.sin(2*Mpr-Mr)+0.00032*E*Math.sin(Mr+2*Fr)
+          +0.00032*E*Math.sin(Mr-2*Fr)-0.00028*E*E*Math.sin(Mpr+2*Mr)+0.00027*E*Math.sin(2*Mpr+Mr)
+          -0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)-0.00005*Math.sin(Mpr-Mr-2*Fr)
+          +0.00004*Math.sin(2*Mpr+2*Fr)-0.00004*Math.sin(Mpr+Mr+2*Fr)+0.00003*Math.sin(Mpr-2*Mr)
+          +0.00003*Math.sin(4*Mpr)+0.00003*E*Math.sin(Mr+2*Fr)-0.00003*Math.sin(Mpr+Mr-2*Fr))
+         +(phase===0.25?W:-W);
+  }
+  return JDE;
+}
+
+function eclipticLonToRaDec(lonDeg, epsRad){
+  let l   = lonDeg*deg2rad;
+  let eps = (epsRad !== undefined) ? epsRad : trueObliquity((julianDate()-2451545)/36525);
+  let ra  = Math.atan2(Math.sin(l)*Math.cos(eps), Math.cos(l));
+  let dec = Math.asin(Math.sin(eps)*Math.sin(l));
+  return {ra, dec};
+}
+
+function applyRefraction(alt){
+  let a=alt*rad2deg;
+  if(a<-1)return alt;
+  let R=1.02/Math.tan((a+10.3/(a+5.11))*deg2rad);
+  return Math.min(90,a+R)*deg2rad;
+}
+
+function geocentricRadius(){
+  let a=6378.137,b=6356.7523142,c=Math.cos(lat),s=Math.sin(lat);
+  return Math.sqrt((Math.pow(a*a*c,2)+Math.pow(b*b*s,2))/(Math.pow(a*c,2)+Math.pow(b*s,2)));
 }
 
 function obliqAsc(raDeg, decDeg, latDeg){
@@ -481,18 +596,6 @@ function obliqAsc(raDeg, decDeg, latDeg){
   return ((raDeg - AD) % 360 + 360) % 360;
 }
 
-function obliqAscension(raDeg, decDeg, latDeg){
-  let ra  = raDeg  * deg2rad;
-  let dec = decDeg * deg2rad;
-  let phi = latDeg * deg2rad;
-  // Semiarco diurno: AD = arcsin(tan(δ)·tan(φ))
-  let sinAD = Math.tan(dec)*Math.tan(phi);
-  // Clamp para evitar NaN en declinaciones extremas
-  sinAD = Math.max(-0.9999, Math.min(0.9999, sinAD));
-  let AD = Math.asin(sinAD)*rad2deg;
-  return ((raDeg - AD)%360+360)%360;
-}
-
 function semiArcDiurno(decDeg, latDeg){
   let phi  = latDeg * deg2rad;
   let delta = decDeg * deg2rad;
@@ -501,16 +604,16 @@ function semiArcDiurno(decDeg, latDeg){
   return 90 + Math.asin(arg) * rad2deg;
 }
 
-function raToEclLon(raDeg, epsRad){
-  let ra  = raDeg * deg2rad;
-  let lon = Math.atan2(Math.sin(ra)*Math.cos(epsRad), Math.cos(ra));
-  return ((lon * rad2deg) % 360 + 360) % 360;
-}
-
 function eclLonToRA(lonDeg, epsRad){
   let l = lonDeg * deg2rad;
   let ra = Math.atan2(Math.sin(l)*Math.cos(epsRad), Math.cos(l));
   return ((ra * rad2deg) % 360 + 360) % 360;
+}
+
+function raToEclLon(raDeg, epsRad){
+  let ra  = raDeg * deg2rad;
+  let lon = Math.atan2(Math.sin(ra)*Math.cos(epsRad), Math.cos(ra));
+  return ((lon * rad2deg) % 360 + 360) % 360;
 }
 
 function placidusIterateCusp(oaASC, k, latDeg, epsRad, isNocturnal){
@@ -588,6 +691,702 @@ function placidusHouseCusps(asc, mc, eps, latDeg){
   return [asc, c2, c3, ic, c5, c6, dsc, c8, c9, mc, c11, c12];
 }
 
+function nextSolEquinox(targetLon, jdStart){
+  // Avanzar de 10 en 10 días hasta encontrar el cruce
+  let jd0 = jdStart || julianDate();
+  let lo0 = _sunLonAtJDE(jd0);
+
+  for(let step = 0; step < 40; step++){
+    let jd1   = jd0 + 10;
+    let lo1   = _sunLonAtJDE(jd1);
+    // Detectar cruce: manejar el wrap 360°→0°
+    let d0 = ((lo0 - targetLon + 360) % 360);  // distancia angular desde target
+    let d1 = ((lo1 - targetLon + 360) % 360);
+    if(d0 > 180) d0 -= 360;
+    if(d1 > 180) d1 -= 360;
+    if(d0 * d1 < 0){
+      // Cruce detectado — bisección de 30 iteraciones (precisión ~0.2s)
+      let a = jd0, b = jd1;
+      for(let i = 0; i < 30; i++){
+        let mid = (a + b) / 2;
+        let lm  = _sunLonAtJDE(mid);
+        let dm  = ((lm - targetLon + 360) % 360);
+        if(dm > 180) dm -= 360;
+        let da  = (((_sunLonAtJDE(a) - targetLon + 360) % 360) + 360) % 360;
+        if(da > 180) da -= 360;
+        if(da * dm < 0) b = mid; else a = mid;
+      }
+      return (a + b) / 2;
+    }
+    jd0 = jd1; lo0 = lo1;
+  }
+  return null; // no encontrado en 400 días
+}
+
+function _toSidereal(lonTropical, T){
+  return ((lonTropical - _lahiriAyanamsa(T)) % 360 + 360) % 360;
+}
+
+function _difAngular(lonA, lonB){
+  let d = Math.abs(lonA - lonB) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+function _orbeParaPar(nmA, nmB, orbeBase){
+  let bonus = (LUMINARIAS.has(nmA) || LUMINARIAS.has(nmB)) ? 2 : 0;
+  return orbeBase + bonus;
+}
+
+const LUMINARIAS = new Set(["Sol", "Luna"]);
+
+function calcAspectosNatales(snap){
+  const names  = Object.keys(snap.bodies);
+  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
+                  Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+  let result = [];
+
+  for(let i=0; i<names.length; i++){
+    for(let j=i+1; j<names.length; j++){
+      let nmA = names[i], nmB = names[j];
+      let bA  = snap.bodies[nmA], bB = snap.bodies[nmB];
+      if(!bA || !bB) continue;
+
+      let dif = _difAngular(bA.lon_ecl, bB.lon_ecl);
+
+      for(let asp of ASPECTOS){
+        let orbe  = _orbeParaPar(nmA, nmB, asp.orbe);
+        let delta = Math.abs(dif - asp.angulo);
+        if(delta <= orbe){
+          // Exactitud: porcentaje de cercanía al ángulo exacto
+          let exactitud = 1 - delta/orbe; // 1.0 = exacto, 0 = en el límite
+          result.push({
+            nmA, nmB,
+            glA: glyphs[nmA]||nmA, glB: glyphs[nmB]||nmB,
+            asp: asp.nombre, sim: asp.simbolo,
+            angulo: asp.angulo, dif, orb: delta.toFixed(2),
+            exactitud
+          });
+        }
+      }
+    }
+  }
+  // Ordenar por exactitud descendente
+  result.sort((a,b) => b.exactitud - a.exactitud);
+  return result;
+}
+
+function calcAspectosTransito(snapRx, snapTr){
+  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
+                  Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+  let result = [];
+  let namesTr = Object.keys(snapTr.bodies);
+  let namesRx = Object.keys(snapRx.bodies);
+
+  for(let nmTr of namesTr){
+    for(let nmRx of namesRx){
+      let bTr = snapTr.bodies[nmTr];
+      let bRx = snapRx.bodies[nmRx];
+      if(!bTr || !bRx) continue;
+
+      let dif = _difAngular(bTr.lon_ecl, bRx.lon_ecl);
+
+      for(let asp of ASPECTOS){
+        let orbe  = _orbeParaPar(nmTr, nmRx, asp.orbe);
+        let delta = Math.abs(dif - asp.angulo);
+        if(delta <= orbe){
+          let exactitud = 1 - delta/orbe;
+          result.push({
+            nmTr, nmRx,
+            glTr: glyphs[nmTr]||nmTr, glRx: glyphs[nmRx]||nmRx,
+            asp: asp.nombre, sim: asp.simbolo,
+            angulo: asp.angulo, dif, orb: delta.toFixed(2),
+            exactitud
+          });
+        }
+      }
+    }
+  }
+  result.sort((a,b) => b.exactitud - a.exactitud);
+  return result;
+}
+
+function calcAtacirCore(rxDate, rxTime, rxLat, rxLon, trDate, trTime, trLat, trLon, key){
+  function dateToJD(d, t){
+    return new Date(`${d}T${t}:00Z`).getTime()/86400000 + 2440587.5;
+  }
+  const jdRx = dateToJD(rxDate, rxTime);
+  const jdTr = dateToJD(trDate, trTime);
+
+  const rx = getSnapshotAt(jdRx, rxLat, rxLon);
+  const tr = getSnapshotAt(jdTr, trLat, trLon);
+
+  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
+                  Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+  const names  = Object.keys(glyphs);
+
+  const sigASC = {
+    name:"ASC",
+    ra:  eclipticLonToRaDec(rx.houses.asc).ra*rad2deg,
+    dec: eclipticLonToRaDec(rx.houses.asc).dec*rad2deg
+  };
+  const sigMC = {
+    name:"MC",
+    ra:  eclipticLonToRaDec(rx.houses.mc).ra*rad2deg,
+    dec: eclipticLonToRaDec(rx.houses.mc).dec*rad2deg
+  };
+
+  const oaASC = obliqAscension(sigASC.ra, sigASC.dec, rxLat);
+  const oaMC  = obliqAscension(sigMC.ra,  sigMC.dec,  rxLat);
+
+  const rows = [];
+  for(const nm of names){
+    const b = rx.bodies[nm];
+    if(!b) continue;
+    const oaProm = obliqAscension(b.ra, b.dec, rxLat);
+    let arcASC = ((oaProm - oaASC)+360)%360;
+    let arcMC  = ((oaProm - oaMC )+360)%360;
+    if(arcASC > 180) arcASC -= 360;
+    if(arcMC  > 180) arcMC  -= 360;
+    rows.push({glyph:glyphs[nm], name:nm,
+      arcASC, arcMC, ageASC:arcASC/key, ageMC:arcMC/key});
+  }
+
+  const ageNow     = (jdTr - jdRx)/365.25;
+  const aspNatales = calcAspectosNatales(rx);
+  const aspTransito= _isPremium ? calcAspectosTransito(rx, tr) : [];
+  const simData    = _isPremium ? calcSimetrias(rx)            : null;
+  const ciclosData = _isPremium ? calcCiclos(rx, tr)           : null;
+  const resonData  = _isPremium ? calcResonancias(rx, tr)      : null;
+  const lunaData   = _isPremium ? calcLunaAtacir(rx, tr)       : null;
+
+  return { rx, tr, rows, aspNatales, aspTransito,
+           simData, ciclosData, resonData, lunaData,
+           ageNow, key, jdRx, jdTr,
+           rxDate, rxTime, rxLat, rxLon,
+           trDate, trTime, trLat, trLon };
+}
+
+const _PAKSHA = (i) => i < 15 ? "Shukla (creciente)" : "Krishna (menguante)";
+
+function calcPanchangaCore(dateStr, timeStr){
+  const jde = new Date(`${dateStr}T${timeStr}:00Z`).getTime()/86400000 + 2440587.5;
+  const T   = (jde - 2451545) / 36525;
+
+  const sunLon  = _lonAtJDE(jde, false);
+  const moonLon = _lonAtJDE(jde, true);
+  const sunSid  = _toSidereal(sunLon, T);
+  const moonSid = _toSidereal(moonLon, T);
+  const ayanDeg = _lahiriAyanamsa(T);
+
+  // ── 1. Tithi ──────────────────────────────────────────────────────────────
+  const lonDiff   = ((moonLon - sunLon) + 360) % 360;
+  const tithiIdx  = Math.floor(lonDiff / 12);
+  const tithiName = _TITHIS[tithiIdx];
+  const paksha    = _PAKSHA(tithiIdx);
+  const tithiPct  = ((lonDiff % 12) / 12 * 100).toFixed(0);
+  const jdeNextTithi = _nextChange(jde, 0.25, 2,
+    (j) => Math.floor((((_lonAtJDE(j,true) - _lonAtJDE(j,false))+360)%360) / 12));
+
+  // ── 2. Vara ───────────────────────────────────────────────────────────────
+  const varaIdx = Math.floor(jde + 1.5) % 7;
+  const vara    = _VARAS[varaIdx];
+
+  // ── 3. Nakshatra ──────────────────────────────────────────────────────────
+  const naksIdx  = Math.floor(moonSid / (360/27));
+  const naks     = _NAKSHATRAS[naksIdx];
+  const naksPct  = ((moonSid % (360/27)) / (360/27) * 100).toFixed(0);
+  const jdeNextNaks = _nextChange(jde, 0.25, 3,
+    (j) => Math.floor(_toSidereal(_lonAtJDE(j,true), (j-2451545)/36525) / (360/27)));
+
+  // ── 4. Yoga ───────────────────────────────────────────────────────────────
+  const yogaSum  = (sunSid + moonSid) % 360;
+  const yogaIdx  = Math.floor(yogaSum / (360/27));
+  const yogaName = _YOGAS[yogaIdx];
+  const yogaPct  = ((yogaSum % (360/27)) / (360/27) * 100).toFixed(0);
+  const jdeNextYoga = _nextChange(jde, 0.1, 2,
+    (j) => { const T2=(j-2451545)/36525;
+      return Math.floor((_toSidereal(_lonAtJDE(j,false),T2)+_toSidereal(_lonAtJDE(j,true),T2))%360 / (360/27)); });
+
+  // ── 5. Karana ─────────────────────────────────────────────────────────────
+  const karanaName = _getKarana(lonDiff);
+  const karanaPct  = ((lonDiff % 6) / 6 * 100).toFixed(0);
+  const jdeNextKarana = _nextChange(jde, 0.1, 1,
+    (j) => _getKarana((((_lonAtJDE(j,true)-_lonAtJDE(j,false))+360)%360)));
+
+  return {
+    jde, T, ayanDeg, sunLon, moonLon, sunSid, moonSid,
+    tithiIdx, tithiName, paksha, tithiPct, jdeNextTithi,
+    varaIdx, vara,
+    naksIdx, naks, naksPct, jdeNextNaks,
+    yogaIdx, yogaName, yogaPct, jdeNextYoga,
+    karanaName, karanaPct, jdeNextKarana,
+  };
+}
+
+function calcEclipsesCore(latDeg, lonDeg, ranioY, doSolar, doLunar, jdCenter){
+  if(jdCenter === undefined) jdCenter = julianDate();
+  const jdMin = jdCenter - ranioY * 365.25;
+  const jdMax = jdCenter + ranioY * 365.25;
+  const k0 = Math.floor((jdMin - 2451550.09766) / 29.530588861);
+  const k1 = Math.ceil( (jdMax - 2451550.09766) / 29.530588861);
+  const eclipses = [];
+  for(let k = k0; k <= k1; k++){
+    if(doSolar){
+      const jde  = lunarPhaseJDE(k, 0);
+      if(jde >= jdMin && jde <= jdMax){
+        const F    = _eclGetF(k, 0);
+        const dist = lunarDistELP(jde);
+        const mag  = _eclSolarMagnitude(F, dist);
+        if(mag){
+          const visible = _eclVisibleAt(jde, latDeg, lonDeg, true);
+          eclipses.push({ jde, tipo:mag.tipo, subtipo:mag.subtipo,
+                          magnitud:mag.magnitud, dist, visible });
+        }
+      }
+    }
+    if(doLunar){
+      const jde = lunarPhaseJDE(k, 0.5);
+      if(jde >= jdMin && jde <= jdMax){
+        const F   = _eclGetF(k, 0.5);
+        const mag = _eclLunarMagnitude(F);
+        if(mag){
+          const visible = _eclVisibleAt(jde, latDeg, lonDeg, false);
+          eclipses.push({ jde, tipo:mag.tipo, subtipo:mag.subtipo,
+                          magnitud:mag.magnitud, dist:null, visible });
+        }
+      }
+    }
+  }
+  eclipses.sort((a,b) => a.jde - b.jde);
+  return eclipses;
+}
+
+function calcSinastriaCore(dateA, timeA, latA, lonA, dateB, timeB, latB, lonB){
+  function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
+  const rxA = getSnapshotAt(toJD(dateA,timeA), latA, lonA);
+  const rxB = getSnapshotAt(toJD(dateB,timeB), latB, lonB);
+
+  // Aspectos cruzados A→B y B→A, deduplicados
+  const aspAB = calcAspectosTransito(rxA, rxB);
+  const aspBA = calcAspectosTransito(rxB, rxA);
+  const seen  = new Set();
+  const aspectos = [...aspAB, ...aspBA].filter(a => {
+    const key = [a.nmTr,a.nmRx,a.asp].sort().join("|");
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  }).sort((a,b) => b.exactitud - a.exactitud);
+
+  const simAB = _isPremium ? calcSimetrias(rxA) : null;
+  return { rxA, rxB, aspectos, simAB,
+           fechaA:`${dateA} ${timeA} UTC`, fechaB:`${dateB} ${timeB} UTC` };
+}
+
+function _eclSolarMagnitude(F, distKm){
+  let sinF = Math.abs(Math.sin(F * deg2rad));
+  // Umbral de posibilidad: |sinF| < 0.36
+  if(sinF >= 0.36) return null;
+  // Tipo según distancia lunar y F
+  // perigeo medio ~356500 km, apogeo medio ~406700 km
+  let isPerigeo = distKm < 375000;
+  let isCentral = sinF < 0.15;
+  if(!isCentral){
+    return { tipo: "Parcial", subtipo: "solar", magnitud: 1 - sinF/0.36 };
+  }
+  return {
+    tipo: isPerigeo ? "Total" : "Anular",
+    subtipo: "solar",
+    magnitud: 1 - sinF/0.15
+  };
+}
+
+function _eclLunarMagnitude(F){
+  let sinF = Math.abs(Math.sin(F * deg2rad));
+  // Umbral de posibilidad: |sinF| < 0.40
+  if(sinF >= 0.40) return null;
+  if(sinF < 0.26){
+    return { tipo: "Total", subtipo: "lunar", magnitud: 1 - sinF/0.26 };
+  }
+  return { tipo: "Parcial", subtipo: "lunar", magnitud: 1 - sinF/0.40 };
+}
+
+function _eclGetF(k, phase){
+  // F: argumento de latitud de la Luna en el momento de la fase
+  // Meeus Cap.49 fórmula (mismo k_ que lunarPhaseJDE)
+  const k_ = k + phase;
+  const T  = k_ / 1236.85;
+  const F  = ((160.7108 + 390.67050284*k_ - 0.0016118*T*T - 0.00000227*T*T*T) % 360 + 360) % 360;
+  return F; // grados
+}
+
+function _eclVisibleAt(jde, latDeg, lonDeg, isSolar){
+  // Inyectar JD y ubicación temporalmente — restaurado en finally
+  const savedOffset = timeOffset, savedLat = lat, savedLon = lon;
+  const savedSpeed  = timeSpeed;
+  const targetUnix  = (jde - 2440587.5) * 86400;
+  timeOffset = targetUnix - Date.now()/1000;
+  timeSpeed  = 0;
+  lat = latDeg * deg2rad;
+  lon = lonDeg * deg2rad;
+  R_TIERRA = geocentricRadius();
+  let result;
+  try {
+    const pos    = isSolar ? sunPosition() : moonPosition();
+    const LST_   = getLST();
+    const HA     = LST_ - pos.ra;
+    const altRad = Math.asin(
+      Math.sin(pos.dec)*Math.sin(lat) + Math.cos(pos.dec)*Math.cos(lat)*Math.cos(HA)
+    );
+    result = altRad * rad2deg > -1.0; // con margen de refracción
+  } finally {
+    // Restaurar SIEMPRE
+    timeOffset = savedOffset; timeSpeed = savedSpeed;
+    lat = savedLat; lon = savedLon;
+    R_TIERRA = geocentricRadius();
+  }
+  return result;
+}
+
+function calcSimetrias(rx){
+  const names = Object.keys(rx.bodies).filter(n=>rx.bodies[n]);
+  const lons  = {};
+  for(const n of names) lons[n] = ((rx.bodies[n].lon_ecl%360)+360)%360;
+  const ascLon = ((rx.houses.asc%360)+360)%360;
+  const mcLon  = ((rx.houses.mc%360)+360)%360;
+  const ORB = 3.0;
+  let result = { antiscia:[], contrantiscia:[], ejeasc:[], ejemc:[] };
+  for(let i=0; i<names.length; i++){
+    for(let j=i+1; j<names.length; j++){
+      const a=names[i], b=names[j], la=lons[a], lb=lons[b];
+      // Antiscia: suma ≡ 180° (eje ♋/♑)
+      const sumAnt = ((la+lb)%360+360)%360;
+      const dAnt180 = Math.min(Math.abs(sumAnt-180), 360-Math.abs(sumAnt-180));
+      if(dAnt180 < ORB) result.antiscia.push({a,b,la,lb,orbe:dAnt180,tipo:"Antiscia ♋/♑"});
+      // Contrantiscia: suma ≡ 0° (eje ♈/♎)
+      const dAnt0 = Math.min(Math.abs(sumAnt), Math.abs(sumAnt-360));
+      if(dAnt0 < ORB) result.contrantiscia.push({a,b,la,lb,orbe:dAnt0,tipo:"Contrantiscia ♈/♎"});
+      // Eje ASC
+      const dA_asc=Math.min(Math.abs(la-ascLon),360-Math.abs(la-ascLon));
+      const dB_asc=Math.min(Math.abs(lb-ascLon),360-Math.abs(lb-ascLon));
+      const diffAsc=Math.abs(dA_asc-dB_asc);
+      if(diffAsc<ORB && Math.min(dA_asc,dB_asc)<90)
+        result.ejeasc.push({a,b,la,lb,dA:dA_asc,dB:dB_asc,orbe:diffAsc,tipo:"Eje ASC"});
+      // Eje MC
+      const dA_mc=Math.min(Math.abs(la-mcLon),360-Math.abs(la-mcLon));
+      const dB_mc=Math.min(Math.abs(lb-mcLon),360-Math.abs(lb-mcLon));
+      const diffMc=Math.abs(dA_mc-dB_mc);
+      if(diffMc<ORB && Math.min(dA_mc,dB_mc)<90)
+        result.ejemc.push({a,b,la,lb,dA:dA_mc,dB:dB_mc,orbe:diffMc,tipo:"Eje MC"});
+    }
+  }
+  return result;
+}
+
+function calcCiclos(rx, tr){
+  const periodos={Sol:365.25,Luna:29.53,Mercurio:87.969,Venus:224.701,Marte:686.971,
+                  Jupiter:4332.589,Saturno:10759.22,NodoNorte:6798.38,NodoSur:6798.38};
+  const glyphs={Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+  const jdRx=rx.jd, jdTr=tr.jd;
+  const ageNow=(jdTr-jdRx)/365.25;
+  let ciclos=[];
+  for(const [nm,periodo] of Object.entries(periodos)){
+    if(!rx.bodies[nm]) continue;
+    const lonNatal=((rx.bodies[nm].lon_ecl%360)+360)%360;
+    const retornosTranscurridos=(jdTr-jdRx)/periodo;
+    const nRetornos=Math.floor(retornosTranscurridos);
+    const jdRetSiguiente=jdRx+(nRetornos+1)*periodo;
+    const edadRetAnterior=(jdRx+nRetornos*periodo-jdRx)/365.25;
+    const edadRetSiguiente=(jdRetSiguiente-jdRx)/365.25;
+    const jdMedSiguiente=jdRx+(nRetornos+0.5)*periodo;
+    const edadMedSig=(jdMedSiguiente-jdRx)/365.25;
+    ciclos.push({nm,glyph:glyphs[nm],periodo,nRetornos,lonNatal,
+      edadRetAnterior,edadRetSiguiente,edadMedSig,
+      diasSiguiente:jdRetSiguiente-jdTr,diasMedSig:jdMedSiguiente-jdTr});
+  }
+  return {ciclos,ageNow};
+}
+
+function calcResonancias(rx, tr){
+  const periodosSid={Mercurio:0.24085,Venus:0.61520,Sol:1.00000,Marte:1.88085,
+                     Jupiter:11.8618,Saturno:29.4571,NodoNorte:18.5996};
+  const glyphs={Sol:"☉",Mercurio:"☿",Venus:"♀",Marte:"♂",Jupiter:"♃",Saturno:"♄",NodoNorte:"☊"};
+  const jdRx=rx.jd, jdTr=tr.jd;
+  const ageNow=(jdTr-jdRx)/365.25;
+  const pares=[['Venus','Mercurio'],['Sol','Venus'],['Marte','Sol'],['Marte','Venus'],
+               ['Jupiter','Sol'],['Jupiter','Marte'],['Saturno','Jupiter'],
+               ['Saturno','Sol'],['Saturno','Marte'],['NodoNorte','Saturno']];
+
+  function fracSimple(ratio,maxQ){
+    let bp=1,bq=1,be=999;
+    for(let q=1;q<=maxQ;q++){const p=Math.round(ratio*q);if(p<=0)continue;const e=Math.abs(ratio-p/q);if(e<be){be=e;bp=p;bq=q;}}
+    return{p:bp,q:bq,err:be};
+  }
+
+  let resonancias=[];
+  for(const [a,b] of pares){
+    const Pa=periodosSid[a],Pb=periodosSid[b];
+    if(!Pa||!Pb) continue;
+    const la_rx=rx.bodies[a]?.lon_ecl, lb_rx=rx.bodies[b]?.lon_ecl;
+    if(la_rx===undefined||lb_rx===undefined) continue;
+    const la=((la_rx%360)+360)%360, lb=((lb_rx%360)+360)%360;
+    const la_tr=tr.bodies[a]?.lon_ecl, lb_tr=tr.bodies[b]?.lon_ecl;
+    const lat=la_tr!==undefined?((la_tr%360)+360)%360:la;
+    const lbt=lb_tr!==undefined?((lb_tr%360)+360)%360:lb;
+    const Psyn=1/Math.abs(1/Pa-1/Pb);
+    const ratio=Math.max(Pa/Pb,Pb/Pa);
+    const {p,q,err}=fracSimple(ratio,16);
+    const calidadRes=Math.max(0,(1-err*20))*100;
+    const sepNatal=((lb-la+360)%360);
+    const sepTransito=((lbt-lat+360)%360);
+    const deltaSep=Math.abs(((sepTransito-sepNatal+180)%360)-180);
+    const velRel=360/Psyn;
+    const tiempoRetConf=deltaSep/velRel;
+    const edadRetConf=ageNow+tiempoRetConf;
+    const diasRet=tiempoRetConf*365.25;
+    const paLabel=`${glyphs[a]||a}/${glyphs[b]||b}`;
+    resonancias.push({a,b,paLabel,Pa,Pb,Psyn,ratio,p,q,err,calidadRes,
+      sepNatal,sepTransito,deltaSep,tiempoRetConf,edadRetConf,diasRet,velRel});
+  }
+  return{resonancias,ageNow};
+}
+
+function obliqAscension(raDeg, decDeg, latDeg){
+  let ra  = raDeg  * deg2rad;
+  let dec = decDeg * deg2rad;
+  let phi = latDeg * deg2rad;
+  // Semiarco diurno: AD = arcsin(tan(δ)·tan(φ))
+  let sinAD = Math.tan(dec)*Math.tan(phi);
+  // Clamp para evitar NaN en declinaciones extremas
+  sinAD = Math.max(-0.9999, Math.min(0.9999, sinAD));
+  let AD = Math.asin(sinAD)*rad2deg;
+  return ((raDeg - AD)%360+360)%360;
+}
+
+function _invalidateAstroCache(){
+  // Invalidar caches de nutation y lunarNodes cuando el tiempo cambia externamente
+  _nutCache = null; _nutCacheT = null;
+  _nodesCache = null; _nodesCacheT = null;
+}
+
+function calcLunaAtacir(rx, tr){
+  const jdRx=rx.jd, jdTr=tr.jd;
+  const ageNow=(jdTr-jdRx)/365.25;
+
+  // --- Fases lunares: las 8 siguientes al JD de tránsito ---
+  const fases = proximasFasesLunares(jdTr, 2);
+
+  // --- Apsis: los 4 próximos desde tránsito ---
+  const apsis = proximosApsis(jdTr, 2);
+
+  // --- Luna en el Atacir: ciclos lunares desde el nacimiento ---
+  // Ciclo lunar sinódico (mes sinódico): 29.53059 días
+  const mesSin = 29.53059;
+  // Retornos al signo natal de la Luna
+  const lonLunaNatal = rx.bodies.Luna?.lon_ecl ?? 0;
+  const eraLunarRx   = (jdRx - 2451550.09766) / mesSin; // lunación al nacimiento
+  const eraLunarTr   = (jdTr - 2451550.09766) / mesSin;
+  const nLunaciones   = Math.floor(eraLunarTr - eraLunarRx);
+
+  // Próximo retorno lunar al signo natal
+  // La Luna recorre 360°/29.53d → velocidad ~13.18°/d
+  // Distancia al retorno: calcular elongación actual vs natal
+  const lonLunaTr   = tr.bodies.Luna?.lon_ecl ?? 0;
+  const lonSolTr    = tr.bodies.Sol?.lon_ecl  ?? 0;
+  const lonSolRx    = rx.bodies.Sol?.lon_ecl  ?? 0;
+  // Elongación eclíptica lunar: Luna - Sol
+  const elongNatal  = ((lonLunaNatal - lonSolRx + 360)%360);
+  const elongActual = ((lonLunaTr   - lonSolTr  + 360)%360);
+  const deltaElong  = ((elongActual - elongNatal + 360) % 360);
+  const diasRetElong = ((360 - deltaElong) % 360) / (360/mesSin);
+  const jdProxRetElong = jdTr + diasRetElong;
+  const edadProxRetElong = (jdProxRetElong - jdRx)/365.25;
+
+  // Nodos: longitud actual vs natal
+  const lonNodoNatal = rx.bodies.NodoNorte?.lon_ecl ?? 0;
+  const lonNodoTr    = tr.bodies.NodoNorte?.lon_ecl ?? 0;
+  // Nodo retrograda ~19.35°/año → período 18.6 años
+  const velNodo = -19.35/365.25; // grados/día (retrógrado)
+  const deltaNodo = ((lonNodoTr - lonNodoNatal + 360)%360);
+  // Tiempo para que el nodo vuelva a la posición natal:
+  const diasRetNodo = deltaNodo > 0 ? (360-deltaNodo)/Math.abs(velNodo) : Math.abs(deltaNodo/velNodo);
+  const edadRetNodo = (jdTr + diasRetNodo - jdRx)/365.25;
+
+  // Fase lunar natal (icono)
+  const ilumNatal = (1 - Math.cos(elongNatal*deg2rad))/2;
+  const faseNombreNatal = elongNatal<22.5?'🌑 Nueva':elongNatal<67.5?'🌒 CC':elongNatal<112.5?'🌓 1er Cuarto':
+    elongNatal<157.5?'🌔 Gibosa C':elongNatal<202.5?'🌕 Llena':elongNatal<247.5?'🌖 Gibosa M':
+    elongNatal<292.5?'🌗 Ult Cuarto':'🌘 CM';
+
+  const D2R = Math.PI/180;
+  // Simetría Luna-Sol: distancia angular Sol-Luna en natal
+  const angSolLunaNatal = Math.min(elongNatal, 360-elongNatal);
+
+  return {
+    fases, apsis, nLunaciones, elongNatal, elongActual,
+    diasRetElong, edadProxRetElong,
+    lonNodoNatal, lonNodoTr, diasRetNodo, edadRetNodo,
+    ilumNatal, faseNombreNatal, angSolLunaNatal, jdTr, jdRx, ageNow,
+  };
+}
+
+
+function _lahiriAyanamsa(T){
+  // Precesión general (Meeus Cap.21, fórmula de Lieske)
+  // ayanamsa crece ~50.3" por año = 0.013972° por año
+  return 23.85282 + 0.013972 * T * 100;  // T en siglos → ×100 para años
+}
+
+function _bodyData(ra, dec){
+  // Coordenadas horizontales
+  let LST = getLST(), HA = LST - ra;
+  let altRad = Math.asin(
+    Math.sin(dec)*Math.sin(lat) + Math.cos(dec)*Math.cos(lat)*Math.cos(HA)
+  );
+  let altRef = applyRefraction(altRad); // con refracción
+  let azRad  = Math.atan2(
+    -Math.sin(HA),
+    Math.tan(dec)*Math.cos(lat) - Math.sin(lat)*Math.cos(HA)
+  );
+  // Longitud y latitud eclíptica
+  let T   = (julianDate()-2451545)/36525;
+  let eps = trueObliquity(T);
+  let lonEcl = Math.atan2(
+    Math.sin(ra)*Math.cos(eps) + Math.tan(dec)*Math.sin(eps),
+    Math.cos(ra)
+  );
+  let latEcl = Math.asin(
+    Math.sin(dec)*Math.cos(eps) - Math.cos(dec)*Math.sin(eps)*Math.sin(ra)
+  );
+  lonEcl = ((lonEcl*rad2deg)%360+360)%360;
+  latEcl = latEcl*rad2deg;
+
+  // Casa astrológica (1–12) según longitud eclíptica y ASC
+  let {asc} = getHouseCusps();
+  let house  = (Math.floor(((lonEcl - asc + 360)%360) / 30) % 12) + 1;
+
+  return {
+    ra:      ((ra*rad2deg)%360+360)%360,
+    dec:     dec*rad2deg,
+    lon_ecl: lonEcl,
+    lat_ecl: latEcl,
+    alt:     altRef*rad2deg,
+    az:      ((azRad*rad2deg)%360+360)%360,
+    visible: altRef > 0,
+    house
+  };
+}
+
+function getSnapshot(){
+  let jd  = julianDate();
+  let T   = (jd-2451545)/36525;
+  let now = new Date(currentTime()*1000);
+
+  // Posiciones de los 7 astros herméticos
+  let sun   = sunPosition();
+  let moon  = moonPosition();
+  let merc  = planetPosition("Mercurio");
+  let venus = planetPosition("Venus");
+  let mars  = planetPosition("Marte");
+  let jup   = planetPosition("Júpiter");
+  let sat   = planetPosition("Saturno");
+
+  // Fase lunar (0–1, donde 0=luna nueva, 0.5=llena)
+  let phase = Math.acos(
+    Math.sin(sun.dec)*Math.sin(moon.dec) +
+    Math.cos(sun.dec)*Math.cos(moon.dec)*Math.cos(sun.ra - moon.ra)
+  ) / Math.PI;
+
+  // ASC y MC
+  let {asc, mc, cusps} = getHouseCusps();
+
+  // Oblicuidad y nutación
+  let eps  = trueObliquity(T)*rad2deg;
+  let nut  = nutation(T);
+  let LST  = getLST()*rad2deg;
+
+  return {
+    // Metadatos temporales
+    meta: {
+      jd,
+      utc:        now.toISOString(),
+      timestamp:  currentTime(),
+      lst_deg:    LST,
+      obliquity:  eps,
+      delta_psi:  nut.deltaPsi*rad2deg,
+      delta_eps:  nut.deltaEps*rad2deg,
+      observer: {
+        lat: lat*rad2deg,
+        lon: lon*rad2deg
+      }
+    },
+    // 7 astros herméticos + nodos lunares
+    bodies: {
+      Sol:        _bodyData(sun.ra,   sun.dec),
+      Luna:       _bodyData(moon.ra,  moon.dec),
+      Mercurio:   _bodyData(merc.ra,  merc.dec),
+      Venus:      _bodyData(venus.ra, venus.dec),
+      Marte:      _bodyData(mars.ra,  mars.dec),
+      Jupiter:    _bodyData(jup.ra,   jup.dec),
+      Saturno:    _bodyData(sat.ra,   sat.dec),
+      NodoNorte:  (()=>{ let n=lunarNodes(); let d=_bodyData(n.north.ra,n.north.dec); d.lon_ecl=n.omega; return d; })(),
+      NodoSur:    (()=>{ let n=lunarNodes(); let d=_bodyData(n.south.ra,n.south.dec); d.lon_ecl=n.south.lon_ecl; return d; })()
+    },
+    // Luna
+    luna: {
+      phase_ratio:  phase,          // 0=nueva, 0.5=llena, 1=nueva
+      phase_deg:    phase*180,      // 0–180 grados de elongación
+      illumination: (1-Math.cos(phase*Math.PI))/2  // 0–1  (0=nueva, 1=llena)
+    },
+    // Ángulos de las casas
+    houses: {
+      asc,
+      mc,
+      cusps,        // array [I..XII] en grados eclípticos
+      system: houseSystem
+    }
+  };
+}
+
+function getSnapshotAt(jdTarget, latDeg, lonDeg){
+  // Guardar estado actual — restaurado en finally aunque ocurra excepción
+  const savedOffset = timeOffset;
+  const savedLat    = lat, savedLon = lon;
+  const savedSpeed  = timeSpeed, savedIdx = speedIndex;
+
+  // Inyectar JD objetivo como offset temporal
+  // julianDateUTC() = currentTime()/86400 + 2440587.5
+  // → timeOffset = (jd - 2440587.5)*86400 - Date.now()/1000
+  const targetUnix = (jdTarget - 2440587.5)*86400;
+  timeOffset = targetUnix - Date.now()/1000;
+  timeSpeed  = 0; // congelar durante el cálculo
+
+  // Inyectar ubicación
+  lat = latDeg*deg2rad;
+  lon = lonDeg*deg2rad;
+  R_TIERRA = geocentricRadius();
+
+  let snap;
+  try {
+    // Calcular snapshot
+    snap = getSnapshot();
+
+    // Incluir nodos lunares en el snapshot
+    const nodes = lunarNodes();
+    snap.bodies.NodoNorte = _bodyData(nodes.north.ra, nodes.north.dec);
+    snap.bodies.NodoNorte.lon_ecl = nodes.omega;
+    snap.bodies.NodoSur   = _bodyData(nodes.south.ra, nodes.south.dec);
+    snap.bodies.NodoSur.lon_ecl   = nodes.south.lon_ecl;
+  } finally {
+    // Restaurar estado SIEMPRE — incluso si ocurre excepción
+    timeOffset = savedOffset;
+    timeSpeed  = savedSpeed;
+    speedIndex = savedIdx;
+    lat = savedLat; lon = savedLon;
+    R_TIERRA = geocentricRadius();
+  }
+
+  return snap;
+}
+
 function getHouseCusps(forLatDeg){
   let latDeg = (forLatDeg !== undefined) ? forLatDeg : lat * rad2deg;
   let T   = (julianDate()-2451545)/36525;
@@ -606,6 +1405,7 @@ function getHouseCusps(forLatDeg){
   let mc    = ((mcRad*rad2deg)%360+360)%360;
   if(mc < asc-180) mc += 360;
   if(mc > asc+180) mc -= 360;
+  mc = ((mc%360)+360)%360; // normalizar 0-360°
 
   let cusps;
   if(houseSystem === "placidus"){
@@ -624,174 +1424,245 @@ function getHouseCusps(forLatDeg){
   return {cusps, asc, mc, eps, system: houseSystem};
 }
 
-function lunarPhaseJDE(k, phase){
-  // phase: 0=nueva, 0.25=CC, 0.5=llena, 0.75=CM
-  const k_=k+phase, T=k_/1236.85, T2=T*T, T3=T*T2, T4=T*T3;
-  let JDE=2451550.09766+29.530588861*k_+0.00015437*T2-0.000000150*T3+0.00000000073*T4;
-  const M  =((2.5534  +29.10535670*k_ -0.0000014*T2)%360+360)%360;
-  const Mp =((201.5643+385.81693528*k_+0.0107582*T2 +0.00001238*T3)%360+360)%360;
-  const F  =((160.7108+390.67050284*k_-0.0016118*T2 -0.00000227*T3)%360+360)%360;
-  const E=1-0.002516*T-0.0000074*T2;
-  const Mr=M*deg2rad,Mpr=Mp*deg2rad,Fr=F*deg2rad;
-  if(phase===0||phase===0.5){
-    JDE+=phase===0
-      ?(-0.40720*Math.sin(Mpr)+0.17241*E*Math.sin(Mr)+0.01608*Math.sin(2*Mpr)
-        +0.01039*Math.sin(2*Fr)+0.00739*E*Math.sin(Mpr-Mr)-0.00514*E*Math.sin(Mpr+Mr)
-        +0.00208*E*E*Math.sin(2*Mr)-0.00111*Math.sin(2*Fr-Mpr)-0.00057*Math.sin(Mpr+2*Fr)
-        +0.00056*E*Math.sin(2*Mpr+Mr)-0.00042*Math.sin(3*Mpr)+0.00042*E*Math.sin(Mr+2*Fr)
-        +0.00038*E*Math.sin(Mr-2*Fr)-0.00024*E*Math.sin(2*Mpr-Mr)-0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)
-        -0.00007*Math.sin(Mpr+2*Mr)+0.00004*Math.sin(2*Mpr-2*Fr)+0.00004*Math.sin(3*Mr)
-        +0.00003*Math.sin(Mpr+Mr-2*Fr)+0.00003*Math.sin(2*Mpr+2*Fr)-0.00003*Math.sin(Mpr+Mr+2*Fr)
-        +0.00003*Math.sin(Mpr-Mr+2*Fr)-0.00002*Math.sin(Mpr-Mr-2*Fr)-0.00002*Math.sin(3*Mpr+Mr)
-        +0.00002*Math.sin(4*Mpr))
-      :(-0.40614*Math.sin(Mpr)+0.17302*E*Math.sin(Mr)+0.01614*Math.sin(2*Mpr)
-        +0.01043*Math.sin(2*Fr)+0.00734*E*Math.sin(Mpr-Mr)-0.00515*E*Math.sin(Mpr+Mr)
-        +0.00209*E*E*Math.sin(2*Mr)-0.00111*Math.sin(2*Fr-Mpr)-0.00057*Math.sin(Mpr+2*Fr)
-        +0.00056*E*Math.sin(2*Mpr+Mr)-0.00042*Math.sin(3*Mpr)+0.00042*E*Math.sin(Mr+2*Fr)
-        +0.00038*E*Math.sin(Mr-2*Fr)-0.00024*E*Math.sin(2*Mpr-Mr)-0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)
-        -0.00007*Math.sin(Mpr+2*Mr)+0.00004*Math.sin(2*Mpr-2*Fr)+0.00004*Math.sin(3*Mr)
-        +0.00003*Math.sin(Mpr+Mr-2*Fr)+0.00003*Math.sin(2*Mpr+2*Fr)-0.00003*Math.sin(Mpr+Mr+2*Fr)
-        +0.00003*Math.sin(Mpr-Mr+2*Fr)-0.00002*Math.sin(Mpr-Mr-2*Fr)-0.00002*Math.sin(3*Mpr+Mr)
-        +0.00002*Math.sin(4*Mpr));
-  } else {
-    const W=0.00306-0.00038*E*Math.cos(Mr)+0.00026*Math.cos(Mpr)
-            -0.00002*Math.cos(Mpr-Mr)+0.00002*Math.cos(Mpr+Mr)+0.00002*Math.cos(2*Fr);
-    JDE+=(-0.62801*Math.sin(Mpr)+0.17172*E*Math.sin(Mr)-0.01183*E*Math.sin(Mpr+Mr)
-          +0.00862*Math.sin(2*Mpr)+0.00804*Math.sin(2*Fr)+0.00454*E*Math.sin(Mpr-Mr)
-          +0.00204*E*E*Math.sin(2*Mr)-0.00180*Math.sin(Mpr-2*Fr)-0.00070*Math.sin(Mpr+2*Fr)
-          -0.00040*Math.sin(3*Mpr)-0.00034*E*Math.sin(2*Mpr-Mr)+0.00032*E*Math.sin(Mr+2*Fr)
-          +0.00032*E*Math.sin(Mr-2*Fr)-0.00028*E*E*Math.sin(Mpr+2*Mr)+0.00027*E*Math.sin(2*Mpr+Mr)
-          -0.00017*Math.sin((124.7746-1.56375588*k_)*deg2rad)-0.00005*Math.sin(Mpr-Mr-2*Fr)
-          +0.00004*Math.sin(2*Mpr+2*Fr)-0.00004*Math.sin(Mpr+Mr+2*Fr)+0.00003*Math.sin(Mpr-2*Mr)
-          +0.00003*Math.sin(4*Mpr)+0.00003*E*Math.sin(Mr+2*Fr)-0.00003*Math.sin(Mpr+Mr-2*Fr))
-         +(phase===0.25?W:-W);
-  }
-  return JDE;
+function sunLonEcl(){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let e=earthHelio(T);
+  let lam=Math.atan2(-e.y,-e.x);
+  lam+=nutation(T).deltaPsi;
+  let ab=annualAberration(lam,Math.atan2(-e.z,Math.sqrt(e.x*e.x+e.y*e.y)),T);
+  return ((ab.lambda*rad2deg)%360+360)%360;
 }
 
-function proximasFasesLunares(jdNow, nCiclos){
-  // Retorna las próximas n*4 fases ordenadas cronológicamente desde jdNow
-  const k0=Math.floor((jdNow-2451550.09766)/29.530588861);
-  const fases=[{ph:0,icono:'🌑',nombre:'Nueva'},{ph:0.25,icono:'🌓',nombre:'Creciente'},
-               {ph:0.5,icono:'🌕',nombre:'Llena'},{ph:0.75,icono:'🌗',nombre:'Menguante'}];
-  let result=[];
-  for(let dk=0;dk<=nCiclos+1;dk++){
-    for(const {ph,icono,nombre} of fases){
-      const jde=lunarPhaseJDE(k0+dk,ph);
-      if(jde>=jdNow&&result.length<nCiclos*4) result.push({jde,icono,nombre,dias:jde-jdNow});
-    }
-  }
-  return result.sort((a,b)=>a.jde-b.jde).slice(0,nCiclos*4);
+function moonPosition(){
+  // ELP/MPP02 — Chapront & Francou (2002) A&A 412, 567
+  // 164 términos longitud + 105 latitud + 60 distancia
+  // Argumentos calibrados con LLR (Lunar Laser Ranging) hasta 2001
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let{W1,W1r,Dr,Mr,Mpr,Fr}=_elp_args(T);
+  let E=1-0.002516*T-0.0000074*T*T,E2=E*E;
+  let sL=0,sB=0,sR=0;
+  for(let r of _elp_lT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sL+=r[4]*ef*Math.sin(a);}
+  for(let r of _elp_bT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sB+=r[4]*ef*Math.sin(a);}
+  for(let r of _elp_rT){let a=r[0]*Dr+r[1]*Mr+r[2]*Mpr+r[3]*Fr;let ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sR+=r[4]*ef*Math.cos(a);}
+  let A1=(119.75+131.849*T)*deg2rad,A2=(53.09+479264.290*T)*deg2rad,A3=(313.45+481266.484*T)*deg2rad;
+  sL+=3958*Math.sin(A1)+1962*Math.sin(W1r-Fr)+318*Math.sin(A2);
+  sB+=-2235*Math.sin(W1r)+382*Math.sin(A3)+175*Math.sin(A1-Fr)+175*Math.sin(A1+Fr)+127*Math.sin(W1r-Mpr)-115*Math.sin(W1r+Mpr);
+  let lambda=W1r+(sL/1e6)*deg2rad,beta=(sB/1e6)*deg2rad,Rgeo=385000.56+sR/1000;
+  lambda+=nutation(T).deltaPsi;
+  let eps=trueObliquity(T);
+  let{ra:raG,dec:decG}=eclipticToEquatorialWithEps(lambda,beta,eps);
+  let LST=getLST(),HA=LST-raG,dR=Rgeo/R_TIERRA;
+  let cLat=Math.cos(lat),sLat=Math.sin(lat),cDec=Math.cos(decG),sDec=Math.sin(decG),cHA=Math.cos(HA),sHA=Math.sin(HA);
+  return{ra:raG-(1/dR)*cLat*sHA/cDec,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
 }
 
-function lunarApsisJDE(k, isApogeo){
-  const k_=isApogeo?k+0.5:k, T=k_/1325.55, T2=T*T, T3=T*T2;
-  let JDE=2451534.6408+27.55454989*k_-0.0006691*T2-0.000001098*T3;
-  const D=((171.9179+335.9106046*k_-0.0100383*T2-0.00001156*T3)%360+360)%360;
-  const M=((347.3477+27.1577721*k_ -0.0008130*T2)%360+360)%360;
-  const F=((316.6109+364.5287911*k_ -0.0125053*T2)%360+360)%360;
-  const Dr=D*deg2rad,Mr=M*deg2rad,Fr=F*deg2rad;
-  if(!isApogeo){
-    JDE+=-1.6769*Math.sin(2*Dr)+0.4589*Math.sin(4*Dr)-0.1856*Math.sin(6*Dr)
-         +0.1143*Math.sin(8*Dr)+0.0666*Math.sin(2*Dr-Mr)-0.0596*Math.sin(2*Dr-2*Fr)
-         +0.0175*Math.sin(4*Dr-Mr)-0.0111*Math.sin(Mr)-0.0015*Math.sin(2*Dr+Mr)
-         +0.0008*Math.sin(4*Dr-2*Fr)-0.0004*Math.sin(2*Dr+2*Fr)-0.0002*Math.sin(2*Dr-2*Mr)
-         +0.0001*Math.sin(4*Dr-2*Mr)+0.0001*Math.sin(6*Dr-Mr)-0.0001*Math.sin(2*Fr)
-         +0.0001*Math.sin(2*Mr)-0.0001*Math.sin(4*Dr-2*Fr)+0.0001*Math.sin(2*Dr-2*Fr+Mr);
-  } else {
-    JDE+=0.4392*Math.sin(2*Dr)-0.0931*Math.sin(4*Dr)+0.0361*Math.sin(2*Dr-Mr)
-        +0.0320*Math.sin(Mr)-0.0323*Math.sin(2*Fr)+0.0213*Math.sin(4*Dr-Mr)
-        -0.0199*Math.sin(2*Dr+Mr)-0.0175*Math.sin(6*Dr)-0.0115*Math.sin(4*Dr-2*Mr)
-        +0.0054*Math.sin(2*Dr-2*Mr)-0.0020*Math.sin(2*Fr-Mr)+0.0013*Math.sin(4*Dr+Mr)
-        -0.0011*Math.sin(2*Dr+2*Fr)+0.0003*Math.sin(4*Dr-2*Fr);
-  }
-  return JDE;
+function sunPosition(){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let e=earthHelio(T);
+  let lam=Math.atan2(-e.y,-e.x),bet=Math.atan2(-e.z,Math.sqrt(e.x*e.x+e.y*e.y));
+  lam+=nutation(T).deltaPsi;
+  let ab=annualAberration(lam,bet,T);
+  return eclipticToEquatorialWithEps(ab.lambda,ab.beta,trueObliquity(T));
 }
 
-function lunarDistELP(jde){
-  // Distancia lunar real en el JDE dado — ELP2000 términos de R
-  const T=(jde-2451545)/36525;
+function planetPosition(name){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let{lambda,beta}=geocentricEclipticWithLightTime(name,T,jd);
+  lambda+=nutation(T).deltaPsi;
+  let ab=annualAberration(lambda,beta,T);
+  return eclipticToEquatorialWithEps(ab.lambda,ab.beta,trueObliquity(T));
+}
+
+function planetLonEcl(name){
+  let jd=julianDate(),T=(jd-2451545)/36525;
+  let{lambda,beta}=geocentricEclipticWithLightTime(name,T,jd);
+  lambda+=nutation(T).deltaPsi;
+  let ab=annualAberration(lambda,beta,T);   // beta real, no 0
+  return ((ab.lambda*rad2deg)%360+360)%360;
+}
+
+function lunarNodes(){
+  const T = (julianDate()-2451545)/36525;
+  if(_nodesCache !== null && Math.abs(T - _nodesCacheT) < 1e-8) return _nodesCache;
   function pm(x){return((x%360)+360)%360;}
-  const D=pm(297.8502042+445267.11151668*T-0.0016300*T*T)*deg2rad;
-  const M=pm(357.5291092+35999.05029190*T)*deg2rad;
-  const Mp=pm(134.9634114+477198.86763133*T+0.0089970*T*T)*deg2rad;
-  const F=pm(93.2720993+483202.01752731*T-0.0034029*T*T)*deg2rad;
-  const E=1-0.002516*T,E2=E*E;
-  const rT=[[0,0,1,0,-20905355],[2,0,-1,0,-3699111],[2,0,0,0,-2955968],[0,0,2,0,-569925],
-            [0,1,0,0,48888],[0,0,0,2,-3149],[2,0,-2,0,246158],[2,-1,-1,0,-152138],
-            [2,0,1,0,-170733],[2,-1,0,0,-204586],[0,1,-1,0,-129620],[1,0,0,0,108743],
-            [0,1,1,0,104755],[2,0,0,-2,10321],[0,0,1,-2,79661],[4,0,-1,0,-34782],
-            [0,0,3,0,-23210],[4,0,-2,0,-21636],[2,1,-1,0,24208],[2,1,0,0,30824],
-            [1,0,-1,0,-8379],[1,1,0,0,-16675],[2,-1,1,0,-12831],[2,0,2,0,-10445],
-            [4,0,0,0,-11650],[2,0,-3,0,14403],[0,1,-2,0,-7003],[2,-1,-2,0,10056],[1,0,1,0,6322]];
-  let sR=0;
-  for(const r of rT){const a=r[0]*D+r[1]*M+r[2]*Mp+r[3]*F;const ef=Math.abs(r[1])===1?E:Math.abs(r[1])===2?E2:1;sR+=r[4]*ef*Math.cos(a);}
-  return 385000.56+sR/1000;
+  // Nodo ascendente medio con correcciones periódicas (Meeus 47.7)
+  let Om = pm(125.0445479 - 1934.1362608*T + 0.0020754*T*T + T*T*T/467441 - T*T*T*T/60616000);
+  // Correcciones menores
+  const L  = pm(218.3164591+481267.88134236*T);
+  const Ls = pm(280.46646  + 36000.76983*T);   // long media sol
+  const Ms = pm(357.52911  + 35999.05029*T);   // anomalía media sol
+  const Mp = pm(134.96298  + 477198.867398*T); // anomalía media luna
+  const F  = pm(93.27191   + 483202.017538*T);
+  const dOm = -1.4979*Math.sin((2*(F-Om))*deg2rad)
+              -0.1500*Math.sin(Ms*deg2rad)
+              -0.1226*Math.sin(2*F*deg2rad)
+              +0.1176*Math.sin(2*(F-Om)*deg2rad)
+              -0.0801*Math.sin((2*(L-Om)-Mp)*deg2rad);
+  const omega = pm(Om + dOm);
+  // Nodo Norte (Caput): lat eclíptica = 0, lon = omega
+  const {ra:raN, dec:decN} = eclipticLonToRaDec(omega);
+  // Nodo Sur (Cauda): lon = omega + 180
+  const southLon = pm(omega+180);
+  const {ra:raS, dec:decS} = eclipticLonToRaDec(southLon);
+  _nodesCache = {
+    north: {ra:raN, dec:decN, lon_ecl:omega},
+    south: {ra:raS, dec:decS, lon_ecl:southLon},
+    omega
+  };
+  _nodesCacheT = T;
+  return _nodesCache;
 }
 
-function proximosApsis(jdNow, n){
-  const k0=Math.floor((jdNow-2451534.6408)/27.55454989);
-  let result=[];
-  for(let dk=0;dk<=n+2;dk++){
-    const kk=k0+dk;
-    const jp=lunarApsisJDE(kk,false);
-    const ja=lunarApsisJDE(kk,true);
-    if(jp>=jdNow&&result.length<n*2)
-      result.push({jde:jp,tipo:'Perigeo',icono:'🔴',dist:lunarDistELP(jp),dias:jp-jdNow});
-    if(ja>=jdNow&&result.length<n*2)
-      result.push({jde:ja,tipo:'Apogeo',icono:'⚪',dist:lunarDistELP(ja),dias:ja-jdNow});
-  }
-  return result.sort((a,b)=>a.jde-b.jde).slice(0,n*2);
-}
+const houseNames = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
 
-
-// ── Exportación universal ───────────────────────────────────────
+// ── Exports ────────────────────────────────────────────────────────────────
 const AstroCore = {
-  deltaT,
-  getJulianCenturies,
-  nutation,
-  meanObliquity,
-  trueObliquity,
-  gast,
-  geocentricRadius,
-  applyRefraction,
-  eclipticToEquatorialWithEps,
-  eclipticLonToRaDec,
+  C_LIGHT,
+  _eclGetF,
+  _eclLunarMagnitude,
+  _eclSolarMagnitude,
+  _eclVisibleAt,
+  _elp_args,
+  _invalidateAstroCache,
+  _toSidereal,
   annualAberration,
+  applyRefraction,
+  calcAspectosNatales,
+  calcAspectosTransito,
+  calcAtacirCore,
+  calcCiclos,
+  calcEclipsesCore,
+  calcLunaAtacir,
+  calcPanchangaCore,
+  calcResonancias,
+  calcSimetrias,
+  calcSinastriaCore,
+  deg2rad,
+  deltaT,
   earthHelio,
-  heliocentricCoords,
+  eclLonToRA,
+  eclipticLonToRaDec,
+  eclipticToEquatorialWithEps,
+  gast,
   geocentricEclipticWithLightTime,
-  sunPosition,
-  moonPosition,
-  planetPosition,
-  vsop87Mercurio,
-  vsop87Venus,
-  vsop87Tierra,
-  vsop87Marte,
-  vsop87Jupiter,
-  vsop87Saturno,
-  lunarNodes,
+  geocentricRadius,
+  getJulianCenturies,
+  getLST,
+  getObserver,
+  heliocentricCoords,
+  julianDate,
+  julianDateUTC,
+  lunarDistELP,
+  lunarPhaseJDE,
+  meanObliquity,
   moonLonEcl,
-  sunLonEcl,
-  planetLonEcl,
+  nextSolEquinox,
+  nutation,
   obliqAsc,
   obliqAscension,
-  semiArcDiurno,
-  raToEclLon,
-  eclLonToRA,
-  placidusIterateCusp,
   placidusHouseCusps,
+  placidusIterateCusp,
+  raToEclLon,
+  rad2deg,
+  semiArcDiurno,
+  setObserver,
+  setTimeOffset,
+  trueObliquity,
+  vsop87Jupiter,
+  vsop87Marte,
+  vsop87Mercurio,
+  vsop87Saturno,
+  vsop87Tierra,
+  vsop87Venus,
+  _lahiriAyanamsa,
+  _bodyData,
+  getSnapshot,
+  getSnapshotAt,
+  sunLonEcl,
+  moonPosition,
+  sunPosition,
+  planetPosition,
+  planetLonEcl,
+  lunarNodes,
   getHouseCusps,
-  lunarPhaseJDE,
-  proximasFasesLunares,
-  lunarApsisJDE,
-  lunarDistELP,
-  proximosApsis,
-  deg2rad, rad2deg, C_LIGHT,
 };
 
+// ESM
+export { AstroCore };
+export default AstroCore;
+export {
+  C_LIGHT,
+  _eclGetF,
+  _eclLunarMagnitude,
+  _eclSolarMagnitude,
+  _eclVisibleAt,
+  _elp_args,
+  _invalidateAstroCache,
+  _toSidereal,
+  annualAberration,
+  applyRefraction,
+  calcAspectosNatales,
+  calcAspectosTransito,
+  calcAtacirCore,
+  calcCiclos,
+  calcEclipsesCore,
+  calcLunaAtacir,
+  calcPanchangaCore,
+  calcResonancias,
+  calcSimetrias,
+  calcSinastriaCore,
+  deg2rad,
+  deltaT,
+  earthHelio,
+  eclLonToRA,
+  eclipticLonToRaDec,
+  eclipticToEquatorialWithEps,
+  gast,
+  geocentricEclipticWithLightTime,
+  geocentricRadius,
+  getJulianCenturies,
+  getLST,
+  getObserver,
+  heliocentricCoords,
+  julianDate,
+  julianDateUTC,
+  lunarDistELP,
+  lunarPhaseJDE,
+  meanObliquity,
+  moonLonEcl,
+  nextSolEquinox,
+  nutation,
+  obliqAsc,
+  obliqAscension,
+  placidusHouseCusps,
+  placidusIterateCusp,
+  raToEclLon,
+  rad2deg,
+  semiArcDiurno,
+  setObserver,
+  setTimeOffset,
+  trueObliquity,
+  vsop87Jupiter,
+  vsop87Marte,
+  vsop87Mercurio,
+  vsop87Saturno,
+  vsop87Tierra,
+  vsop87Venus,
+  _lahiriAyanamsa,
+  _bodyData,
+  getSnapshot,
+  getSnapshotAt,
+  sunLonEcl,
+  moonPosition,
+  sunPosition,
+  planetPosition,
+  planetLonEcl,
+  lunarNodes,
+  getHouseCusps,
+};
+
+// CJS
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = AstroCore;
-} else if (typeof window !== 'undefined') {
-  window.AstroCore = AstroCore;
+  Object.assign(module.exports, AstroCore);
 }
