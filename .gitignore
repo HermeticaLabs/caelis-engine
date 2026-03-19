@@ -3,3 +3,10 @@ AppData/
 *.tmp
 node_modules/
 .DS_Store
+
+caelis_engine_1_5.html
+CaelisEngine_Validation_Report.docx
+ValidationReport_v21.docx
+suite_v2_final.js
+sync_caelis.ps1
+sync_caelis_master.ps1
