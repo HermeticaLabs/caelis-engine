@@ -8,6 +8,8 @@
 npm install caelis-engine
 ```
 
+---
+
 ## Quick start
 
 ```js
@@ -51,6 +53,8 @@ console.log(atacir.aspNatales);   // natal aspects
 console.log(atacir.aspTransito);  // transit aspects
 ```
 
+---
+
 ## Precision
 
 | Component | Max error | Reference |
@@ -67,12 +71,37 @@ console.log(atacir.aspTransito);  // transit aspects
 
 **Valid range: 1800–2100 CE**
 
+---
+
 ## API reference
 
-See full TypeScript declarations in `dist/index.d.ts` or the [GitHub repository](https://github.com/HermeticaLabs/caelis-engine).
+Full TypeScript declarations in `dist/index.d.ts`.  
+Complete documentation: [github.com/HermeticaLabs/caelis-engine](https://github.com/HermeticaLabs/caelis-engine)
+
+---
 
 ## License
 
-**AGPL-3.0** (open source) · **Commercial License** available for proprietary use.
+Caelis Engine is **dual-licensed**:
 
+### Open Source — AGPL-3.0
+Free to use, study, modify and share.  
+If you use this package in a product or service, you must publish your source code under the same terms.  
+Full text: [gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html)
+
+### Commercial License
+Required if you want to use this package in **closed-source or proprietary software** without the AGPL source-disclosure obligation.
+
+| Level | Price | Use |
+|---|---|---|
+| Indie License | $59 USD one-time | 1 proprietary product |
+| Studio License | $199 USD one-time | Unlimited proprietary products |
+
+> **Note:** The $12 USD Premium in-app payment (available at the [live instrument](https://hermeticalabs.github.io/caelis-engine/)) unlocks features for **personal end-user use only** and does **not** grant commercial rights over the engine.
+
+Purchase & inquiries: [ko-fi.com/hermeticalabs](https://ko-fi.com/hermeticalabs)  
 Contact: [hermeticalabs.dev@proton.me](mailto:hermeticalabs.dev@proton.me)
+
+---
+
+© 2024–2026 Cristian Valeria Bravo / Hermetica Labs
