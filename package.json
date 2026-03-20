@@ -11,25 +11,41 @@
       "require": "./src/AstroCore.js"
     }
   },
-  "files": ["dist/", "src/", "README.md"],
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
   "keywords": [
-    "astronomy", "astrology", "ephemeris", "vsop87", "elp-mpp02",
-    "planetary-positions", "julian-date", "placidus-houses",
-    "panchanga", "solar-eclipse", "lunar-eclipse", "ayanamsa-lahiri",
-    "jpl-horizons", "celestial-mechanics"
+    "astronomy",
+    "astrology",
+    "ephemeris",
+    "vsop87",
+    "elp-mpp02",
+    "planetary-positions",
+    "julian-date",
+    "placidus-houses",
+    "panchanga",
+    "solar-eclipse",
+    "lunar-eclipse",
+    "ayanamsa-lahiri",
+    "jpl-horizons",
+    "celestial-mechanics"
   ],
   "author": "Cristian Valeria Bravo <hermeticalabs.dev@proton.me> (https://github.com/HermeticaLabs)",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HermeticaLabs/caelis-engine.git"
+    "url": "git+https://github.com/HermeticaLabs/caelis-engine.git"
   },
   "homepage": "https://hermeticalabs.github.io/caelis-engine/",
   "bugs": {
     "url": "https://github.com/HermeticaLabs/caelis-engine/issues",
     "email": "hermeticalabs.dev@proton.me"
   },
-  "engines": { "node": ">=16.0.0" },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "test": "node test/suite.js"
   }
