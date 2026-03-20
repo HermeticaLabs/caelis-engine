@@ -163,7 +163,7 @@ Premium es un **pago único de $12 USD** — sin suscripción, sin renovación.
 - [ ] Google Play Store
 - [ ] Serie R extendida ELP/MPP02 → dist < 10 km
 - [ ] Nutación IAU 2000A (1365 términos → ~0.1 mas)
-- [ ] Paquete npm (caelis-js)
+- [x] **Paquete npm — caelis-engine@2.1.0 publicado en npm**
 
 ---
 
@@ -173,6 +173,25 @@ Premium es un **pago único de $12 USD** — sin suscripción, sin renovación.
 - [TimeEngine API](docs/timeengine.es.md) — Control temporal, fechas julianas, tiempo sidéreo
 - [Atacir — Análisis de Ciclos](docs/atacir.es.md) — Direcciones primarias, aspectos, ciclos, sinastría, Panchanga
 - [Referencias matemáticas](docs/references.es.md) — Algoritmos fuente y tabla de 107 tests de precisión
+
+---
+
+## Licencia Comercial
+
+Caelis Engine tiene licencia dual:
+
+- **AGPL-3.0** — gratuita para uso de código abierto
+- **Licencia Comercial** — requerida para productos propietarios o de código cerrado
+
+| Nivel | Precio | Uso |
+|---|---|---|
+| Premium Personal | $12 USD | Usuario final, solo funciones in-app |
+| Licencia Indie | $59 USD | 1 producto comercial |
+| Licencia Estudio | $199 USD | Productos ilimitados |
+
+[Descargar Licencia ES (PDF)](legal/COMMERCIAL_LICENSE_ES.pdf) · [License EN (PDF)](legal/COMMERCIAL_LICENSE_EN.pdf)
+
+Compra: [ko-fi.com/hermeticalabs](https://ko-fi.com/hermeticalabs) · Contacto: hermeticalabs.dev@proton.me
 
 ---
 
