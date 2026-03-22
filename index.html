@@ -4403,6 +4403,25 @@ function exportarJSONSinastria(){
       exactitud:+(a.exactitud*100).toFixed(1)
     })),
 
+    overlay_casas: {
+      planetas_A_en_casas_B: Object.fromEntries(
+        Object.entries(d.rxA.bodies)
+          .filter(([,b]) => b && b.lon_ecl !== undefined)
+          .map(([nm,b]) => [nm, {
+            lon_ecl: b.lon_ecl.toFixed(4),
+            casa_B:  _casaDesde(b.lon_ecl, d.rxB.houses.cusps)
+          }])
+      ),
+      planetas_B_en_casas_A: Object.fromEntries(
+        Object.entries(d.rxB.bodies)
+          .filter(([,b]) => b && b.lon_ecl !== undefined)
+          .map(([nm,b]) => [nm, {
+            lon_ecl: b.lon_ecl.toFixed(4),
+            casa_A:  _casaDesde(b.lon_ecl, d.rxA.houses.cusps)
+          }])
+      )
+    },
+
     ...(_isPremium && d.simAB ? {
       antiscias: (d.simAB.antiscia||[]).map(s=>({
         cuerpo_A: s.nmA,
@@ -5269,6 +5288,143 @@ function togglePanchaPanel(){
 // ║  Reutiliza calcAspectosTransito(rxA, rxB) y calcSimetrias(rx)          ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
+
+// ══════════════════════════════════════════════════════════════════
+// OVERLAY DE CASAS — Sinastría bi-wheel (dev feature)
+// Calcula en qué casa de A cae cada planeta de B, y viceversa.
+// Usa las cúspides Placidus ya calculadas en cada snapshot.
+// ══════════════════════════════════════════════════════════════════
+
+function _casaDesde(lonPlaneta, cusps) {
+  // Retorna número de casa (1-12) en que cae lonPlaneta
+  // según las 12 cúspides dadas (grados eclípticos)
+  if (!cusps || cusps.length < 12) return null;
+  const lon = ((lonPlaneta % 360) + 360) % 360;
+  for (let i = 0; i < 12; i++) {
+    const c1 = ((cusps[i]     % 360) + 360) % 360;
+    const c2 = ((cusps[(i+1) % 12] % 360) + 360) % 360;
+    // Manejar cruce del punto 0° Aries
+    let inCasa;
+    if (c1 <= c2) {
+      inCasa = lon >= c1 && lon < c2;
+    } else {
+      inCasa = lon >= c1 || lon < c2;
+    }
+    if (inCasa) return i + 1;
+  }
+  return 1; // fallback
+}
+
+function _renderOverlayCasas(rxA, rxB, fechaA, fechaB) {
+  const glyphs = {
+    Sol:'☉', Luna:'☽', Mercurio:'☿', Venus:'♀', Marte:'♂',
+    Jupiter:'♃', Saturno:'♄', NodoNorte:'☊', NodoSur:'☋'
+  };
+  const cuspsA = rxA.houses.cusps;
+  const cuspsB = rxB.houses.cusps;
+
+  // Colores por casa (elemento)
+  const casaColor = (n) => {
+    const fuego  = [1,5,9];
+    const tierra = [2,6,10];
+    const aire   = [3,7,11];
+    const agua   = [4,8,12];
+    if (fuego.includes(n))  return 'rgba(255,160,80,0.90)';
+    if (tierra.includes(n)) return 'rgba(160,220,120,0.90)';
+    if (aire.includes(n))   return 'rgba(120,200,255,0.90)';
+    if (agua.includes(n))   return 'rgba(160,160,255,0.90)';
+    return 'rgba(255,255,255,0.70)';
+  };
+
+  const casaLabel = (n) => {
+    const nombres = ['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+    const temas = ['',
+      'Identidad · Cuerpo',    'Recursos · Valores',   'Comunicación · Mente',
+      'Hogar · Raíces',        'Creatividad · Amor',   'Salud · Servicio',
+      'Vínculos · Otros',      'Transformación',       'Filosofía · Viaje',
+      'Carrera · Público',     'Comunidad · Ideales',  'Inconsciente · Karma'
+    ];
+    return { num: nombres[n], tema: temas[n] };
+  };
+
+  function buildRows(planetas, cusps, etiqueta) {
+    let rows = '';
+    for (const [nm, body] of Object.entries(planetas)) {
+      if (!body || body.lon_ecl === undefined) continue;
+      const casa = _casaDesde(body.lon_ecl, cusps);
+      if (!casa) continue;
+      const col = casaColor(casa);
+      const lbl = casaLabel(casa);
+      const signo = _fmtLon(body.lon_ecl);
+      rows += `<tr>
+        <td><span style="font-size:13px;">${glyphs[nm]||''}</span> <span style="font-size:10px;color:rgba(255,255,255,0.75);">${nm}</span></td>
+        <td style="color:rgba(255,255,255,0.50);font-size:10px;">${signo}</td>
+        <td style="text-align:center;">
+          <span style="color:${col};font-weight:bold;font-size:12px;">${lbl.num}</span>
+        </td>
+        <td style="color:rgba(255,255,255,0.40);font-size:9px;">${lbl.tema}</td>
+      </tr>`;
+    }
+    return rows;
+  }
+
+  const rowsAenB = buildRows(rxA.bodies, cuspsB, 'A en casas de B');
+  const rowsBenA = buildRows(rxB.bodies, cuspsA, 'B en casas de A');
+
+  const tableStyle = 'width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px;';
+  const thStyle    = 'color:rgba(180,165,255,0.65);font-weight:normal;text-align:left;padding:2px 6px;border-bottom:1px solid rgba(255,255,255,0.07);font-size:10px;';
+  const tdStyle    = 'padding:3px 6px;border-bottom:1px solid rgba(255,255,255,0.04);';
+
+  return `
+  <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+    <div style="font-size:10.5px;color:rgba(200,180,255,0.80);font-weight:bold;margin-bottom:8px;letter-spacing:0.04em;">
+      🏠 Overlay de Casas — Bi-wheel
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+      <div>
+        <div style="font-size:9.5px;color:rgba(255,200,100,0.70);margin-bottom:5px;letter-spacing:0.05em;">
+          ♈ Planetas de A en casas de B
+        </div>
+        <table style="${tableStyle}">
+          <tr>
+            <th style="${thStyle}">Planeta A</th>
+            <th style="${thStyle}">Longitud</th>
+            <th style="${thStyle};text-align:center;">Casa B</th>
+            <th style="${thStyle}">Área</th>
+          </tr>
+          ${rowsAenB}
+        </table>
+      </div>
+
+      <div>
+        <div style="font-size:9.5px;color:rgba(180,220,255,0.70);margin-bottom:5px;letter-spacing:0.05em;">
+          ♎ Planetas de B en casas de A
+        </div>
+        <table style="${tableStyle}">
+          <tr>
+            <th style="${thStyle}">Planeta B</th>
+            <th style="${thStyle}">Longitud</th>
+            <th style="${thStyle};text-align:center;">Casa A</th>
+            <th style="${thStyle}">Área</th>
+          </tr>
+          ${rowsBenA}
+        </table>
+      </div>
+
+    </div>
+
+    <div style="font-size:9px;color:rgba(255,255,255,0.28);margin-top:6px;line-height:1.5;">
+      Casa = posición del planeta de una persona dentro del sistema de casas de la otra.
+      <span style="color:rgba(255,160,80,0.60);">■ Fuego</span> &nbsp;
+      <span style="color:rgba(160,220,120,0.60);">■ Tierra</span> &nbsp;
+      <span style="color:rgba(120,200,255,0.60);">■ Aire</span> &nbsp;
+      <span style="color:rgba(160,160,255,0.60);">■ Agua</span>
+    </div>
+  </div>`;
+}
+
 // ── calcSinastriaCore: núcleo puro — sin DOM ─────────────────────────────────
 // Parámetros: dateA/timeA/latA/lonA, dateB/timeB/latB/lonB (strings/números)
 // Retorna: { rxA, rxB, aspectos, simAB, fechaA, fechaB }
@@ -5350,6 +5506,9 @@ function calcSinastria(){
       </button>
     </div>`;
   }
+
+  // ── Overlay de casas ─────────────────────────────────────────────
+  html += _renderOverlayCasas(rxA, rxB, fechaA, fechaB);
 
   // Botón exportar JSON — siempre visible, datos completos en Premium
   html += `<div style="display:flex;gap:8px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
