@@ -4399,7 +4399,7 @@ function exportarJSONSinastria(){
       de:       a.nmTr,
       a:        a.nmRx,
       aspecto:  a.asp,
-      orbe:     +a.orb.toFixed(4),
+      orbe:     +parseFloat(a.orb).toFixed(4),
       exactitud:+(a.exactitud*100).toFixed(1)
     })),
 

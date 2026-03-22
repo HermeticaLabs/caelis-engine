@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <!--
   ╔══════════════════════════════════════════════════════════════╗
-  ║              C A E L I S   E N G I N E   1.5               ║
+  ║              C A E L I S   E N G I N E   2.1               ║
   ║         Motor Astronómico y Visual Hermético de Precisión    ║
   ╚══════════════════════════════════════════════════════════════╝
 
   Autor:     Cristian Valeria Bravo
   Proyecto:  Hermetica Labs
   Repositorio: github.com/HermeticaLabs/caelis-engine
-  Creado:    2024
+  Creado:    2026
   Versión:   2.1.0
   Fecha:     2026-03-11
 
@@ -351,7 +351,11 @@ button:hover{background:rgba(255,255,255,0.18);}
 .atc-row input:focus{ outline:none; border-color:rgba(220,180,80,0.5); }
 .atc-btn{ margin-top:8px; width:100%; background:rgba(220,180,80,0.12); border:1px solid rgba(220,180,80,0.35); color:rgba(220,180,80,0.95); border-radius:7px; padding:5px 0; cursor:pointer; font-size:11.5px; transition:background 0.2s; }
 .atc-btn:hover{ background:rgba(220,180,80,0.22); }
-#atacirResults{ margin-top:12px; border-top:1px solid rgba(255,255,255,0.07); padding-top:10px; }
+#atacirResults{ margin-top:12px; border-top:1px solid rgba(255,255,255,0.07); padding-top:10px; max-height:420px; overflow-y:auto; scroll-behavior:smooth; scrollbar-width:thin; scrollbar-color:rgba(180,165,255,0.35) transparent; }
+#atacirResults::-webkit-scrollbar{ width:5px; }
+#atacirResults::-webkit-scrollbar-track{ background:transparent; }
+#atacirResults::-webkit-scrollbar-thumb{ background:rgba(180,165,255,0.35); border-radius:3px; }
+#atacirResults::-webkit-scrollbar-thumb:hover{ background:rgba(180,165,255,0.60); }
 #atacirResults table{ width:100%; border-collapse:collapse; font-size:11px; }
 #atacirResults th{ color:rgba(180,165,255,0.75); font-weight:normal; text-align:left; padding:2px 6px; border-bottom:1px solid rgba(255,255,255,0.07); }
 #atacirResults td{ padding:3px 6px; color:rgba(255,255,255,0.85); border-bottom:1px solid rgba(255,255,255,0.04); }
@@ -4339,6 +4343,84 @@ function exportarJSON(){
   _descargaArchivo(json, nombre, "application/json");
 }
 
+function exportarJSONSinastria(){
+  const d = window._lastSinastria;
+  if(!d){ alert("Primero calcula la Sinastría."); return; }
+
+  const glyphs = {Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",
+                  Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
+
+  function fmtCuerpos(bodies){
+    return Object.fromEntries(Object.entries(bodies).map(([nm,b])=>[nm,{
+      glifo:     glyphs[nm]||"",
+      lon_ecl:   b.lon_ecl.toFixed(6),
+      lat_ecl:   (b.lat_ecl||0).toFixed(6),
+      signo:     _fmtLon(b.lon_ecl),
+      ra:        b.ra.toFixed(6),
+      dec:       b.dec.toFixed(6),
+      alt:       b.alt.toFixed(4),
+      az:        b.az.toFixed(4),
+      casa:      b.house,
+      visible:   b.visible
+    }]));
+  }
+
+  const out = {
+    motor:     "Caelis Engine 2.1",
+    modulo:    "Sinastría",
+    version:   _isPremium ? "premium" : "free",
+    exportado: new Date().toISOString(),
+
+    persona_A: {
+      fecha:   d.fechaA,
+      jd:      d.rxA.meta.jd,
+      lat:     d.latA,
+      lon:     d.lonA,
+      asc:     d.rxA.houses.asc.toFixed(4),
+      mc:      d.rxA.houses.mc.toFixed(4),
+      cuspides: d.rxA.houses.cusps.map((c,i)=>({casa:i+1,lon:c.toFixed(4),signo:_fmtLon(c)})),
+      cuerpos: fmtCuerpos(d.rxA.bodies),
+      luna:    d.rxA.luna
+    },
+
+    persona_B: {
+      fecha:   d.fechaB,
+      jd:      d.rxB.meta.jd,
+      lat:     d.latB,
+      lon:     d.lonB,
+      asc:     d.rxB.houses.asc.toFixed(4),
+      mc:      d.rxB.houses.mc.toFixed(4),
+      cuspides: d.rxB.houses.cusps.map((c,i)=>({casa:i+1,lon:c.toFixed(4),signo:_fmtLon(c)})),
+      cuerpos: fmtCuerpos(d.rxB.bodies),
+      luna:    d.rxB.luna
+    },
+
+    aspectos_cruzados: d.aspectos.map(a=>({
+      de:       a.nmTr,
+      a:        a.nmRx,
+      aspecto:  a.asp,
+      orbe:     +parseFloat(a.orb).toFixed(4),
+      exactitud:+(a.exactitud*100).toFixed(1)
+    })),
+
+    ...(_isPremium && d.simAB ? {
+      antiscias: (d.simAB.antiscia||[]).map(s=>({
+        cuerpo_A: s.nmA,
+        cuerpo_B: s.nmB,
+        diferencia: +s.dif.toFixed(4)
+      }))
+    } : {}),
+
+    ...(!_isPremium ? {
+      nota_premium: "Actualiza a Premium para antiscias completas — ko-fi.com/hermeticalabs"
+    } : {})
+  };
+
+  const json   = JSON.stringify(out, null, 2);
+  const nombre = `caelis_sinastria_${d.dateA}_${d.dateB}.json`;
+  _descargaArchivo(json, nombre, "application/json");
+}
+
 function exportarTexto(){
   let d = window._lastAtacir;
   if(!d){ alert("Primero calcula el Atacir."); return; }
@@ -4889,9 +4971,23 @@ function calcPanchanga(){
       </button>
     </div>`;
 
-  resDiv.innerHTML = freeRows + (_isPremium ? premiumRows : premiumBanner);
+  const exportBtn = `<div style="display:flex;gap:8px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+    <button onclick="exportarJSONPanchanga()" class="atc-btn" style="flex:1;background:rgba(100,200,150,0.10);border-color:rgba(100,200,150,0.35);color:rgba(140,220,180,0.95);">
+      ⬇ Exportar JSON
+    </button>
+  </div>`;
 
-  // Guardar contexto IA silenciosamente (disponible cuando IA esté activa)
+  resDiv.innerHTML = freeRows + (_isPremium ? premiumRows : premiumBanner) + exportBtn;
+
+  // Guardar contexto para exportación e IA
+  window._lastPanchanga = {
+    dateStr, timeStr, jde, ayanDeg, sunSid, moonSid,
+    tithiIdx, tithiName, paksha, tithiPct, jdeNextTithi,
+    vara, naksIdx, naks, naksPct, jdeNextNaks,
+    yogaIdx, yogaName, yogaPct, jdeNextYoga,
+    karanaName, karanaPct, jdeNextKarana,
+  };
+
   if(_isPremium){
     const panCtx = {
       tithi:tithiName, tithiIdx, paksha,
@@ -4903,6 +4999,75 @@ function calcPanchanga(){
 }
 
 // ── Sync del panel Panchanga con el tiempo del engine ────────────────────────
+function exportarJSONPanchanga(){
+  const d = window._lastPanchanga;
+  if(!d){ alert("Primero calcula el Panchanga."); return; }
+
+  function jdeToStr(jde){
+    if(!jde) return null;
+    return new Date((jde - 2440587.5)*86400000).toISOString().slice(0,16) + " UTC";
+  }
+
+  const out = {
+    motor:     "Caelis Engine 2.1",
+    modulo:    "Panchanga — Almanaque Védico",
+    version:   _isPremium ? "premium" : "free",
+    exportado: new Date().toISOString(),
+
+    consulta: {
+      fecha:     `${d.dateStr} ${d.timeStr} UTC`,
+      jde:       d.jde,
+      ayanamsa:  { nombre:"Lahiri (IAU 1955)", valor_deg: +d.ayanDeg.toFixed(6) }
+    },
+
+    posiciones_siderales: {
+      sol_sid:  +d.sunSid.toFixed(6),
+      luna_sid: +d.moonSid.toFixed(6)
+    },
+
+    tithi: {
+      indice:  d.tithiIdx + 1,
+      nombre:  d.tithiName,
+      paksha:  d.paksha,
+      completado_pct: +d.tithiPct,
+      proximo_cambio: jdeToStr(d.jdeNextTithi)
+    },
+
+    vara: {
+      nombre:  d.vara.name,
+      glifo:   d.vara.glyph,
+      planeta: d.vara.planet
+    },
+
+    ...(_isPremium ? {
+      nakshatra: {
+        indice:  d.naksIdx + 1,
+        nombre:  d.naks.name,
+        regente: d.naks.ruler,
+        completado_pct: +d.naksPct,
+        proximo_cambio: jdeToStr(d.jdeNextNaks)
+      },
+      yoga: {
+        indice:  d.yogaIdx + 1,
+        nombre:  d.yogaName,
+        completado_pct: +d.yogaPct,
+        proximo_cambio: jdeToStr(d.jdeNextYoga)
+      },
+      karana: {
+        nombre: d.karanaName,
+        completado_pct: +d.karanaPct,
+        proximo_cambio: jdeToStr(d.jdeNextKarana)
+      }
+    } : {
+      nota_premium: "Nakshatra, Yoga y Karana disponibles con Premium — ko-fi.com/hermeticalabs"
+    })
+  };
+
+  const json   = JSON.stringify(out, null, 2);
+  const nombre = `caelis_panchanga_${d.dateStr}.json`;
+  _descargaArchivo(json, nombre, "application/json");
+}
+
 function _panSyncNow(){
   const now = new Date(currentTime()*1000);
   const elD = document.getElementById("pan-date");
@@ -5186,9 +5351,20 @@ function calcSinastria(){
     </div>`;
   }
 
+  // Botón exportar JSON — siempre visible, datos completos en Premium
+  html += `<div style="display:flex;gap:8px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+    <button onclick="exportarJSONSinastria()" class="atc-btn" style="flex:1;background:rgba(100,200,150,0.10);border-color:rgba(100,200,150,0.35);color:rgba(140,220,180,0.95);">
+      ⬇ Exportar JSON
+    </button>
+  </div>`;
+
   resDiv.innerHTML = html;
 
-  // Guardar contexto para la IA
+  // Guardar contexto para exportación e IA
+  window._lastSinastria = { rxA, rxB, aspectos, simAB, fechaA, fechaB,
+    dateA:A.date, timeA:A.time, latA:A.lat, lonA:A.lon,
+    dateB:B.date, timeB:B.time, latB:B.lat, lonB:B.lon };
+
   if(_isPremium){
     window._caelisContext = { type:"sinastria", sinastria:
       { snapA:rxA, snapB:rxB, aspectos, fechaA, fechaB } };
