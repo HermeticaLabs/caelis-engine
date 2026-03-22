@@ -3589,7 +3589,7 @@ function calcCiclos(rx, tr){
   const periodos={Sol:365.25,Luna:29.53,Mercurio:87.969,Venus:224.701,Marte:686.971,
                   Jupiter:4332.589,Saturno:10759.22,NodoNorte:6798.38,NodoSur:6798.38};
   const glyphs={Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
-  const jdRx=rx.jd, jdTr=tr.jd;
+  const jdRx=rx.meta.jd, jdTr=tr.meta.jd;
   const ageNow=(jdTr-jdRx)/365.25;
   let ciclos=[];
   for(const [nm,periodo] of Object.entries(periodos)){
@@ -3641,7 +3641,7 @@ function calcResonancias(rx, tr){
   const periodosSid={Mercurio:0.24085,Venus:0.61520,Sol:1.00000,Marte:1.88085,
                      Jupiter:11.8618,Saturno:29.4571,NodoNorte:18.5996};
   const glyphs={Sol:"☉",Mercurio:"☿",Venus:"♀",Marte:"♂",Jupiter:"♃",Saturno:"♄",NodoNorte:"☊"};
-  const jdRx=rx.jd, jdTr=tr.jd;
+  const jdRx=rx.meta.jd, jdTr=tr.meta.jd;
   const ageNow=(jdTr-jdRx)/365.25;
   const pares=[['Venus','Mercurio'],['Sol','Venus'],['Marte','Sol'],['Marte','Venus'],
                ['Jupiter','Sol'],['Jupiter','Marte'],['Saturno','Jupiter'],
@@ -3818,7 +3818,7 @@ function proximosApsis(jdNow, n){
 
 // ======= LUNA EN EL ATACIR =======
 function calcLunaAtacir(rx, tr){
-  const jdRx=rx.jd, jdTr=tr.jd;
+  const jdRx=rx.meta.jd, jdTr=tr.meta.jd;
   const ageNow=(jdTr-jdRx)/365.25;
 
   // --- Fases lunares: las 8 siguientes al JD de tránsito ---
