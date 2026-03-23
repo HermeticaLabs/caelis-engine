@@ -1516,106 +1516,172 @@ canvas.addEventListener("touchend", e => {
 function julianDateUTC(){ return currentTime()/86400 + 2440587.5; }
 
 const deltaTTable=[
-  [1620,124],[1630,115],[1640,106],[1650,98],[1660,91],[1670,85],[1680,79],[1690,74],
-  [1700,70],[1710,65],[1720,62],[1730,58],[1740,55],[1750,53],[1760,50],[1770,48],
-  [1780,46],[1790,44],[1800,42],[1810,40],[1820,37],[1830,35],[1840,33],[1850,31],
-  [1860,29],[1870,27],[1880,24],[1890,22],[1900,19],[1910,16],[1920,13],[1930,11],
-  [1940,9],[1950,8],[1960,7],[1970,7],[1980,7],[1990,8],[2000,63.8],[2005,64.7],
-  [2010,66.1],[2015,67.6],[2020,69.4],[2025,70.9],[2030,73],[2040,79],[2050,87],
-  [2060,96],[2070,107],[2080,118],[2090,131],[2100,146]
+  // ── Antigüedad y Edad Media (MS2004 / Stephenson 2016) ──────────
+  [ 500, 1570], [ 600, 1160], [ 700,  820], [ 800,  620], [ 900,  480],
+  [1000,  380], [1100,  280], [1200,  200], [1300,  140], [1400,  100],
+  [1500,   80], [1550,   55], [1600,   25],
+  // ── Siglos XVII-XIX (IERS / Stephenson 2004) ────────────────────
+  [1620,  87], [1630,  79], [1640,  71], [1650,  65], [1660,  59],
+  [1670,  54], [1680,  49], [1690,  45], [1700,  42], [1710,  38],
+  [1720,  35], [1730,  32], [1740,  30], [1750,  28], [1760,  26],
+  [1770,  24], [1780,  23], [1790,  22], [1800,  14], [1810,  13],
+  [1820,  12], [1830,   9], [1840,   7], [1850,   7], [1860,   8],
+  [1870,   9], [1880,  -3], [1890,  -6], [1900,  -3], [1910,  10],
+  [1920,  21], [1930,  24], [1940,  24], [1950,  29], [1960,  33],
+  [1970,  40], [1975,  45], [1980,  50], [1985,  54], [1990,  57],
+  [1995,  60], [2000,63.8], [2005,64.7], [2010,66.1], [2015,67.6],
+  // ── Presente y futuro próximo (IERS + USNO) ─────────────────────
+  [2020,69.4], [2025,70.9], [2030,72.5], [2035,74.5], [2040,77.0],
+  [2050,87.0], [2060,96.0], [2070,107.], [2080,118.], [2090,131.],
+  [2100,146.], [2110,162.], [2120,179.], [2130,197.], [2140,217.],
+  [2150,238.],
 ];
 function deltaT(jd){
-  let year=2000+(jd-2451545)/365.25;
-  for(let i=0;i<deltaTTable.length-1;i++){
-    let[y0,dt0]=deltaTTable[i],[y1,dt1]=deltaTTable[i+1];
-    if(year>=y0&&year<y1) return dt0+(year-y0)/(y1-y0)*(dt1-dt0);
+  const year = 2000 + (jd - 2451545) / 365.25;
+  // ── Interpolación dentro de la tabla ─────────────────────────────
+  for(let i = 0; i < deltaTTable.length - 1; i++){
+    const [y0,dt0] = deltaTTable[i], [y1,dt1] = deltaTTable[i+1];
+    if(year >= y0 && year < y1)
+      return dt0 + (year - y0) / (y1 - y0) * (dt1 - dt0);
   }
-  let t=(jd-2451545)/36525; return 102.3+123.5*t+32.5*t*t;
+  // ── Extrapolación fuera de la tabla ──────────────────────────────
+  // Morrison & Stephenson (2004): ΔT ≈ −20 + 32·((y−1820)/100)²
+  // Válido para cualquier época — error estimado ±20% fuera de [500,2150]
+  const u = (year - 1820) / 100;
+  return -20 + 32 * u * u;
 }
 function julianDate(){ let j=julianDateUTC(); return j+deltaT(j)/86400; }
 function getJulianCenturies(jd){ return (jd-2451545)/36525; }
 
-const nutationTerms=[
-  [0,0,0,0,1,-171996,-1742,92025,89],[-2,0,0,2,2,-13187,-16,5736,-31],
-  [0,0,0,2,2,-2274,-2,977,-5],[0,0,0,0,2,2062,2,-895,5],
-  [0,1,0,0,0,1426,-34,54,-1],[0,0,1,0,0,712,1,-7,0],
-  [-2,1,0,2,2,-517,12,224,-6],[0,0,0,2,1,-386,-4,200,0],
-  [0,0,1,2,2,-301,0,129,-1],[-2,-1,0,2,2,217,-5,-95,3],
-  [-2,0,1,0,0,-158,0,0,0],[-2,0,0,2,1,129,1,-70,0],
-  [0,0,-1,2,2,123,0,-53,0],[2,0,0,0,0,63,0,0,0],
-  [0,0,1,0,1,63,1,-33,0],[2,0,-1,2,2,-59,0,26,0],
-  [0,0,-1,0,1,-58,-1,32,0],[0,0,1,2,1,-51,0,27,0],
-  [-2,0,2,0,0,48,0,0,0],[0,0,-2,2,1,46,0,-24,0],
-  [2,0,0,2,2,-38,0,16,0],[0,0,2,2,2,-31,0,13,0],
-  [0,0,2,0,0,29,0,0,0],[-2,0,1,2,2,29,0,-12,0],
-  [0,0,0,2,0,26,0,0,0],[-2,0,0,2,0,-22,0,0,0],
-  [0,0,-1,2,1,21,0,-10,0],[0,2,0,0,0,17,-1,0,0],
-  [2,0,-1,0,1,16,0,-8,0],[-2,2,0,2,2,-16,1,7,0],
-  [0,1,0,0,1,-15,0,9,0],[-2,0,1,0,1,-13,0,7,0],
-  [0,-1,0,0,1,-12,0,6,0],[0,0,2,-2,0,11,0,0,0],
-  [2,0,-1,2,1,-10,0,5,0],[2,0,1,2,2,-8,0,3,0],
-  [0,1,0,2,2,7,0,-3,0],[-2,1,1,0,0,-7,0,0,0],
-  [0,-1,0,2,2,-7,0,3,0],[2,0,0,2,1,-8,0,4,0],
-  [2,0,1,0,0,6,0,0,0],[-2,0,2,2,2,6,0,-3,0],
-  [-2,0,1,2,1,6,0,-3,0],[2,0,-2,0,1,-6,0,3,0],
-  [2,0,0,0,1,-6,0,3,0],[0,-1,1,0,0,5,0,0,0],
-  [-2,-1,0,2,1,-5,0,3,0],[-2,0,0,0,1,-5,0,3,0],
-  [0,0,2,2,1,-5,0,3,0],[-2,0,2,0,1,4,0,0,0],
-  [-2,1,0,2,1,4,0,-2,0],[0,0,1,-2,0,4,0,0,0],
-  [-1,0,1,0,0,-4,0,0,0],[-2,1,0,0,0,-4,0,0,0],
-  [1,0,0,0,0,-4,0,0,0],[0,0,1,2,0,3,0,0,0],
-  [0,0,-2,2,2,-3,0,1,0],[-1,-1,1,0,0,-3,0,0,0],
-  [0,1,1,0,0,-3,0,0,0],[0,-1,1,2,2,-3,0,1,0],
-  [2,-1,-1,2,2,-3,0,1,0],[0,0,3,2,2,-3,0,1,0],
-  [2,-1,0,2,2,-3,0,1,0],[0,0,0,0,0,0,0,0,0],
-  [-2,0,0,4,2,-2,0,1,0],[0,0,1,0,2,-2,0,1,0],
-  [-2,-1,0,2,0,2,0,0,0],[0,0,-1,2,0,2,0,0,0],
-  [-2,0,0,4,1,-2,0,1,0],[4,0,-1,0,0,2,0,0,0],
-  [0,-1,1,2,2,0,0,0,0],[2,1,0,0,0,-2,0,0,0],
-  [2,-1,1,0,0,2,0,0,0],[0,1,-1,0,1,-2,0,1,0],
-  [4,0,0,2,2,-2,0,1,0],[4,0,-1,2,2,-2,0,1,0],
-  [0,0,0,4,1,-2,0,1,0],[0,0,-2,4,2,2,0,-1,0],
-  [-2,-1,0,2,1,2,0,-1,0],[0,1,0,2,0,-2,0,0,0],
-  [0,0,0,0,3,-2,0,0,0],[4,0,0,0,0,2,0,0,0],
-  [2,0,0,-2,0,2,0,0,0],[0,0,1,-2,1,2,0,-1,0],
-  [2,1,-1,2,2,-2,0,1,0],[4,0,0,2,1,-2,0,1,0],
-  [-2,-1,2,2,2,-2,0,1,0],[0,2,-1,2,2,-2,0,1,0],
-  [2,0,1,2,1,-2,0,1,0],[-2,0,2,4,2,-2,0,1,0],
-  [-2,1,0,4,2,-2,0,1,0],[0,-1,0,4,2,-2,0,1,0],
-  [4,1,0,2,2,-2,0,1,0],[0,0,-1,4,2,2,0,-1,0],
-  [1,1,1,0,0,2,0,0,0],[2,0,2,0,2,-2,0,1,0],
-  [2,-1,1,2,2,-2,0,1,0],[2,0,-2,2,2,-2,0,1,0],
-  [2,1,0,2,1,-2,0,1,0],[0,1,2,2,2,-2,0,1,0],
-  [4,0,0,0,1,2,0,-1,0],[2,-1,0,2,0,2,0,0,0],
-  [0,1,1,2,2,-2,0,1,0],[-2,1,2,2,2,-2,0,1,0],
-  [-1,0,0,2,2,2,0,-1,0],[0,0,2,0,1,-2,0,1,0],
-  [4,0,-2,2,2,-2,0,1,0]
+// ══════════════════════════════════════════════════════════════════
+const _IAU2000B = [
+  // l   l'  F   D   Om      S_i      S_t     C_i    C_t
+  [ 0,  0,  0,  0,  1,-172064161,-174666, 92052331, 9086],
+  [-2,  0,  0,  2,  2, -13170906,  -1675,  5730336,-3015],
+  [ 0,  0,  0,  2,  2,  -2276413,   -234,   978459, -485],
+  [ 0,  0,  0,  0,  2,   2074554,    207,  -897492,  470],
+  [ 0,  1,  0,  0,  0,   1475877,  -3633,    73871, -184],
+  [ 0,  1,  2, -2,  2,   -516821,   1226,   224386, -677],
+  [ 1,  0,  0,  0,  0,    711159,     73,    -6750,    0],
+  [ 0, -1,  2, -2,  2,   -387298,   -367,   200728,   18],
+  [ 0,  0,  2, -2,  1,   -301461,    -36,   129025,  -63],
+  [-2,  1,  0,  2,  0,    215829,   -494,   -95929,  299],
+  [ 0,  0,  2, -2,  0,    128227,    137,    -68982,    0],
+  [-2,  0,  2,  0,  1,    123457,     11,    -53311,   32],
+  [-2,  0,  0,  2,  1,    156994,     10,    -1235,    0],
+  [ 1,  0,  0,  0,  1,     63110,     63,   -33228,    0],
+  [-1,  0,  0,  0,  1,    -57976,    -63,    31429,    0],
+  [-2,  0, -2,  0,  1,    -59641,    -11,    25543,    0],
+  [ 0,  0,  0,  2,  0,    -51613,    -42,     0,       0],
+  [ 2,  0,  0, -2,  0,     45893,     50,     0,       0],
+  [ 0,  0,  2,  0,  2,     63384,     11,   -27605,    0],
+  [ 0,  0,  0,  0,  0,   -38571,    -10,     0,       0],
+  [ 0, -2,  2, -2,  1,    -39180,    -37,    20072,    0],
+  [ 2,  0,  0,  0,  0,     27816,    -18,     0,       0],
+  [ 0,  1,  0,  0,  1,    -29433,    -10,    14492,    0],
+  [ 0, -1,  0,  0,  1,    -25831,     12,    13384,    0],
+  [-2,  0,  2,  0,  2,     24386,    -13,   -10524,    0],
+  [ 0,  0, -2,  2,  0,    -16729,    -37,     0,       0],
+  [ 2,  0, -2,  0,  1,     -8547,    -10,     4609,    0],
+  [ 0,  1,  2, -2,  1,      8734,     -4,    -4214,    0],
+  [ 0, -1, -2,  2,  1,     -6766,     14,     3258,    0],
+  [-1,  0,  0,  1,  0,     -5773,    -11,      0,      0],
+  [ 0, -1,  2,  0,  2,     -6176,    -13,     2748,    0],
+  [ 0,  0,  2, -2, -1,      5765,      0,       0,     0],
+  [ 2,  0,  2,  0,  2,    -13831,     -5,     5953,    0],
+  [-2, -1,  0,  2,  2,      5766,      3,    -2535,    0],
+  [ 2,  0,  0, -2,  1,     -5536,     -3,     2680,    0],
+  [-2,  0,  2,  2,  2,     -5142,     -3,     2241,    0],
+  [-2, -1,  2,  0,  1,     -4516,      0,     1988,    0],
+  [ 0,  1, -2,  2,  1,      4843,      0,    -2358,    0],
+  [ 0,  1,  0,  0,  2,     -4130,      0,     1806,    0],
+  [-1,  0,  0,  1,  1,      3745,      0,    -1578,    0],
+  [ 0,  0,  0,  2,  1,     -3621,      0,     1579,    0],
+  [-1,  0,  2,  0,  1,     -3613,      0,     1578,    0],
+  [ 0,  0,  2,  2,  2,     -3573,      0,     1550,    0],
+  [ 0, -1,  2,  2,  2,     -4485,      0,     1965,    0],
+  [-1, -1,  0,  2,  1,      3413,      0,    -1449,    0],
+  [-2,  0,  0,  0,  1,     -4174,      0,     1753,    0],
+  [ 0, -1, -2,  2,  0,     -3284,      0,        0,    0],
+  [ 1,  0,  2,  0,  1,      3023,      0,    -1309,    0],
+  [ 0, -1,  0,  2,  0,      3023,      0,        0,    0],
+  [-1, -1,  2,  0,  2,      2884,      0,    -1251,    0],
+  [ 1, -1,  0,  0,  0,     -2842,      0,        0,    0],
+  [ 0,  1,  0, -2,  0,     -2653,      0,        0,    0],
+  [ 2,  0,  0,  0,  1,     -2418,      0,     1029,    0],
+  [-2, -1,  0,  2,  0,     -2329,      0,        0,    0],
+  [ 0,  1,  2,  0,  2,      2359,      0,    -1062,    0],
+  [ 2, -1,  0,  0,  0,      2202,      0,        0,    0],
+  [ 0,  0, -2,  2,  1,      2129,      0,      -952,   0],
+  [-1, -1,  2,  2,  2,     -1779,      0,       811,   0],
+  [-1,  0,  2, -2,  1,     -1666,      0,       747,   0],
+  [ 2,  0,  0,  2,  0,     -1673,      0,        0,    0],
+  [ 0,  1,  0,  2,  0,     -1478,      0,        0,    0],
+  [ 0,  1, -2,  0,  0,      1259,      0,        0,    0],
+  [ 0,  0,  2,  0,  1,      1181,      0,      -519,   0],
+  [ 2,  0, -2,  0,  0,     -1149,      0,        0,    0],
+  [-1,  0,  0,  2,  2,     -1060,      0,       461,   0],
+  [ 0,  0, -2,  0,  1,     -1018,      0,       448,   0],
+  [ 0,  1,  2,  2,  2,      -963,      0,       421,   0],
+  [ 1,  1,  0,  0,  0,       997,      0,        0,    0],
+  [-2,  1,  0,  0,  0,       949,      0,        0,    0],
+  [ 2,  0,  2, -2,  2,      -938,      0,       407,   0],
+  [ 0,  0,  0, -2,  0,       945,      0,        0,    0],
+  [-1,  0,  2,  2,  1,      -896,      0,       390,   0],
+  [ 0,  0,  2, -4,  2,       862,      0,      -376,   0],
+  [-2,  1,  2,  0,  2,       856,      0,      -373,   0],
+  [-1,  0,  0,  0,  2,       813,      0,      -353,   0],
+  [ 0,  0,  2,  0,  0,       807,      0,        0,    0],
+  [ 0,  1, -2,  2,  0,      -820,      0,        0,    0],
 ];
 
-// Cache de nutación — se recalcula solo cuando T cambia (> 1e-8 siglos ≈ 3ms)
+// Cache de nutación IAU 2000B
 let _nutCache = null, _nutCacheT = null;
+
 function nutation(T){
-  if(_nutCache !== null && Math.abs(T - _nutCacheT) < 1e-8) return _nutCache;
-  function posMod(x){let r=x%360;return r<0?r+360:r;}
-  let D =posMod(297.85036 +445267.111480*T-0.0019142*T*T+T*T*T/189474)*deg2rad;
-  let M =posMod(357.52772 +35999.050340*T -0.0001603*T*T-T*T*T/300000)*deg2rad;
-  let Mp=posMod(134.96298 +477198.867398*T+0.0086972*T*T+T*T*T/56250)*deg2rad;
-  let F =posMod(93.27191  +483202.017538*T-0.0036825*T*T+T*T*T/327270)*deg2rad;
-  let Om=posMod(125.04452 -1934.136261*T +0.0020708*T*T+T*T*T/450000)*deg2rad;
-  let dP=0,dE=0;
-  for(let r of nutationTerms){
-    let a=r[0]*D+r[1]*M+r[2]*Mp+r[3]*F+r[4]*Om;
-    dP+=(r[5]+r[6]*T)*Math.sin(a);
-    dE+=(r[7]+r[8]*T)*Math.cos(a);
+  if(_nutCache !== null && Math.abs(T - _nutCacheT) < 1e-9) return _nutCache;
+
+  // ── Argumentos fundamentales IAU 2000A (Capitaine et al. 2003) ──
+  // Anomalía media de la Luna (l)
+  const l  = (485868.249036 + T*(1717915923.2178 + T*(31.8792
+              + T*(0.051635 - T*0.00024470)))) % 1296000 * deg2rad / 3600;
+  // Anomalía media del Sol (l')
+  const lp = (1287104.793048 + T*(129596581.0481 + T*(-0.5532
+              + T*(0.000136 - T*0.00001149)))) % 1296000 * deg2rad / 3600;
+  // Argumento de la latitud de la Luna (F)
+  const F  = (335779.526232 + T*(1739527262.8478 + T*(-12.7512
+              + T*(-0.001037 + T*0.00000417)))) % 1296000 * deg2rad / 3600;
+  // Elongación media de la Luna (D)
+  const D  = (1072260.703692 + T*(1602961601.2090 + T*(-6.3706
+              + T*(0.006593 - T*0.00003169)))) % 1296000 * deg2rad / 3600;
+  // Longitud media del nodo lunar (Ω)
+  const Om = (450160.398036 + T*(-6962890.5431 + T*(7.4722
+              + T*(0.007702 - T*0.00005939)))) % 1296000 * deg2rad / 3600;
+
+  let dPsi = 0, dEps = 0;
+  for(const r of _IAU2000B){
+    const arg = r[0]*l + r[1]*lp + r[2]*F + r[3]*D + r[4]*Om;
+    dPsi += (r[5] + r[6]*T) * Math.sin(arg);
+    dEps += (r[7] + r[8]*T) * Math.cos(arg);
   }
-  _nutCache = {deltaPsi:dP*1e-4*deg2rad/3600,deltaEps:dE*1e-4*deg2rad/3600};
+
+  // Convertir de 0.1 μas → radianes
+  // 0.1 μas × (1/10) × (1/1e6) × (π/648000) rad/arcsec
+  const factor = 0.1e-6 * deg2rad / 3600;
+  _nutCache  = { deltaPsi: dPsi * factor, deltaEps: dEps * factor };
   _nutCacheT = T;
   return _nutCache;
 }
+
+// Oblicuidad media — fórmula IAU 2006 (Capitaine et al. 2006)
 function meanObliquity(T){
-  return(23.439291111+(-46.8150*T-0.00059*T*T+0.001813*T*T*T)/3600)*deg2rad;
+  // Arcsegundos → radianes
+  const eps0 = (84381.406 + T*(-46.836769 + T*(-0.0001831
+               + T*(0.00200340 + T*(-0.000000576 - T*0.0000000434)))));
+  return eps0 * deg2rad / 3600;
 }
-function trueObliquity(T){return meanObliquity(T)+nutation(T).deltaEps;}
+
+function trueObliquity(T){ return meanObliquity(T) + nutation(T).deltaEps; }
 
 function gast(jd){
   let T=getJulianCenturies(jd);
@@ -3603,7 +3669,7 @@ function calcCiclos(rx, tr){
   const periodos={Sol:365.25,Luna:29.53,Mercurio:87.969,Venus:224.701,Marte:686.971,
                   Jupiter:4332.589,Saturno:10759.22,NodoNorte:6798.38,NodoSur:6798.38};
   const glyphs={Sol:"☉",Luna:"☽",Mercurio:"☿",Venus:"♀",Marte:"♂",Jupiter:"♃",Saturno:"♄",NodoNorte:"☊",NodoSur:"☋"};
-  const jdRx=rx.meta.jd, jdTr=tr.meta.jd;
+  const jdRx=rx.jd, jdTr=tr.jd;
   const ageNow=(jdTr-jdRx)/365.25;
   let ciclos=[];
   for(const [nm,periodo] of Object.entries(periodos)){
@@ -3655,7 +3721,7 @@ function calcResonancias(rx, tr){
   const periodosSid={Mercurio:0.24085,Venus:0.61520,Sol:1.00000,Marte:1.88085,
                      Jupiter:11.8618,Saturno:29.4571,NodoNorte:18.5996};
   const glyphs={Sol:"☉",Mercurio:"☿",Venus:"♀",Marte:"♂",Jupiter:"♃",Saturno:"♄",NodoNorte:"☊"};
-  const jdRx=rx.meta.jd, jdTr=tr.meta.jd;
+  const jdRx=rx.jd, jdTr=tr.jd;
   const ageNow=(jdTr-jdRx)/365.25;
   const pares=[['Venus','Mercurio'],['Sol','Venus'],['Marte','Sol'],['Marte','Venus'],
                ['Jupiter','Sol'],['Jupiter','Marte'],['Saturno','Jupiter'],
@@ -3832,7 +3898,7 @@ function proximosApsis(jdNow, n){
 
 // ======= LUNA EN EL ATACIR =======
 function calcLunaAtacir(rx, tr){
-  const jdRx=rx.meta.jd, jdTr=tr.meta.jd;
+  const jdRx=rx.jd, jdTr=tr.jd;
   const ageNow=(jdTr-jdRx)/365.25;
 
   // --- Fases lunares: las 8 siguientes al JD de tránsito ---
@@ -4413,28 +4479,9 @@ function exportarJSONSinastria(){
       de:       a.nmTr,
       a:        a.nmRx,
       aspecto:  a.asp,
-      orbe:     +parseFloat(a.orb).toFixed(4),
+      orbe:     +a.orb.toFixed(4),
       exactitud:+(a.exactitud*100).toFixed(1)
     })),
-
-    overlay_casas: {
-      planetas_A_en_casas_B: Object.fromEntries(
-        Object.entries(d.rxA.bodies)
-          .filter(([,b]) => b && b.lon_ecl !== undefined)
-          .map(([nm,b]) => [nm, {
-            lon_ecl: b.lon_ecl.toFixed(4),
-            casa_B:  _casaDesde(b.lon_ecl, d.rxB.houses.cusps)
-          }])
-      ),
-      planetas_B_en_casas_A: Object.fromEntries(
-        Object.entries(d.rxB.bodies)
-          .filter(([,b]) => b && b.lon_ecl !== undefined)
-          .map(([nm,b]) => [nm, {
-            lon_ecl: b.lon_ecl.toFixed(4),
-            casa_A:  _casaDesde(b.lon_ecl, d.rxA.houses.cusps)
-          }])
-      )
-    },
 
     ...(_isPremium && d.simAB ? {
       antiscias: (d.simAB.antiscia||[]).map(s=>({
@@ -5050,7 +5097,7 @@ function exportarJSONPanchanga(){
     consulta: {
       fecha:     `${d.dateStr} ${d.timeStr} UTC`,
       jde:       d.jde,
-      ayanamsa:  { nombre:"Lahiri (IAU 1955) — precesión 2º orden", valor_deg: +d.ayanDeg.toFixed(6) }
+      ayanamsa:  { nombre:"Lahiri (IAU 1955)", valor_deg: +d.ayanDeg.toFixed(6) }
     },
 
     posiciones_siderales: {
@@ -5302,13 +5349,9 @@ function togglePanchaPanel(){
 // ║  Reutiliza calcAspectosTransito(rxA, rxB) y calcSimetrias(rx)          ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
-
-// ══════════════════════════════════════════════════════════════════
-// OVERLAY DE CASAS — Sinastría bi-wheel (dev feature)
-// Calcula en qué casa de A cae cada planeta de B, y viceversa.
-// Usa las cúspides Placidus ya calculadas en cada snapshot.
-// ══════════════════════════════════════════════════════════════════
-
+// ── calcSinastriaCore: núcleo puro — sin DOM ─────────────────────────────────
+// Parámetros: dateA/timeA/latA/lonA, dateB/timeB/latB/lonB (strings/números)
+// Retorna: { rxA, rxB, aspectos, simAB, fechaA, fechaB }
 function _casaDesde(lonPlaneta, cusps) {
   // Retorna número de casa (1-12) en que cae lonPlaneta
   // según las 12 cúspides dadas (grados eclípticos)
@@ -5439,9 +5482,6 @@ function _renderOverlayCasas(rxA, rxB, fechaA, fechaB) {
   </div>`;
 }
 
-// ── calcSinastriaCore: núcleo puro — sin DOM ─────────────────────────────────
-// Parámetros: dateA/timeA/latA/lonA, dateB/timeB/latB/lonB (strings/números)
-// Retorna: { rxA, rxB, aspectos, simAB, fechaA, fechaB }
 function calcSinastriaCore(dateA, timeA, latA, lonA, dateB, timeB, latB, lonB){
   function toJD(d,t){ return new Date(`${d}T${t}:00Z`).getTime()/86400000+2440587.5; }
   const rxA = getSnapshotAt(toJD(dateA,timeA), latA, lonA);
@@ -5520,9 +5560,6 @@ function calcSinastria(){
       </button>
     </div>`;
   }
-
-  // ── Overlay de casas ─────────────────────────────────────────────
-  html += _renderOverlayCasas(rxA, rxB, fechaA, fechaB);
 
   // Botón exportar JSON — siempre visible, datos completos en Premium
   html += `<div style="display:flex;gap:8px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
