@@ -1,14 +1,12 @@
 # caelis-engine
 
-**Professional astronomical calculation engine** — VSOP87, ELP/MPP02 (LLR calibrated), Placidus houses, eclipse calculator, Vedic Panchanga.
+**Professional astronomical calculation engine** — VSOP87, ELP/MPP02 (LLR calibrated), IAU 2000B nutation, Placidus houses, eclipse calculator, Vedic Panchanga.
 
-**107/107 tests PASS** vs JPL Horizons DE441, Swiss Ephemeris, Meeus AA 2nd ed.
+**145/145 tests PASS** vs JPL Horizons DE441 (NASA), Meeus AA 2nd ed., IERS Conventions.
 
 ```bash
 npm install caelis-engine
 ```
-
----
 
 ## Quick start
 
@@ -53,55 +51,51 @@ console.log(atacir.aspNatales);   // natal aspects
 console.log(atacir.aspTransito);  // transit aspects
 ```
 
----
+## Algorithms
+
+| Algorithm | Source | Terms |
+|---|---|---|
+| VSOP87 | Bretagnon & Francou 1987 | Earth: 185 · Venus: 79 · Mars: 152 · Jupiter: 141 · Saturn: 167 |
+| Mercury | Meeus Cap.31 equation of center | 5 terms, e=0.206 |
+| ELP/MPP02 | Chapront & Francou 2002, LLR-calibrated | 164L + 105B + 29R |
+| IAU 2000B nutation | Mathews, Herring & Buffett 2002 | 77 lunisolars + Capitaine 2003 args |
+| Obliquity IAU 2006 | Capitaine et al. 2006 | Degree-5 polynomial |
+| ΔT | Morrison & Stephenson 2004 + IERS | 74-point table, 500–2150 CE |
+| Lunar nodes | Meeus Cap.47 | 15 periodic corrections |
+| Lahiri ayanamsa | IAU 1955 + Lieske 1977 2nd order | Precession integral |
 
 ## Precision
 
 | Component | Max error | Reference |
 |---|---|---|
-| Moon λ (ELP/MPP02 LLR) | **0.0001° (0.45")** | JPL Horizons DE441 |
-| Sun VSOP87 | 0.0003° | Meeus Cap.25 |
-| Venus / Mars / Jupiter / Saturn | < 0.131° | JPL Horizons DE441 |
-| Mercury (eq. of center) | < 0.116° | JPL Horizons DE441 |
-| Mercury β orbital range | [-7°, +7°] ✓ | Orbital theory |
-| IAU 1980 Nutation ΔΨ | < 0.004 arcsec | Meeus Cap.22 |
-| Placidus ASC | < 0.019° | Reference chart |
-| ΔT at J2000 | < 0.1 s | IERS |
-| Equinoxes / Solstices | < 1 min | JPL Horizons 2025 |
+| Moon λ (ELP/MPP02 LLR) | **0.0067° (24")** | Meeus AA Ex.47.a |
+| Sun VSOP87 | 0.0011° | Meeus AA Ex.25.a |
+| Venus / Mars / Jupiter / Saturn | < 0.131° | JPL Horizons DE441 (NASA) |
+| Mercury (eq. of center) | < 0.116° | JPL Horizons DE441 (NASA) |
+| IAU 2000B nutation ΔΨ | < 1 mas | IERS Conventions 2003 |
+| Obliquity ε₀ at J2000 | < 0.001° | IAU 2006 |
+| Placidus ASC | < 0.105° | Newton-Raphson |
+| ΔT at J2000 | 63.8 s | IERS Bulletin |
+| Lunar nodes Ω at J2000 | < 1.32° | Meeus Cap.47 |
 
-**Valid range: 1800–2100 CE**
+**Valid range: 500–2150 CE** (ΔT table) · Numerically stable to 3000 CE
 
----
+## Recent upgrades
+
+| Upgrade | Gain |
+|---|---|
+| IAU 2000B nutation (77 series) | ΔΨ: 10 mas → 1 mas (10×) |
+| Obliquity IAU 2006 | ε₀ accurate to 0.002" at J2000 |
+| ΔT table 500–2150 CE | Extended from 1620–2100 |
+| Lahiri ayanamsa 2nd order | Up to 3' improvement at 1600 CE |
+| Lunar nodes 15 terms | Error: ~1.24° → ~0.25° (5×) |
 
 ## API reference
 
-Full TypeScript declarations in `dist/index.d.ts`.  
-Complete documentation: [github.com/HermeticaLabs/caelis-engine](https://github.com/HermeticaLabs/caelis-engine)
-
----
+See full TypeScript declarations in `dist/index.d.ts` or the [GitHub repository](https://github.com/HermeticaLabs/caelis-engine).
 
 ## License
 
-Caelis Engine is **dual-licensed**:
+**AGPL-3.0** (open source) · **Commercial License** available for proprietary use ($59–$199 USD).
 
-### Open Source — AGPL-3.0
-Free to use, study, modify and share.  
-If you use this package in a product or service, you must publish your source code under the same terms.  
-Full text: [gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html)
-
-### Commercial License
-Required if you want to use this package in **closed-source or proprietary software** without the AGPL source-disclosure obligation.
-
-| Level | Price | Use |
-|---|---|---|
-| Indie License | $59 USD one-time | 1 proprietary product |
-| Studio License | $199 USD one-time | Unlimited proprietary products |
-
-> **Note:** The $12 USD Premium in-app payment (available at the [live instrument](https://hermeticalabs.github.io/caelis-engine/)) unlocks features for **personal end-user use only** and does **not** grant commercial rights over the engine.
-
-Purchase & inquiries: [ko-fi.com/hermeticalabs](https://ko-fi.com/hermeticalabs)  
 Contact: [hermeticalabs.dev@proton.me](mailto:hermeticalabs.dev@proton.me)
-
----
-
-© 2024–2026 Cristian Valeria Bravo / Hermetica Labs
