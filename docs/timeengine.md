@@ -1,158 +1,85 @@
 # TimeEngine — API Reference
 
-**Caelis Engine 1.5 · Hermetica Labs**  
+**Caelis Engine 2.2 · Hermetica Labs**
 © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
 
 TimeEngine gestiona el tiempo como variable de primera clase en Caelis Engine. Convierte entre sistemas de tiempo, genera snapshots astronómicos completos y controla el estado temporal del instrumento.
 
-**Depende de:** AstroCore.js
-
----
-
-## Instalación y uso
-
-```javascript
-const AstroCore = require('./src/astro/AstroCore.js');
-Object.assign(global, AstroCore);
-
-// Globals requeridos
-global.lat        = -33.45 * Math.PI / 180;
-global.lon        = -70.66 * Math.PI / 180;
-global.timeOffset = 0;
-global.timeSpeed  = 1;
-global.speedIndex = 3;
-global.houseSystem = 'placidus';
-global.R_TIERRA   = 6371.0;
-
-const TimeEngine = require('./src/TimeEngine.js');
-```
+**Integrado en:** `caelis_engine_2_2.html` (monolito) — todas las funciones disponibles en scope global.
 
 ---
 
 ## Control de velocidad temporal
 
-El instrumento tiene 7 velocidades predefinidas:
+El instrumento tiene **11 velocidades** predefinidas (v2.2 — ampliado desde 7):
 
 ```javascript
-TimeEngine.speedLevels  // [-86400, -3600, -60, 1, 60, 3600, 86400]
-TimeEngine.speedLabels  // ["−1día/s","−1h/s","−1min/s","1x","1min/s","1h/s","1día/s"]
+speedLevels = [-31536000, -2592000, -86400, -3600, -60, 1, 60, 3600, 86400, 2592000, 31536000]
+speedLabels = ["−1año/s","−1mes/s","−1día/s","−1h/s","−1min/s","1x","1min/s","1h/s","1día/s","1mes/s","1año/s"]
 ```
 
-El índice 3 (`speedIndex = 3`) es tiempo real (`1x`). Los índices 0–2 van hacia el pasado, 4–6 hacia el futuro.
+El índice 5 (`speedIndex = 5`) es tiempo real (`1x`). Los índices 0–4 van hacia el pasado, 6–10 hacia el futuro.
+
+**Pausa:** `timeSpeed = 0` detiene la simulación sin modificar `speedIndex`. Se activa automáticamente al usar la función "Saltar al eclipse" (`_eclJumpTo`).
 
 ---
 
 ## Conversión de fechas
 
-### `TimeEngine.dateToJD(dateStr, timeStr)` → `number`
+### `julianDate()` → `number`
 
-Convierte fecha y hora UTC a Fecha Juliana.
-
-```javascript
-TimeEngine.dateToJD('2000-01-01', '12:00') // → 2451545.0  (J2000.0)
-TimeEngine.dateToJD('2026-03-14', '00:00') // → JD actual
-```
-
-| Parámetro | Tipo | Formato |
-|---|---|---|
-| `dateStr` | `string` | `'YYYY-MM-DD'` |
-| `timeStr` | `string` | `'HH:MM'` (UTC) |
-
----
-
-### `TimeEngine.jdToDate(jd)` → `Date`
-
-Convierte Fecha Juliana a objeto `Date` UTC.
+Fecha Juliana actual del engine (TT). Incluye corrección ΔT (Morrison & Stephenson 2004).
 
 ```javascript
-TimeEngine.jdToDate(2451545.0) // → Date: 2000-01-01T12:00:00.000Z
+julianDate() // → JD del instante actual según timeOffset
 ```
 
 ---
 
-### `TimeEngine.jdToString(jd)` → `string`
-
-Convierte Fecha Juliana a string UTC legible.
-
-```javascript
-TimeEngine.jdToString(2451545.0) // → "2000-01-01 12:00Z"
-```
-
----
-
-### `TimeEngine.age(jdBirth, jdNow)` → `number`
-
-Años transcurridos entre dos Fechas Julianas.
-
-```javascript
-const jdNac = TimeEngine.dateToJD('1990-01-01', '12:00');
-const jdHoy = TimeEngine.dateToJD('2026-01-01', '12:00');
-TimeEngine.age(jdNac, jdHoy) // → 36.0
-```
-
----
-
-## Tiempo del engine
-
-### `TimeEngine.julianDate()` → `number`
-
-Fecha Juliana actual del engine (TT). Incluye corrección ΔT.
-
-```javascript
-TimeEngine.julianDate() // → JD del instante actual según timeOffset
-```
-
----
-
-### `TimeEngine.julianDateUTC()` → `number`
+### `julianDateUTC()` → `number`
 
 Fecha Juliana UTC sin corrección ΔT.
 
 ---
 
-### `TimeEngine.currentTime()` → `number`
+### `currentTime()` → `number`
 
 Tiempo Unix del engine en segundos: `Date.now()/1000 + timeOffset`.
 
 ---
 
-### `TimeEngine.getLST()` → `number` (radianes)
+### `getLST()` → `number` (radianes)
 
-Tiempo sidéreo local aparente en radianes (0–2π).
+Tiempo sidéreo local aparente en radianes (0–2π). Incluye nutación IAU 2000B vía GAST.
+
+---
+
+### `deltaT(jd)` → `number` (segundos)
+
+Diferencia TT − UTC. Tabla de 74 puntos (500–2150 d.C.), extrapolación parabólica fuera del rango.
 
 ```javascript
-TimeEngine.getLST() // → ángulo horario del punto vernal en el meridiano local
+deltaT(2451545.0) // → 63.8 s  (J2000.0)
+deltaT(2460000.0) // → ~70 s   (2024)
 ```
 
 ---
 
-## Snapshots astronómicos
+## Snapshot astronómico completo
 
-El snapshot es la estructura central de datos del engine: captura el estado completo del cielo en un instante y lugar dados.
+### `getSnapshotAt(jdTarget, latDeg, lonDeg)` → `Snapshot`
 
-### `TimeEngine.snapshotNow()` → `Snapshot`
-
-Snapshot del instante actual del engine (usa `timeOffset` activo).
+Snapshot para una Fecha Juliana y ubicación específicas. Preserva y restaura el estado del engine (try/finally) — no afecta la animación.
 
 ```javascript
-const snap = TimeEngine.snapshotNow();
+const snap = getSnapshotAt(2451545.0, -33.45, -70.66);
 ```
 
 ---
 
-### `TimeEngine.snapshotAt(jdTarget, latDeg, lonDeg)` → `Snapshot`
+### `getSnapshot()` → `Snapshot`
 
-Snapshot para una Fecha Juliana y ubicación específicas. Preserva y restaura el estado del engine sin afectar la animación.
-
-```javascript
-const snap = TimeEngine.snapshotAt(2451545.0, -33.45, -70.66);
-```
-
-| Parámetro | Tipo | Descripción |
-|---|---|---|
-| `jdTarget` | `number` | Fecha Juliana objetivo |
-| `latDeg` | `number` | Latitud en grados decimales |
-| `lonDeg` | `number` | Longitud en grados decimales |
+Snapshot del instante actual del engine (usa `timeOffset` activo y `lat`/`lon` globales).
 
 ---
 
@@ -165,9 +92,9 @@ const snap = TimeEngine.snapshotAt(2451545.0, -33.45, -70.66);
     utc,          // string ISO 8601
     timestamp,    // Unix timestamp
     lst_deg,      // Tiempo sidéreo local en grados
-    obliquity,    // Oblicuidad verdadera en grados
-    delta_psi,    // Nutación en longitud en grados
-    delta_eps,    // Nutación en oblicuidad en grados
+    obliquity,    // Oblicuidad verdadera en grados (IAU 2006 + IAU 2000B)
+    delta_psi,    // Nutación en longitud en grados (IAU 2000B)
+    delta_eps,    // Nutación en oblicuidad en grados (IAU 2000B)
     observer: { lat, lon }  // en grados
   },
 
@@ -177,16 +104,16 @@ const snap = TimeEngine.snapshotAt(2451545.0, -33.45, -70.66);
     Mercurio:  BodyData,
     Venus:     BodyData,
     Marte:     BodyData,
-    Jupiter:   BodyData,
+    Júpiter:   BodyData,
     Saturno:   BodyData,
     NodoNorte: BodyData,
     NodoSur:   BodyData
   },
 
   luna: {
-    phase_ratio,   // 0–1 (0=nueva, 0.5=llena, 1=nueva — ciclo completo)
+    phase_ratio,   // 0–1 (0=nueva, 0.5=llena)
     phase_deg,     // 0–180° elongación angular Sol–Luna
-    illumination   // 0–1 fracción iluminada (0=nueva, 1=llena)
+    illumination   // 0–1 fracción iluminada
   },
 
   houses: {
@@ -201,8 +128,6 @@ const snap = TimeEngine.snapshotAt(2451545.0, -33.45, -70.66);
 ---
 
 ## Estructura BodyData
-
-Cada cuerpo en `snap.bodies` tiene la siguiente forma:
 
 ```javascript
 {
@@ -219,37 +144,77 @@ Cada cuerpo en `snap.bodies` tiene la siguiente forma:
 
 ---
 
+## Navegación temporal
+
+### `timeOffset` (global, segundos)
+
+Offset aplicado al reloj del sistema. `timeOffset = 0` es el instante presente.
+
+### `resetNow()` → `void`
+
+Vuelve al instante presente, velocidad 1x.
+
+### `changeSpeed(delta)` → `void`
+
+Cambia la velocidad en `delta` pasos (−1 = más lento, +1 = más rápido).
+
+### `_eclJumpTo(jde)` → `void` *(v2.2)*
+
+Salta al momento exacto de un eclipse (JDE en Tiempo Dinámico), pausa la simulación y cierra el panel de eclipses. Muestra un toast con instrucciones.
+
+```javascript
+_eclJumpTo(2461500.5) // → salta al momento del eclipse, velocidad pausada
+// Toast: "⊗ Eclipse — usa ◀ ▶ para explorar · Reset para volver al presente"
+```
+
+---
+
+## i18n — Internacionalización *(v2.2)*
+
+### `_t(key)` → `string`
+
+Retorna el string del idioma activo. Fallback a español si la clave no existe en el idioma seleccionado.
+
+```javascript
+_t("btn.atacir")     // → "☊ Atacir" (ES) | "☊ Atacir" (EN)
+_t("ia.generate")    // → "✦ Generar lectura" (ES) | "✦ Generate reading" (EN)
+_t("ia.voice.lang")  // → "es-ES" (ES) | "en-US" (EN)
+```
+
+### `_setLang(lang)` → `void`
+
+Cambia el idioma activo y persiste en `localStorage`.
+
+```javascript
+_setLang('en') // → cambia a English, actualiza todo el DOM
+_setLang('es') // → cambia a Español
+```
+
+### `_applyLang()` → `void`
+
+Aplica el idioma activo a todos los elementos `[data-i18n]` del DOM, placeholders `[data-i18n-ph]`, spinner, hints IA y botones del Settings.
+
+---
+
 ## Ejemplo completo
 
 ```javascript
 // Snapshot natal: Santiago de Chile, 1 enero 1990, 12:00 UTC
-const jdNac = TimeEngine.dateToJD('1990-01-01', '12:00');
-const natal = TimeEngine.snapshotAt(jdNac, -33.45, -70.66);
+const snap = getSnapshotAt(
+  new Date('1990-01-01T12:00:00Z').getTime()/86400000 + 2440587.5,
+  -33.45,
+  -70.66
+);
 
-console.log('ASC natal:', natal.houses.asc.toFixed(2) + '°');
-console.log('Sol:', natal.bodies.Sol.lon_ecl.toFixed(2) + '°');
-console.log('Luna:', natal.bodies.Luna.lon_ecl.toFixed(2) + '°');
-console.log('Fase lunar:', (natal.luna.illumination * 100).toFixed(1) + '%');
-
-// Snapshot actual
-const ahora = TimeEngine.snapshotNow();
-const edad  = TimeEngine.age(jdNac, ahora.meta.jd);
-console.log('Edad:', edad.toFixed(2), 'años');
+console.log('ASC natal:', snap.houses.asc.toFixed(2) + '°');
+console.log('Sol:', snap.bodies.Sol.lon_ecl.toFixed(2) + '°');
+console.log('Luna:', snap.bodies.Luna.lon_ecl.toFixed(2) + '°');
+console.log('Fase lunar:', (snap.luna.illumination * 100).toFixed(1) + '%');
+console.log('Nutación ΔΨ:', snap.meta.delta_psi.toFixed(6) + '°'); // IAU 2000B
+console.log('Oblicuidad:', snap.meta.obliquity.toFixed(4) + '°');  // IAU 2006
 ```
 
 ---
 
-## Tests
-
-```bash
-node tests/timeengine.test.js
-```
-
-**Resultado esperado:** todos los tests en verde.
-
-Tests incluidos: conversión JD↔fecha, J2000.0 exacto, LST válido (0–2π), snapshot con todos los cuerpos, Sol en J2000 ~280°.
-
----
-
-*Caelis Engine 1.5 · Hermetica Labs · Cristian Valeria Bravo*  
+*Caelis Engine 2.2 · Hermetica Labs · Cristian Valeria Bravo*
 *github.com/HermeticaLabs/caelis-engine*

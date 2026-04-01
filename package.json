@@ -1,7 +1,7 @@
 {
   "name": "caelis-engine",
-  "version": "2.1.0",
-  "description": "Professional astronomical calculation engine — VSOP87, ELP/MPP02 (LLR calibrated), Placidus houses, eclipses, Vedic Panchanga. 107/107 tests PASS vs JPL Horizons DE441.",
+  "version": "2.2.0",
+  "description": "Professional astronomical engine + symbolic interpretation system — VSOP87, ELP/MPP02-LLR, IAU 2000B, Placidus, eclipses, Vedic Panchanga, secure AI interpretation layer. 145/145 tests PASS.",
   "main": "src/AstroCore.js",
   "module": "dist/caelis-engine.esm.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,8 @@
   "files": [
     "dist/",
     "src/",
-    "README.md"
+    "README.md",
+    "README_es.md"
   ],
   "keywords": [
     "astronomy",
@@ -22,6 +23,7 @@
     "ephemeris",
     "vsop87",
     "elp-mpp02",
+    "iau-2000b",
     "planetary-positions",
     "julian-date",
     "placidus-houses",
@@ -30,7 +32,11 @@
     "lunar-eclipse",
     "ayanamsa-lahiri",
     "jpl-horizons",
-    "celestial-mechanics"
+    "celestial-mechanics",
+    "ai-interpretation",
+    "synastry",
+    "atacir",
+    "hermetic"
   ],
   "author": "Cristian Valeria Bravo <hermeticalabs.dev@proton.me> (https://github.com/HermeticaLabs)",
   "license": "AGPL-3.0",
@@ -44,9 +50,11 @@
     "email": "hermeticalabs.dev@proton.me"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
-    "test": "node test/suite.js"
+    "test": "node suite_v2_final.js",
+    "test:precision": "node test_precision.js",
+    "audit": "python audit_prod.py index.html"
   }
 }
