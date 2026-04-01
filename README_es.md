@@ -1,10 +1,11 @@
 # Caelis Engine v2.2
 
-**Motor astronómico matemático + sistema de interpretación simbólica.**
+**Motor astronómico matemático + sistema de interpretación simbólica basado en mecánica celeste real.**
 
 Caelis Engine calcula posiciones planetarias reales con precisión profesional (VSOP87, ELP/MPP02-LLR, IAU 2000B) y las transforma en un framework simbólico navegable — ahora extendido con interpretación IA segura.
 
-[**→ Demo en vivo**](https://hermeticalabs.github.io/caelis-engine/) · [**npm**](https://npmjs.com/package/caelis-engine) · [**Ko-fi**](https://ko-fi.com/hermeticalabs)
+[**→ Demo en vivo**](https://hermeticalabs.github.io/caelis-engine/) ·
+Incluye demo IA limitada (sin licencia) [**npm**](https://npmjs.com/package/caelis-engine) · [**Ko-fi**](https://ko-fi.com/hermeticalabs)
 
 ---
 
@@ -20,6 +21,8 @@ Caelis Engine es un **instrumento astronómico simbólico** — combina mecánic
 
 ## Qué hace
 
+Capacidades principales del instrumento:
+
 | Función | Descripción |
 |---|---|
 | **Cielo en tiempo real** | Proyección estereográfica polar, todos los cuerpos, constelaciones, Vía Láctea |
@@ -28,7 +31,7 @@ Caelis Engine es un **instrumento astronómico simbólico** — combina mecánic
 | **Sinastría** | Aspectos cruzados, antiscias, simetrías, distribución elemental, biwheel SVG |
 | **Calculadora de eclipses** | Solar + lunar, rango ±10 años, visibilidad georeferenciada — click para saltar al momento |
 | **Panchanga** | Almanaque védico: Tithi, Vara, Nakshatra, Yoga, Karana con Ayanamsa Lahiri |
-| **Lectura IA Hermética** | Interpretación estructurada de los datos astronómicos calculados (Premium) |
+| **Lectura IA Hermética** | Interpretación estructurada y determinista de los datos astronómicos calculados (Premium) |
 | **i18n** | Español / English (Deutsch, हिन्दी en roadmap) |
 | **⚙ Settings** | Idioma, voz IA, panel compacto integrado en la barra de controles |
 
@@ -92,6 +95,8 @@ La capa IA se ejecuta a través de un Cloudflare Worker protegido:
 - **Validación de Origin** — peticiones de dominios no autorizados son rechazadas (403)
 - **Control de acceso por licencia** — header `X-Caelis-License` validado en el servidor
 - **Validación de payload** — solo datos astronómicos estructurados, sin inyección de texto libre
+- **Rate limiting** — control de uso por usuario/licencia
+- **Firma de requests** — verificación de integridad entre cliente y Worker
 
 Caelis Engine asume un entorno cliente hostil y mantiene toda la lógica sensible en el servidor.
 
