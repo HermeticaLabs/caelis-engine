@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   ╔══════════════════════════════════════════════════════════════╗
-  ║              C A E L I S   E N G I N E   2.1               ║
+  ║              C A E L I S   E N G I N E   2.2               ║
   ║         Motor Astronómico y Visual Hermético de Precisión    ║
   ╚══════════════════════════════════════════════════════════════╝
 
@@ -9,8 +9,8 @@
   Proyecto:  Hermetica Labs
   Repositorio: github.com/HermeticaLabs/caelis-engine
   Creado:    2026
-  Versión:   2.1.0
-  Fecha:     2026-03-11
+  Versión:   2.2.0
+  Fecha:     2026-04-04
 
   © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
   Todos los derechos reservados.
@@ -37,8 +37,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Caelis Engine — motor astronómico hermético de precisión. VSOP87, ELP/Meeus, nodos lunares, Atacir, proyección estereográfica polar.">
-<meta name="version" content="2.1.0">
-<title>Caelis Engine 2.2 — DEV · Hermetica Labs</title>
+<meta name="version" content="2.2.0">
+<title>Caelis Engine 2.2 · Hermetica Labs</title>
 <style>
 *{box-sizing:border-box;}
 body{margin:0;background:#000;overflow:hidden;font-family:'Georgia',serif;}
@@ -1445,7 +1445,7 @@ async function _clVerifyKey(key){
 
 // ── Inicialización (con binding C) ──────────────────────────────
 async function _clInit(){
-  /* DEV-DISABLED */
+  /* PROD */
   const saved = localStorage.getItem(_CL_STORE);
   if(!saved){ _setPremium(false); return; }
 
@@ -5854,7 +5854,7 @@ function exportarTextoSinastria(){
 
   // ── Encabezado ────────────────────────────────────────────────
   t.push("╔" + sep(L,"═") + "╗");
-  t.push("║" + "  CAELIS ENGINE 2.1  ·  Sinastría Bi-wheel".padEnd(L) + "║");
+  t.push("║" + "  CAELIS ENGINE 2.2  ·  Sinastría Bi-wheel".padEnd(L) + "║");
   t.push("║" + "  VSOP87 / ELP-MPP02 · Placidus · J2000.0".padEnd(L)  + "║");
   t.push("╚" + sep(L,"═") + "╝");
   t.push("");
@@ -7886,7 +7886,7 @@ function syncTransitoNow(){
 
 window.AstroSync = {
   name:    "Caelis Engine",
-  version: "2.1.0",
+  version: "2.2.0",
   getSnapshot,
   getSnapshotAt,
   julianDate,
