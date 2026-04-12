@@ -10,7 +10,7 @@
   Repositorio: github.com/HermeticaLabs/caelis-engine
   Creado:    2026
   Versión:   2.2.0
-  Fecha:     2026-04-04
+  Fecha:     2026-04-11
 
   © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
   Todos los derechos reservados.
@@ -346,8 +346,14 @@ button:hover{background:rgba(255,255,255,0.18);}
 }
 #eclipsesHeader h3{ margin:0; font-size:13px; letter-spacing:0.06em; color:rgba(140,190,255,0.95); }
 #eclipsesBody{ padding:12px 16px; }
-#eclipsesResults{ margin-top:12px; border-top:1px solid rgba(255,255,255,0.07); padding-top:10px; }
+#eclipsesResults{ margin-top:12px; border-top:1px solid rgba(255,255,255,0.07); padding-top:10px;
+  max-height:260px; overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:thin; scrollbar-color:rgba(140,190,255,0.30) rgba(255,255,255,0.04); }
+#eclipsesResults::-webkit-scrollbar{ width:5px; }
+#eclipsesResults::-webkit-scrollbar-track{ background:rgba(255,255,255,0.03); border-radius:4px; }
+#eclipsesResults::-webkit-scrollbar-thumb{ background:rgba(140,190,255,0.30); border-radius:4px; }
 #eclipsesResults table{ width:100%; border-collapse:collapse; font-size:11px; }
+#eclipsesResults thead{ position:sticky; top:0; background:rgba(8,6,20,0.97); z-index:2; }
 #eclipsesResults th{ color:rgba(140,190,255,0.75); font-weight:normal; text-align:left;
   padding:3px 6px; border-bottom:1px solid rgba(255,255,255,0.07); }
 #eclipsesResults td{ padding:3px 6px; color:rgba(255,255,255,0.85);
@@ -356,6 +362,10 @@ button:hover{background:rgba(255,255,255,0.18);}
 #eclipsesResults td.ecl-lunar{ color:rgba(140,190,255,0.95); }
 #eclipsesResults td.ecl-vis{ color:rgba(160,220,160,0.90); }
 #eclipsesResults td.ecl-novis{ color:rgba(255,255,255,0.35); }
+#eclipsesResults tr.ecl-row{ cursor:pointer; transition:background 0.15s; }
+#eclipsesResults tr.ecl-row:hover{ background:rgba(140,190,255,0.09); }
+#eclipsesResults tr.ecl-row:hover td{ color:rgba(255,255,255,0.98); }
+#eclipsesResults td.ecl-jump{ color:rgba(140,190,255,0.45); font-size:10px; text-align:center; white-space:nowrap; }
 /* ======= PANEL ATACIR ======= */
 #atacirPanel{
   position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
@@ -720,9 +730,141 @@ button:hover{background:rgba(255,255,255,0.18);}
   text-decoration:none;
 }
 .stg-about a:hover{ color:rgba(180,165,255,0.90); }
+
+/* ── Toggles de capas en Settings ────────────────────────────── */
+.stg-toggle-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 2px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.stg-toggle-row:last-child{ border-bottom:none; }
+.stg-toggle-name{
+  font-size:11px; color:rgba(255,255,255,0.70);
+  font-family:'Georgia',serif;
+}
+.stg-toggle{
+  position:relative; width:34px; height:18px;
+  flex-shrink:0;
+}
+.stg-toggle input{ opacity:0; width:0; height:0; position:absolute; }
+.stg-toggle-track{
+  position:absolute; inset:0;
+  background:rgba(255,255,255,0.12);
+  border-radius:9px;
+  cursor:pointer;
+  transition:background 0.2s;
+}
+.stg-toggle input:checked + .stg-toggle-track{
+  background:rgba(160,120,255,0.55);
+}
+.stg-toggle-track::after{
+  content:'';
+  position:absolute; top:2px; left:2px;
+  width:14px; height:14px;
+  background:#fff;
+  border-radius:50%;
+  transition:transform 0.2s;
+}
+.stg-toggle input:checked + .stg-toggle-track::after{
+  transform:translateX(16px);
+}
+.stg-house-select{
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:6px;
+  color:rgba(200,185,255,0.90);
+  font-family:'Georgia',serif;
+  font-size:10px;
+  padding:3px 6px;
+  cursor:pointer;
+}
+.stg-house-select:focus{ outline:none; border-color:rgba(160,120,255,0.50); }
+/* ── Barra de acciones IA ─────────────────────────────────────── */
+#iaActionBar{
+  display:none;
+  align-items:center;
+  gap:4px;
+  margin-top:8px;
+  padding:5px 6px;
+  background:rgba(160,120,255,0.06);
+  border:1px solid rgba(160,120,255,0.12);
+  border-radius:7px;
+}
+#iaActionBar.visible{ display:flex; }
+.ia-action-btn{
+  display:flex; align-items:center; justify-content:center;
+  width:28px; height:28px;
+  background:none;
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:6px;
+  color:rgba(200,185,255,0.65);
+  font-size:13px;
+  cursor:pointer;
+  transition:background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink:0;
+}
+.ia-action-btn:hover{
+  background:rgba(160,120,255,0.18);
+  border-color:rgba(160,120,255,0.45);
+  color:rgba(220,205,255,0.95);
+}
+.ia-action-btn.active{
+  background:rgba(160,120,255,0.22);
+  border-color:rgba(160,120,255,0.60);
+  color:rgba(230,215,255,1.0);
+}
+.ia-action-btn:disabled{
+  opacity:0.30;
+  cursor:default;
+}
+#iaActionBar .ia-sep{
+  width:1px; height:16px;
+  background:rgba(255,255,255,0.10);
+  margin:0 2px;
+  flex-shrink:0;
+}
+
+/* ── Sistema de créditos IA [3.2] ────────────────────────────── */
+#iaFreeHint{
+  display:none;
+  font-size:9.5px;
+  margin-bottom:6px;
+  padding:5px 10px;
+  border-radius:6px;
+  text-align:center;
+  letter-spacing:0.02em;
+  line-height:1.5;
+  transition:all 0.3s;
+}
+#iaFreeHint.credits-ok{
+  color:rgba(180,220,140,0.80);
+  background:rgba(120,200,100,0.07);
+  border:1px solid rgba(120,200,100,0.18);
+}
+#iaFreeHint.credits-low{
+  color:rgba(255,200,100,0.85);
+  background:rgba(255,160,50,0.07);
+  border:1px solid rgba(255,160,50,0.22);
+}
+#iaFreeHint.credits-empty{
+  color:rgba(255,130,100,0.90);
+  background:rgba(255,80,50,0.07);
+  border:1px solid rgba(255,80,50,0.22);
+}
+#iaFreeHint.credits-premium{
+  color:rgba(180,150,255,0.80);
+  background:rgba(160,120,255,0.07);
+  border:1px solid rgba(160,120,255,0.18);
+}
+
+/* ── Capacitor app: ocultar features no disponibles [3.3] ──────── */
+body.capacitor #btnAtacir,
+body.capacitor #btnEclipses,
+body.capacitor #btnPanchanga,
+body.capacitor #btnHouseSys{
+  display:none;
+}
 </style>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#080612">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -820,21 +962,17 @@ button:hover{background:rgba(255,255,255,0.18);}
 
 <!-- Barra inferior Oculus: velocidad + retornar -->
 <div id="oculusUI">
-  <button onclick="ocuTogglePanel()" title="Panel Oculus">☰</button>
+  <button onclick="ocuTogglePanel()" title="Mostrar/ocultar controles">☰</button>
   <span style="font-size:11px;color:#8a7662;letter-spacing:0.1em;">OCULUS</span>
   <button id="btnAutoModo" onclick="ocuToggleAutoModo()" title="Auto: +30 cada 5s"
     style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,0.05);
            border:1px solid rgba(255,255,255,0.15);border-radius:4px;
            color:rgba(180,255,210,0.75);cursor:pointer;letter-spacing:0.05em;">⚡ Auto</button>
-  <button onclick="oculusChangeSpeed(-1)" title="Reducir velocidad">◀</button>
-  <div id="oculusSpeedDisplay">1x</div>
-  <button id="btnSpeedUp" onclick="oculusChangeSpeed(1)" title="Aumentar velocidad — doble clic: auto-acelerar cada 7s">▶</button>
-  <button onclick="oculusResetSpeed()" title="1x">✕</button>
-  <button onclick="oculusSpeedPhi()" title="×φ">φ</button>
-  <button onclick="oculusSpeedX10()" title="×10">×10</button>
-  <button onclick="oculusSpeedDiv10()" title="÷10">÷10</button>
+  <button onclick="oculusChangeSpeed(-1)" title="Reducir velocidad (−10x)">◀</button>
+  <div id="oculusSpeedDisplay">100x</div>
+  <button id="btnSpeedUp" onclick="oculusChangeSpeed(1)" title="Aumentar velocidad (+10x)">▶</button>
+  <button onclick="oculusResetSpeed()" title="Velocidad inicial 100x">✕</button>
   <button id="btnRespiracion" onclick="ocuToggleRespiracion()" title="Respiración Astral — oscilador armilar">☽ Spiritus</button>
-  <button onclick="leerIAenOculus()" title="Lectura IA del cielo actual" style="font-size:11px;background:rgba(160,120,255,0.2);border-color:rgba(160,120,255,0.5);">✦ Leer IA</button>
   <button onclick="transformareAstralis()" title="Volver a Caelis" id="btnRetornar">⟳ Transmutare Astralis</button>
 </div>
 
@@ -858,11 +996,6 @@ button:hover{background:rgba(255,255,255,0.18);}
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnAnillo"   onclick="toggleAnilloMadre()" title="Cámara centrada en el Sol — eclíptica fija" data-i18n="btn.anillo">⊙ Anillo</button>
   <button id="btnAstrolabio" onclick="toggleAstrolabio()" title="Vista de astrolabio — proyección estereográfica polar" data-i18n="btn.astrolabio">⊕ Astrolabio</button>
-  <button id="btnConstela" onclick="toggleCapa('constelaciones')" title="Constelaciones" data-i18n="btn.const">✦ Const.</button>
-  <button id="btnCasas"    onclick="toggleCapa('casas')"          title="Casas + Eclíptica" data-i18n="btn.casas">⌂ Casas</button>
-  <button id="btnHouseSys" onclick="toggleHouseSystem()" title="Sistema de casas">⌂ Iguales</button>
-  <button id="btnMW"       onclick="toggleCapa('vialactea')"      title="Vía Láctea" data-i18n="btn.mw">⊛ Vía Lác.</button>
-  <button id="btnAspectos" onclick="toggleCapa('aspectos')"       title="Aspectos astrológicos" data-i18n="btn.aspectos">⚹ Aspectos</button>
   <div style="width:1px;background:rgba(255,255,255,0.12);margin:0 4px;height:20px;"></div>
   <button id="btnAtacir" onclick="toggleAtacirPanel()" title="Nodos lunares · Atacir" data-i18n="btn.atacir">☊ Atacir</button>
   <button id="btnEclipses" onclick="toggleEclipsesPanel()" title="Calculadora de Eclipses" data-i18n="btn.eclipses">⊗ Eclipses</button>
@@ -881,6 +1014,61 @@ button:hover{background:rgba(255,255,255,0.18);}
         <div class="stg-row">
           <button class="stg-lang-btn active" id="stg-lang-es" data-lang="es" onclick="_setLang('es')">ES<br><span style="font-size:9px;opacity:0.6;">Español</span></button>
           <button class="stg-lang-btn"        id="stg-lang-en" data-lang="en" onclick="_setLang('en')">EN<br><span style="font-size:9px;opacity:0.6;">English</span></button>
+        </div>
+      </div>
+
+      <div class="stg-divider"></div>
+
+      <!-- Vistas / Capas -->
+      <div class="stg-section">
+        <div class="stg-label" id="stg-lbl-views">🔭 Vistas</div>
+
+        <div class="stg-toggle-row">
+          <span class="stg-toggle-name" data-i18n="btn.anillo">⊙ Anillo</span>
+          <label class="stg-toggle">
+            <input type="checkbox" id="stg-tog-anillo" checked onchange="_stgToggleAnillo(this.checked)">
+            <span class="stg-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="stg-toggle-row">
+          <span class="stg-toggle-name" data-i18n="btn.const">✦ Constelaciones</span>
+          <label class="stg-toggle">
+            <input type="checkbox" id="stg-tog-const" checked onchange="_stgToggleCapa('constelaciones', this.checked)">
+            <span class="stg-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="stg-toggle-row">
+          <span class="stg-toggle-name" data-i18n="btn.casas">⌂ Casas</span>
+          <label class="stg-toggle">
+            <input type="checkbox" id="stg-tog-casas" checked onchange="_stgToggleCapa('casas', this.checked)">
+            <span class="stg-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="stg-toggle-row">
+          <span class="stg-toggle-name" style="color:rgba(255,255,255,0.70);font-size:11px;font-family:'Georgia',serif;">⌂ Sistema</span>
+          <select class="stg-house-select" id="stg-sel-houses" onchange="_stgSetHouseSystem(this.value)">
+            <option value="equal">Iguales</option>
+            <option value="placidus">Placidus</option>
+          </select>
+        </div>
+
+        <div class="stg-toggle-row">
+          <span class="stg-toggle-name" data-i18n="btn.mw">⊛ Vía Láctea</span>
+          <label class="stg-toggle">
+            <input type="checkbox" id="stg-tog-mw" checked onchange="_stgToggleCapa('vialactea', this.checked)">
+            <span class="stg-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="stg-toggle-row">
+          <span class="stg-toggle-name" data-i18n="btn.aspectos">⚹ Aspectos</span>
+          <label class="stg-toggle">
+            <input type="checkbox" id="stg-tog-aspectos" checked onchange="_stgToggleCapa('aspectos', this.checked)">
+            <span class="stg-toggle-track"></span>
+          </label>
         </div>
       </div>
 
@@ -1107,8 +1295,8 @@ button:hover{background:rgba(255,255,255,0.18);}
       <div id="iaContextFields">
         <div class="ia-context-row">
           <label data-i18n="ia.personA">Pers. A</label>
-          <input type="text" id="iaNombreA" data-i18n-ph="ia.placeholder.name" placeholder="Nombre o iniciales" maxlength="30">
-          <input type="text" id="iaPronA"   data-i18n-ph="ia.placeholder.pron" placeholder="él / ella / elle" maxlength="10">
+          <input type="text" id="iaNombreA" data-i18n-ph="ia.placeholder.name" placeholder="Nombre o iniciales" maxlength="30" oninput="_prefsSave()">
+          <input type="text" id="iaPronA"   data-i18n-ph="ia.placeholder.pron" placeholder="él / ella / elle" maxlength="10" oninput="_prefsSave()">
         </div>
         <div class="ia-context-row" id="iaContextB" style="display:none">
           <label data-i18n="ia.personB">Pers. B</label>
@@ -1130,8 +1318,18 @@ button:hover{background:rgba(255,255,255,0.18);}
       ✦ Generar lectura
     </button>
     <div id="iaSpinner" id="iaSpinner">Leyendo el cielo</div>
+    <!-- Contador lecturas gratuitas [3.2] -->
+    <div id="iaFreeHint"></div>
     <div id="iaResult"></div>
-    <button id="iaSpeakBtn" data-i18n="ia.speak" style="display:none; width:100%; margin-top:8px; background:rgba(180,220,140,0.1); border:1px solid rgba(180,220,140,0.4); border-radius:6px; padding:5px; color:rgba(220,240,200,0.9); font-size:11px;">🔊 Leer en voz alta</button>
+    <!-- Barra de acciones IA -->
+    <div id="iaActionBar">
+      <button class="ia-action-btn" id="iaBtnPlay"  title="Leer en voz alta">🔊</button>
+      <button class="ia-action-btn" id="iaBtnPause" title="Pausar / Reanudar" disabled>⏸</button>
+      <button class="ia-action-btn" id="iaBtnRepeat" title="Repetir desde el inicio" disabled>↩</button>
+      <div class="ia-sep"></div>
+      <button class="ia-action-btn" id="iaBtnCopy"  title="Copiar texto">⎘</button>
+      <button class="ia-action-btn" id="iaBtnShare" title="Compartir">↗</button>
+    </div>
   </div>
 </div>
 
@@ -1191,7 +1389,7 @@ const _CL_STORE  = "caelis_license_v1";
 const FREE_PLANETS  = ["sol","luna","mercurio","venus","marte","jupiter","saturno"]; // DEV
 const FREE_PALETTES = ["clasico","neon","fuego","oceano","aurora","purpura"]; // DEV
 
-let _isPremium = false;
+let _isPremium = false; // DEV
 
 // ── Opción B: Seeds revocados ────────────────────────────────────
 // Para revocar una clave comprometida, agrega su seed a este Set
@@ -1206,6 +1404,330 @@ const _CL_REVOKED = new Set([
 // ══════════════════════════════════════════════════════════════════
 
 const _IA_ENDPOINT = "https://caelis-ia.hermeticalabs.workers.dev";
+
+// ══════════════════════════════════════════════════════════════════
+// SPRINT 3 — SISTEMA DE CRÉDITOS IA + DEMO MODE + CAPACITOR
+// ══════════════════════════════════════════════════════════════════
+
+// ── [3.3] Detector Capacitor ─────────────────────────────────────
+(function(){
+  if(window.Capacitor && window.Capacitor.isNative){
+    document.body.classList.add("capacitor");
+  }
+})();
+
+// ── [3.2] Sistema de créditos renovables ─────────────────────────
+//
+// Tiers:
+//   free       → 3 créditos/día,  sin rollover
+//   personal   → 15 créditos/día, rollover máx 45 (3 días)
+//   developer  → 40 créditos/día, rollover máx 120 (3 días)
+//   studio     → ilimitado (bypass completo)
+//
+// Persistencia: localStorage "caelis_credits_v1"
+// Renovación:   al abrir Caelis, si lastReset < medianoche UTC → renovar
+
+const _CREDITS_KEY = "caelis_credits_v1";
+
+const _CREDIT_TIERS = {
+  free:      { daily: 3,        rolloverCap: 0   },
+  personal:  { daily: 15,       rolloverCap: 45  },
+  developer: { daily: 40,       rolloverCap: 120 },
+  studio:    { daily: Infinity, rolloverCap: Infinity },
+};
+
+// Detectar tier del usuario
+// DEV: _isPremium = true → studio (sin créditos, sin widget)
+// PROD: _isPremium = false → free hasta validar licencia
+function _creditsTier(){
+  if(!_isPremium) return "free";
+  // PROD: aquí se leería el tier de la licencia validada contra KV
+  // Por ahora _isPremium = true implica studio
+  return "studio";
+}
+
+// Medianoche UTC del día actual (Unix segundos)
+function _creditsMidnightUTC(){
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000;
+}
+
+// Estado por defecto para un tier
+function _creditsDefault(tier){
+  const t = _CREDIT_TIERS[tier] || _CREDIT_TIERS.free;
+  return {
+    tier,
+    balance:     t.daily === Infinity ? Infinity : t.daily,
+    lastReset:   _creditsMidnightUTC(),
+    dailyQuota:  t.daily,
+    rolloverCap: t.rolloverCap,
+  };
+}
+
+function _creditsLoad(){
+  try {
+    const raw = localStorage.getItem(_CREDITS_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  } catch(e){ return null; }
+}
+
+function _creditsSave(state){
+  try { localStorage.setItem(_CREDITS_KEY, JSON.stringify(state)); } catch(e){}
+}
+
+// Renovar créditos si el día cambió
+function _creditsRenew(state){
+  const midnight = _creditsMidnightUTC();
+  if(state.lastReset >= midnight) return state; // mismo día
+  const tier = _CREDIT_TIERS[state.tier] || _CREDIT_TIERS.free;
+  let newBalance;
+  if(state.rolloverCap === 0 || state.tier === "free"){
+    newBalance = tier.daily; // sin rollover: siempre reset
+  } else {
+    newBalance = Math.min(state.balance + tier.daily, state.rolloverCap);
+  }
+  return { ...state, balance: newBalance, lastReset: midnight,
+           dailyQuota: tier.daily, rolloverCap: tier.rolloverCap };
+}
+
+// Inicializar sistema al arrancar
+function _creditsInit(){
+  const tier  = _creditsTier();
+  let   state = _creditsLoad();
+  if(!state || state.tier !== tier){
+    state = _creditsDefault(tier);
+  } else {
+    state = _creditsRenew(state);
+  }
+  _creditsSave(state);
+  _creditsUpdateHint(state);
+  return state;
+}
+
+function _creditsCanRead(){
+  if(_creditsTier() === "studio") return true;
+  const state = _creditsLoad();
+  return state ? state.balance > 0 : false;
+}
+
+function _creditsConsume(){
+  if(_creditsTier() === "studio") return;
+  let state = _creditsLoad();
+  if(!state) return;
+  state.balance = Math.max(0, state.balance - 1);
+  _creditsSave(state);
+  _creditsUpdateHint(state);
+}
+
+function _creditsUpdateHint(state){
+  const hint = document.getElementById("iaFreeHint");
+  if(!hint) return;
+  if(!state) state = _creditsLoad();
+  const tier = state ? state.tier : _creditsTier();
+
+  if(tier === "studio"){
+    hint.style.display = "none"; return;
+  }
+
+  hint.style.display = "block";
+  const bal       = state ? state.balance : 0;
+  const daily     = state ? state.dailyQuota : 3;
+  const cap       = state ? state.rolloverCap : 0;
+  const hoursLeft = Math.ceil((_creditsMidnightUTC() + 86400 - Date.now()/1000) / 3600);
+  const accum     = cap > 0 && bal > daily ? bal - daily : 0;
+  const rollText  = accum > 0
+    ? ` <span style="opacity:0.55;">(+${accum} acumulado${accum===1?"":"s"})</span>`
+    : "";
+
+  if(bal === 0){
+    hint.className = "credits-empty";
+    hint.innerHTML = `☽ Sin créditos hoy · se renuevan en ~${hoursLeft}h · `
+      + `activar Premium`;
+  } else if(bal <= Math.ceil(daily * 0.34)){
+    hint.className = "credits-low";
+    hint.innerHTML = `✦ ${bal} crédito${bal===1?"":"s"} restante${bal===1?"":"s"}${rollText} · ~${hoursLeft}h`;
+  } else {
+    hint.className = "credits-ok";
+    hint.innerHTML = `✦ ${bal} crédito${bal===1?"":"s"} disponible${bal===1?"":"s"}${rollText}`;
+  }
+}
+
+// Aliases de compatibilidad (la firma pública no cambia)
+function _iaInitCounter()     { _creditsInit(); }
+function _iaCanRead()         { return _creditsCanRead(); }
+function _iaIncrementCounter(){ _creditsConsume(); }
+function _iaUpdateFreeHint()  { _creditsUpdateHint(null); }
+
+
+
+// ══════════════════════════════════════════════════════════════════
+// CAELIS PREFS — Sistema de persistencia localStorage
+// Clave: "caelis_prefs_v1" — objeto JSON único
+// ══════════════════════════════════════════════════════════════════
+
+const _PREFS_KEY = "caelis_prefs_v1";
+let _prefsDebounce = null;
+
+// Estructura por defecto — todos los campos que se persisten
+function _prefsDefault(){
+  return {
+    // Ubicación del observador
+    lat:       -33.45,
+    lon:       -70.66,
+    obsLabel:  "",
+    // Sistema de casas
+    houseSystem: "equal",
+    // Capas activas
+    capas: { constelaciones:true, casas:true, vialactea:true, aspectos:true },
+    // Modo anillo madre
+    modoAnillo: false,
+    // Idioma (ya persiste por separado en "caelis_lang", lo unificamos aquí también)
+    lang: "es",
+    // Carta natal guardada (para Sprint 2 — aspecto natal vs cielo)
+    natal: null,  // { fecha, hora, lat, lon, nombre, pronombre } | null
+    // Contexto IA
+    iaNombre: "",
+    iaPronombre: "",
+    // Velocidad preferida (modo Caelis)
+    speedIndex: 5,
+  };
+}
+
+// Cargar preferencias desde localStorage
+function _prefsLoad(){
+  try {
+    const raw = localStorage.getItem(_PREFS_KEY);
+    if(!raw) return _prefsDefault();
+    return Object.assign(_prefsDefault(), JSON.parse(raw));
+  } catch(e){ return _prefsDefault(); }
+}
+
+// Guardar con debounce 500ms para no saturar localStorage en cada frame
+function _prefsSave(){
+  clearTimeout(_prefsDebounce);
+  _prefsDebounce = setTimeout(_prefsSaveNow, 500);
+}
+
+function _prefsSaveNow(){
+  try {
+    const prefs = {
+      lat:        lat * rad2deg,
+      lon:        lon * rad2deg,
+      obsLabel:   document.getElementById("obsLabel")?.textContent || "",
+      houseSystem,
+      capas:      { ...capas },
+      modoAnillo: modoAnilloMadre,
+      lang:       _lang,
+      natal:      window._natalSaved || null,
+      iaNombre:   document.getElementById("iaNombreA")?.value || "",
+      iaPronombre:document.getElementById("iaPronA")?.value || "",
+      speedIndex,
+    };
+    localStorage.setItem(_PREFS_KEY, JSON.stringify(prefs));
+  } catch(e){ /* localStorage lleno o bloqueado */ }
+}
+
+// Aplicar preferencias cargadas al estado del motor
+function _prefsApply(p){
+  // Ubicación
+  if(typeof p.lat === 'number' && typeof p.lon === 'number'){
+    lat = p.lat * deg2rad;
+    lon = p.lon * deg2rad;
+  }
+  // Sistema de casas
+  if(p.houseSystem && (p.houseSystem === 'equal' || p.houseSystem === 'placidus')){
+    houseSystem = p.houseSystem;
+    // Sincronizar selector en Settings
+    const sel = document.getElementById("stg-sel-houses");
+    if(sel) sel.value = houseSystem;
+    // Sincronizar botón legacy (puede existir en otros contextos)
+    const btn = document.getElementById("btnHouseSys");
+    if(btn){
+      btn.textContent = houseSystem === "equal" ? "⌂ Iguales" : "⌂ Placidus";
+      btn.style.background  = houseSystem === "placidus" ? "rgba(160,220,255,0.18)" : "";
+      btn.style.borderColor = houseSystem === "placidus" ? "rgba(160,220,255,0.50)" : "";
+    }
+  }
+  // Capas
+  if(p.capas && typeof p.capas === 'object'){
+    Object.keys(capas).forEach(k => {
+      if(typeof p.capas[k] === 'boolean') capas[k] = p.capas[k];
+    });
+  }
+  // Modo anillo
+  if(typeof p.modoAnillo === 'boolean' && p.modoAnillo !== modoAnilloMadre){
+    toggleAnilloMadre(); // activa/desactiva para coincidir
+  }
+  // Idioma (ya lo maneja _applyLang, solo sincronizar si difiere)
+  if(p.lang && p.lang !== _lang){
+    _lang = p.lang;
+    localStorage.setItem("caelis_lang", _lang);
+  }
+  // Carta natal guardada
+  if(p.natal) window._natalSaved = p.natal;
+  // Contexto IA
+  setTimeout(() => {
+    const nA = document.getElementById("iaNombreA");
+    const pA = document.getElementById("iaPronA");
+    if(nA && p.iaNombre)    nA.value = p.iaNombre;
+    if(pA && p.iaPronombre) pA.value = p.iaPronombre;
+  }, 100);
+  // Velocidad
+  if(typeof p.speedIndex === 'number'){
+    speedIndex = Math.max(0, Math.min(speedLevels.length-1, p.speedIndex));
+    timeSpeed  = speedLevels[speedIndex];
+  }
+  // Sincronizar toggles del Settings con estado de capas
+  _stgSyncToggles();
+}
+
+// ── Funciones de Settings para capas [1.2] ───────────────────────
+
+// Sincronizar el estado visual de los toggles con el estado real de capas
+function _stgSyncToggles(){
+  const map = {
+    'stg-tog-anillo':   () => modoAnilloMadre,
+    'stg-tog-const':    () => capas.constelaciones,
+    'stg-tog-casas':    () => capas.casas,
+    'stg-tog-mw':       () => capas.vialactea,
+    'stg-tog-aspectos': () => capas.aspectos,
+  };
+  Object.entries(map).forEach(([id, getter]) => {
+    const el = document.getElementById(id);
+    if(el) el.checked = getter();
+  });
+  const sel = document.getElementById("stg-sel-houses");
+  if(sel) sel.value = houseSystem;
+}
+
+// Toggle Anillo desde Settings
+function _stgToggleAnillo(val){
+  if(val !== modoAnilloMadre) toggleAnilloMadre();
+  _prefsSave();
+}
+
+// Toggle de capa genérica desde Settings
+function _stgToggleCapa(nombre, val){
+  capas[nombre] = val;
+  // Sincronizar botón de toolbar legacy si existiera
+  const legacyBtn = document.getElementById(
+    {constelaciones:'btnConstela', casas:'btnCasas', vialactea:'btnMW', aspectos:'btnAspectos'}[nombre]
+  );
+  if(legacyBtn){
+    legacyBtn.style.opacity = val ? "1" : "0.45";
+  }
+  _prefsSave();
+}
+
+// Cambio de sistema de casas desde Settings
+function _stgSetHouseSystem(val){
+  houseSystem = val;
+  _invalidateAstroCache();
+  _prefsSave();
+}
+
+
 
 const _i18n = {
   es: {
@@ -1445,7 +1967,7 @@ async function _clVerifyKey(key){
 
 // ── Inicialización (con binding C) ──────────────────────────────
 async function _clInit(){
-  /* PROD */
+  /* DEV-DISABLED */
   const saved = localStorage.getItem(_CL_STORE);
   if(!saved){ _setPremium(false); return; }
 
@@ -1880,6 +2402,7 @@ function changeSpeed(d){
   speedIndex = Math.max(0, Math.min(speedLevels.length-1, speedIndex+d));
   timeSpeed  = speedLevels[speedIndex];
   document.getElementById("speedDisplay").innerText = speedLabels[speedIndex];
+  _prefsSave();
 }
 function _invalidateAstroCache(){
   // Invalidar caches de nutation y lunarNodes cuando el tiempo cambia externamente
@@ -2443,6 +2966,11 @@ function toggleCapa(nombre){
     btn.style.borderColor  = capas[nombre] ? "" : "rgba(255,255,255,0.08)";
     btn.style.opacity      = capas[nombre] ? "1" : "0.45";
   }
+  // Sincronizar toggle en Settings
+  const togMap = { constelaciones:'stg-tog-const', casas:'stg-tog-casas', vialactea:'stg-tog-mw', aspectos:'stg-tog-aspectos' };
+  const tog = document.getElementById(togMap[nombre]);
+  if(tog) tog.checked = capas[nombre];
+  _prefsSave();
 }
 
 // ======= MODO ANILLO MADRE =======
@@ -2456,20 +2984,22 @@ function toggleAnilloMadre(){
   modoAnilloMadre = !modoAnilloMadre;
   let btn = document.getElementById("btnAnillo");
   if(modoAnilloMadre){
-    // Activar: velocidad 1h/s para ver el anillo completo
-    speedIndex = 5; // índice de 3600s/s = 1h/s
+    speedIndex = 5;
     timeSpeed  = speedLevels[speedIndex];
     document.getElementById("speedDisplay").innerText = speedLabels[speedIndex];
     if(btn) btn.style.background = "rgba(255,215,55,0.25)";
     if(btn) btn.style.borderColor = "rgba(255,215,55,0.6)";
   } else {
-    // Desactivar: volver a tiempo real
     speedIndex = 3;
     timeSpeed  = speedLevels[speedIndex];
     document.getElementById("speedDisplay").innerText = speedLabels[speedIndex];
     if(btn) btn.style.background = "";
     if(btn) btn.style.borderColor = "";
   }
+  // Sincronizar toggle en Settings
+  const tog = document.getElementById("stg-tog-anillo");
+  if(tog) tog.checked = modoAnilloMadre;
+  _prefsSave();
 }
 
 // Proyección en modo anillo madre: el sol es el nuevo "norte" del disco.
@@ -2603,6 +3133,10 @@ function toggleHouseSystem(){
     btn.style.background   = houseSystem === "placidus" ? "rgba(160,220,255,0.18)" : "";
     btn.style.borderColor  = houseSystem === "placidus" ? "rgba(160,220,255,0.50)" : "";
   }
+  // Sincronizar selector en Settings
+  const sel = document.getElementById("stg-sel-houses");
+  if(sel) sel.value = houseSystem;
+  _prefsSave();
 }
 
 // ── Ascensión oblicua: OA = RA − arcsin(tan δ · tan φ)
@@ -3264,63 +3798,68 @@ function drawMoon(sun,vis){
   ctx.translate(mp.x, mp.y);
   ctx.rotate(angle);
 
-  // Disco base oscuro
-  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
-  ctx.fillStyle="rgba(30,30,50,0.92)"; ctx.fill();
+  // ── Eclipse solar activo: Luna completamente oscura ───────────
+  // Durante un eclipse solar la Luna pasa frente al Sol —
+  // el espectador ve el disco lunar sin luz reflejada.
+  const eclNow = _eclipseActivoAhora();
+  if(eclNow){
+    // ── ECLIPSE SOLAR: Luna completamente oscura + corona ─────────
+    // Disco negro (umbra) — sin luz reflejada visible
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(4,3,12,0.97)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba(80,70,120,0.25)'; ctx.lineWidth = 0.6; ctx.stroke();
 
-  // Parte iluminada:
-  // - Si creciente (elon 0→180): semidisco DERECHO iluminado, terminador cóncavo→convexo
-  // - Si menguante (elon 180→360): semidisco IZQUIERDO iluminado
-  if(!waning){
-    // Creciente: derecha iluminada
-    ctx.beginPath();
-    ctx.arc(0,0,r, Math.PI/2, -Math.PI/2);
-    ctx.ellipse(0,0, r*Math.abs(xScale), r, 0, Math.PI/2, -Math.PI/2, xScale>0);
-    ctx.closePath();
-  } else {
-    // Menguante: izquierda iluminada
-    ctx.beginPath();
-    ctx.arc(0,0,r, -Math.PI/2, Math.PI/2);
-    ctx.ellipse(0,0, r*Math.abs(xScale), r, 0, -Math.PI/2, Math.PI/2, xScale<0);
-    ctx.closePath();
-  }
-  ctx.fillStyle="rgba(240,238,210,0.95)"; ctx.fill();
-
-  // Borde sutil
-  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
-  ctx.strokeStyle="rgba(200,200,180,0.30)"; ctx.lineWidth=0.8; ctx.stroke();
-
-  // ── CORONA DE ECLIPSE TOTAL ──────────────────────────────────────
-  const ecl = _eclipseActivoAhora();
-  if(ecl){
-    // Corona exterior — anillos concéntricos que simulan la corona solar
+    // Corona exterior — anillos concéntricos
     const coronaCapas = [
-      { r: r*2.8, op: 0.55, blur: 18, color: '255,235,180' },
-      { r: r*2.2, op: 0.70, blur: 10, color: '255,245,200' },
-      { r: r*1.7, op: 0.85, blur:  5, color: '255,250,220' },
-      { r: r*1.3, op: 0.50, blur:  3, color: '200,220,255' },
+      { r: r*2.8, op: 0.55, color: '255,235,180' },
+      { r: r*2.2, op: 0.70, color: '255,245,200' },
+      { r: r*1.7, op: 0.85, color: '255,250,220' },
+      { r: r*1.3, op: 0.50, color: '200,220,255' },
     ];
     for(const capa of coronaCapas){
       const grad = ctx.createRadialGradient(0,0,r*0.95, 0,0,capa.r);
       grad.addColorStop(0,   `rgba(${capa.color},${capa.op})`);
-      grad.addColorStop(0.4, `rgba(${capa.color},${capa.op*0.5})`);
+      grad.addColorStop(0.4, `rgba(${capa.color},${(capa.op*0.5).toFixed(2)})`);
       grad.addColorStop(1,   `rgba(${capa.color},0)`);
       ctx.beginPath(); ctx.arc(0,0,capa.r,0,Math.PI*2);
       ctx.fillStyle = grad; ctx.fill();
     }
-    // Rayos de corona — líneas radiales tenues
+    // Rayos de corona
     for(let a=0; a<Math.PI*2; a+=Math.PI/8){
       const rayLen = r*(1.8 + Math.random()*0.8);
       ctx.beginPath();
       ctx.moveTo(Math.cos(a)*r*1.05, Math.sin(a)*r*1.05);
       ctx.lineTo(Math.cos(a)*rayLen,  Math.sin(a)*rayLen);
-      ctx.strokeStyle=`rgba(255,245,200,${0.10+Math.random()*0.08})`;
+      ctx.strokeStyle=`rgba(255,245,200,${(0.10+Math.random()*0.08).toFixed(2)})`;
       ctx.lineWidth=0.6; ctx.stroke();
     }
-    // Anillo de Baily (borde luminoso interior)
+    // Anillo de Baily
     ctx.beginPath(); ctx.arc(0,0,r*1.02,0,Math.PI*2);
     ctx.strokeStyle='rgba(255,220,100,0.90)';
     ctx.lineWidth=1.5; ctx.stroke();
+
+  } else {
+    // ── LUNA NORMAL: disco con fase ────────────────────────────────
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.fillStyle="rgba(30,30,50,0.92)"; ctx.fill();
+
+    if(!waning){
+      ctx.beginPath();
+      ctx.arc(0,0,r, Math.PI/2, -Math.PI/2);
+      ctx.ellipse(0,0, r*Math.abs(xScale), r, 0, Math.PI/2, -Math.PI/2, xScale>0);
+      ctx.closePath();
+    } else {
+      ctx.beginPath();
+      ctx.arc(0,0,r, -Math.PI/2, Math.PI/2);
+      ctx.ellipse(0,0, r*Math.abs(xScale), r, 0, -Math.PI/2, Math.PI/2, xScale<0);
+      ctx.closePath();
+    }
+    ctx.fillStyle="rgba(240,238,210,0.95)"; ctx.fill();
+
+    // Borde sutil
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.strokeStyle="rgba(200,200,180,0.30)"; ctx.lineWidth=0.8; ctx.stroke();
   }
 
   ctx.restore();
@@ -3783,6 +4322,7 @@ function setObserver(latDeg, lonDeg, label){
   R_TIERRA = geocentricRadius();
   let status = document.getElementById("locStatus");
   if(status) status.textContent = label || `${latDeg.toFixed(3)}°, ${lonDeg.toFixed(3)}°`;
+  _prefsSave();
 }
 
 // Entrada manual: acepta "lat, lon" en grados decimales
@@ -4803,7 +5343,7 @@ function exportarJSON(){
 
   // Construir objeto limpio y legible
   let out = {
-    motor:   "Caelis Engine v2.2 · Hermetica Labs",
+    motor:   "Caelis Engine v2.1 · Hermetica Labs",
     version: _isPremium ? "premium" : "free",
     algoritmos: {
       planetas: "VSOP87 (Bretagnon & Francou 1987)",
@@ -4910,7 +5450,7 @@ function exportarJSON(){
         transito: a.nmTr, natal: a.nmRx, aspecto: a.asp,
         angulo: a.angulo, orbe: +a.orb, exactitud: +(a.exactitud*100).toFixed(1)
       }))
-    } : { nota_premium: "Actualiza a Premium para aspectos de tránsito, ciclos y resonancias — ko-fi.com/hermeticalabs" })
+    } : { nota_premium: "Actualiza a Premium para aspectos de tránsito, ciclos y resonancias" })
   };
 
   let json = JSON.stringify(out, null, 2);
@@ -4941,7 +5481,7 @@ function exportarJSONSinastria(){
   }
 
   const out = {
-    motor:     "Caelis Engine v2.2 · Hermetica Labs",
+    motor:     "Caelis Engine v2.1 · Hermetica Labs",
     modulo:    "Sinastría",
     algoritmos: {
       planetas:  "VSOP87 (Bretagnon & Francou 1987)",
@@ -5023,7 +5563,7 @@ function exportarJSONSinastria(){
     } : {}),
 
     ...(!_isPremium ? {
-      nota_premium: "Actualiza a Premium para antiscias completas — ko-fi.com/hermeticalabs"
+      nota_premium: "Actualiza a Premium para antiscias completas"
     } : {})
   };
 
@@ -5355,7 +5895,7 @@ function _cartaMetadata(snap, label){
     border-radius:5px;border:1px solid rgba(255,255,255,0.06);font-size:8px;
     color:rgba(255,255,255,0.28);line-height:1.7;">
     <div style="color:rgba(180,160,255,0.55);font-weight:bold;margin-bottom:3px;font-size:9px;">
-      Caelis Engine v2.2 · Hermetica Labs
+      Caelis Engine v2.1 · Hermetica Labs
     </div>
     <div>${label||'Carta'} · JD ${snap.meta.jd.toFixed(6)}</div>
     <div>UTC: ${snap.meta.utc}</div>
@@ -5854,7 +6394,7 @@ function exportarTextoSinastria(){
 
   // ── Encabezado ────────────────────────────────────────────────
   t.push("╔" + sep(L,"═") + "╗");
-  t.push("║" + "  CAELIS ENGINE 2.2  ·  Sinastría Bi-wheel".padEnd(L) + "║");
+  t.push("║" + "  CAELIS ENGINE 2.1  ·  Sinastría Bi-wheel".padEnd(L) + "║");
   t.push("║" + "  VSOP87 / ELP-MPP02 · Placidus · J2000.0".padEnd(L)  + "║");
   t.push("╚" + sep(L,"═") + "╝");
   t.push("");
@@ -6185,7 +6725,7 @@ function exportarTexto(){
     t.push("  ── VERSIÓN FREE ─────────────────────────────────────");
     t.push("  Tránsitos, ciclos, resonancias y Atacir completo");
     t.push("  disponibles en Caelis Premium.");
-    t.push("  ✦ ko-fi.com/hermeticalabs");
+    t.push("  ✦ hermeticalabs.github.io/caelis-engine");
   }
 
   t.push(`  Exportado: ${new Date().toISOString()}`);
@@ -6839,7 +7379,7 @@ function exportarJSONPanchanga(){
         proximo_cambio: jdeToStr(d.jdeNextKarana)
       }
     } : {
-      nota_premium: "Nakshatra, Yoga y Karana disponibles con Premium — ko-fi.com/hermeticalabs"
+      nota_premium: "Nakshatra, Yoga y Karana disponibles con Premium"
     })
   };
 
@@ -6896,6 +7436,14 @@ async function _iaCallWorker(payload, targetDiv){
     targetDiv.textContent = "🔒 La Lectura Hermética IA es una función Premium.\nActiva tu licencia para acceder.";
     targetDiv.classList.add("visible"); return;
   }
+  // [3.2] Verificar créditos disponibles
+  if(!_creditsCanRead()){
+    const hoursLeft = Math.ceil((_creditsMidnightUTC() + 86400 - Date.now()/1000) / 3600);
+    targetDiv.textContent = `☽ Sin créditos disponibles hoy.\nSe renuevan en ~${hoursLeft}h o activa Premium para acceso ilimitado.`;
+    targetDiv.classList.add("visible");
+    _creditsUpdateHint(null);
+    return;
+  }
   // URL del Worker hardcodeada — no requiere configuración del usuario
   const workerURL = _IA_ENDPOINT;
   const licenseRaw = localStorage.getItem(_CL_STORE) || "";
@@ -6909,14 +7457,28 @@ async function _iaCallWorker(payload, targetDiv){
   const spinner = document.getElementById("iaSpinner");
   if(spinner) spinner.classList.add("visible");
   try {
+    // [3.1] Añadir modo demo y créditos al payload
+    const credState  = _creditsLoad();
+    const creditsTier = _creditsTier();
+    const isDemoMode  = (creditsTier === "free");
+    // Token simple: hash del tier + fecha + licencia para validación en Worker
+    const credToken = btoa(`${creditsTier}:${_creditsMidnightUTC()}:${licenseKey.slice(0,8)}`);
+    const bodyPayload = {
+      ...payload,
+      mode:          isDemoMode ? "demo" : "full",
+      credits_tier:  creditsTier,
+      credits_token: credToken,
+    };
     const res  = await fetch(workerURL, {
       method: "POST",
       headers: { "Content-Type":"application/json", "X-Caelis-License": licenseKey },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(bodyPayload),
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || `Error ${res.status}`);
     const text = data.interpretation || _t("ia.error.empty");
+    // Consumir crédito tras lectura exitosa [3.2]
+    _creditsConsume();
     // Renderizar párrafos con animación escalonada
     const paras = text.split(/\n{2,}/).filter(p=>p.trim());
     targetDiv.innerHTML = paras.map((p,i)=>
@@ -6924,18 +7486,8 @@ async function _iaCallWorker(payload, targetDiv){
     ).join("") +
     `<div class="ia-source">Caelis Engine v2.2 · IAU 2000B · VSOP87 · ELP/MPP02-LLR · ${data.type||""}</div>`;
     targetDiv.classList.add("visible");
-    // Botón de voz — idioma dinámico según _lang
-    const speakBtn = document.getElementById("iaSpeakBtn");
-    if(speakBtn) {
-      speakBtn.style.display = "block";
-      speakBtn.textContent = _t("ia.speak");
-      speakBtn.onclick = () => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = _t("ia.voice.lang");
-        utterance.rate = 0.9;
-        window.speechSynthesis.speak(utterance);
-      };
-    }
+    // Activar barra de acciones IA
+    _iaSetupActionBar(text);
   } catch(err){
     targetDiv.textContent = `⚠ ${err.message}`;
     targetDiv.classList.add("visible");
@@ -6997,6 +7549,139 @@ async function leerPanchanga(data){
 }
 
 // ── Panel IA — toggle y controles ────────────────────────────────────────────
+// ── Limpieza de markdown para SpeechSynthesis ────────────────────
+// Elimina símbolos que la voz lee literalmente: **, __, #, _, ~~, >, `
+function _iaCleanForSpeech(text){
+  return text
+    .replace(/#{1,6}\s*/g, '')          // # headers
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // **negrita**
+    .replace(/\*([^*]+)\*/g, '$1')     // *cursiva*
+    .replace(/__([^_]+)__/g, '$1')     // __negrita__
+    .replace(/_([^_]+)_/g, '$1')       // _cursiva_
+    .replace(/~~([^~]+)~~/g, '$1')     // ~~tachado~~
+    .replace(/`{1,3}[^`]*`{1,3}/g, '') // `código`
+    .replace(/^\s*>\s*/gm, '')         // > citas
+    .replace(/^\s*[-*+]\s+/gm, '')     // - listas
+    .replace(/^\s*\d+\.\s+/gm, '')     // 1. listas numeradas
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link](url)
+    .replace(/\n{3,}/g, '\n\n')        // exceso de saltos
+    .trim();
+}
+
+// ── Barra de acciones IA — setup tras cada lectura ───────────────
+let _iaSpeechText    = '';   // texto limpio de la lectura actual
+let _iaSpeechUtter   = null; // utterance activa
+let _iaSpeechPaused  = false;
+
+function _iaSetupActionBar(rawText){
+  _iaSpeechText   = _iaCleanForSpeech(rawText);
+  _iaSpeechUtter  = null;
+  _iaSpeechPaused = false;
+
+  const bar    = document.getElementById('iaActionBar');
+  const btnPl  = document.getElementById('iaBtnPlay');
+  const btnPa  = document.getElementById('iaBtnPause');
+  const btnRe  = document.getElementById('iaBtnRepeat');
+  const btnCo  = document.getElementById('iaBtnCopy');
+  const btnSh  = document.getElementById('iaBtnShare');
+  if(!bar) return;
+
+  // Resetear estado visual
+  [btnPa, btnRe].forEach(b => { if(b){ b.disabled = true; b.classList.remove('active'); } });
+  if(btnPl) btnPl.classList.remove('active');
+  bar.classList.add('visible');
+
+  // ── Leer ──────────────────────────────────────────────────────
+  if(btnPl) btnPl.onclick = () => _iaSpeak();
+
+  // ── Pausar / Reanudar ─────────────────────────────────────────
+  if(btnPa) btnPa.onclick = () => {
+    if(!window.speechSynthesis) return;
+    if(_iaSpeechPaused){
+      window.speechSynthesis.resume();
+      _iaSpeechPaused = false;
+      btnPa.textContent = '⏸';
+      btnPa.classList.remove('active');
+    } else {
+      window.speechSynthesis.pause();
+      _iaSpeechPaused = true;
+      btnPa.textContent = '▶';
+      btnPa.classList.add('active');
+    }
+  };
+
+  // ── Repetir ───────────────────────────────────────────────────
+  if(btnRe) btnRe.onclick = () => {
+    window.speechSynthesis.cancel();
+    _iaSpeechPaused = false;
+    _iaSpeak();
+  };
+
+  // ── Copiar ────────────────────────────────────────────────────
+  if(btnCo) btnCo.onclick = () => {
+    navigator.clipboard.writeText(_iaSpeechText).then(() => {
+      const orig = btnCo.textContent;
+      btnCo.textContent = '✓';
+      btnCo.classList.add('active');
+      setTimeout(() => { btnCo.textContent = orig; btnCo.classList.remove('active'); }, 1500);
+    }).catch(() => {
+      // Fallback para navegadores sin clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = _iaSpeechText;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+  };
+
+  // ── Compartir ─────────────────────────────────────────────────
+  if(btnSh) btnSh.onclick = () => {
+    const shareData = {
+      title: 'Lectura Hermética — Caelis Engine',
+      text:  _iaSpeechText,
+      url:   'https://hermeticalabs.github.io/caelis-engine/'
+    };
+    if(navigator.share){
+      navigator.share(shareData).catch(()=>{});
+    } else {
+      // Fallback: copiar al portapapeles si Web Share no disponible
+      navigator.clipboard.writeText(_iaSpeechText + '\n\n' + shareData.url).then(() => {
+        const orig = btnSh.textContent;
+        btnSh.textContent = '✓';
+        setTimeout(() => { btnSh.textContent = orig; }, 1500);
+      }).catch(()=>{});
+    }
+  };
+}
+
+function _iaSpeak(){
+  if(!window.speechSynthesis || !_iaSpeechText) return;
+  window.speechSynthesis.cancel();
+  _iaSpeechPaused = false;
+
+  const btnPl = document.getElementById('iaBtnPlay');
+  const btnPa = document.getElementById('iaBtnPause');
+  const btnRe = document.getElementById('iaBtnRepeat');
+
+  _iaSpeechUtter = new SpeechSynthesisUtterance(_iaSpeechText);
+  _iaSpeechUtter.lang = _t('ia.voice.lang');
+  _iaSpeechUtter.rate = 0.88;
+
+  _iaSpeechUtter.onstart = () => {
+    if(btnPl){ btnPl.classList.add('active'); }
+    if(btnPa){ btnPa.disabled = false; btnPa.textContent = '⏸'; }
+    if(btnRe){ btnRe.disabled = false; }
+  };
+  _iaSpeechUtter.onend = _iaSpeechUtter.onerror = () => {
+    if(btnPl){ btnPl.classList.remove('active'); }
+    if(btnPa){ btnPa.disabled = true; btnPa.textContent = '⏸'; btnPa.classList.remove('active'); }
+    _iaSpeechPaused = false;
+  };
+
+  window.speechSynthesis.speak(_iaSpeechUtter);
+}
+
 function toggleIAPanel(){
   const p  = document.getElementById("iaPanel");
   const b  = document.getElementById("btnIA");
@@ -7616,6 +8301,27 @@ function calcEclipses(){
   resDiv.innerHTML = _eclRenderTabla(eclipses, latDeg, lonDeg);
 }
 
+// ── Saltar al momento exacto de un eclipse ───────────────────────
+function _eclJumpTo(jde){
+  // JDE (Tiempo Dinámico) → Unix seconds
+  const unixSec = (jde - 2440587.5) * 86400;
+  timeOffset    = unixSec - Date.now() / 1000;
+  // Pausar la simulación (timeSpeed=0 detiene el avance sin romper speedIndex)
+  timeSpeed = 0;
+  const sd = document.getElementById("speedDisplay");
+  if(sd) sd.innerText = "⏸";
+  _invalidateAstroCache();
+  // Toast informativo
+  _clShowToast("⊗ Eclipse — usa ◀ ▶ para explorar · Reset para volver al presente");
+  // Cerrar panel tras breve pausa para ver el cielo
+  setTimeout(() => {
+    const p = document.getElementById("eclipsesPanel");
+    const b = document.getElementById("btnEclipses");
+    if(p) p.classList.remove("open");
+    if(b){ b.style.background=""; b.style.borderColor=""; }
+  }, 900);
+}
+
 // ── Render tabla de resultados ───────────────────────────────────
 function _eclRenderTabla(eclipses, latDeg, lonDeg){
   if(eclipses.length === 0) return `<div class="note" style="text-align:center;padding:8px;">${_t("ecl.none")}</div>`;
@@ -7626,7 +8332,7 @@ function _eclRenderTabla(eclipses, latDeg, lonDeg){
     return d.toISOString().slice(0,16).replace("T"," ") + " UTC";
   }
 
-  let rows = eclipses.map(e => {
+  let rows = eclipses.map((e, idx) => {
     let isSolar  = e.subtipo === "solar";
     let tipoCell = isSolar
       ? `<td class="ecl-solar">☀ ${e.tipo}</td>`
@@ -7638,12 +8344,15 @@ function _eclRenderTabla(eclipses, latDeg, lonDeg){
       ? `<td style="color:rgba(255,255,255,0.55);">${Math.round(e.dist).toLocaleString()} km</td>`
       : `<td style="color:rgba(255,255,255,0.25);">—</td>`;
     let magPct   = (e.magnitud * 100).toFixed(0) + "%";
-    return `<tr>
+    // Botón de salto integrado en la fila
+    let jumpCell = `<td class="ecl-jump" title="Ver este eclipse en Caelis">▶ Ver</td>`;
+    return `<tr class="ecl-row" onclick="_eclJumpTo(${e.jde})" title="Click para saltar a este eclipse">
       ${tipoCell}
       <td style="color:rgba(255,255,255,0.80);">${jdeToStr(e.jde)}</td>
       ${visCell}
       ${distCell}
       <td style="color:rgba(180,165,255,0.70);">${magPct}</td>
+      ${jumpCell}
      </tr>`;
   }).join("");
 
@@ -7654,11 +8363,13 @@ function _eclRenderTabla(eclipses, latDeg, lonDeg){
       <th>${_t("ecl.lbl.vis")} (${latDeg.toFixed(1)}°, ${lonDeg.toFixed(1)}°)</th>
       <th>${_t("ecl.lbl.dist")}</th>
       <th>${_t("ecl.lbl.mag")}</th>
+      <th style="color:rgba(140,190,255,0.45);font-size:10px;">▶</th>
      </tr></thead>
     <tbody>${rows}</tbody>
    </table>
-  <div class="note" style="font-size:10px;color:rgba(255,255,255,0.30);margin-top:6px;">
-    ${_t("ecl.note")}
+  <div class="note" style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.6;">
+    ${_t("ecl.note")}<br>
+    <span style="color:rgba(140,190,255,0.40);">↑ Click en cualquier fila para saltar a ese momento en Caelis</span>
   </div>`;
 }
 
@@ -7805,6 +8516,10 @@ function _activarNatal(){
   setObserver(rxLat, rxLon, `Natal ${rxLat.toFixed(2)}°, ${rxLon.toFixed(2)}°`);
 
   modoNatal = true;
+
+  // Guardar snapshot natal para el resplandor perimetral [2.2]
+  // getSnapshot() usa el timeOffset ya inyectado → captura las posiciones natales
+  try { window._caelisNatalSnap = getSnapshot(); } catch(e){}
 
   // Actualizar botón
   let btn = document.getElementById("btnNatal");
@@ -8413,22 +9128,28 @@ function drawRete(){
       ctx.beginPath(); ctx.arc(px,py,lr,0,Math.PI*2);
       ctx.fillStyle="rgba(20,20,45,0.95)"; ctx.fill();
       ctx.strokeStyle="rgba(160,160,220,0.45)"; ctx.lineWidth=0.8; ctx.stroke();
-      // Fase
-      ctx.save();
-      ctx.translate(px,py); ctx.rotate(angToSun);
-      if(!waningL){
-        ctx.beginPath();
-        ctx.arc(0,0,lr,Math.PI/2,-Math.PI/2);
-        ctx.ellipse(0,0,lr*Math.abs(xScaleL),lr,0,Math.PI/2,-Math.PI/2,xScaleL>0);
-        ctx.closePath();
-      } else {
-        ctx.beginPath();
-        ctx.arc(0,0,lr,-Math.PI/2,Math.PI/2);
-        ctx.ellipse(0,0,lr*Math.abs(xScaleL),lr,0,-Math.PI/2,Math.PI/2,xScaleL<0);
-        ctx.closePath();
+
+      // ── Eclipse solar: luna completamente negra en astrolabio ────
+      const _eclAstroLuna = _eclipseActivoAhora();
+      if(!_eclAstroLuna){
+        // Fase normal
+        ctx.save();
+        ctx.translate(px,py); ctx.rotate(angToSun);
+        if(!waningL){
+          ctx.beginPath();
+          ctx.arc(0,0,lr,Math.PI/2,-Math.PI/2);
+          ctx.ellipse(0,0,lr*Math.abs(xScaleL),lr,0,Math.PI/2,-Math.PI/2,xScaleL>0);
+          ctx.closePath();
+        } else {
+          ctx.beginPath();
+          ctx.arc(0,0,lr,-Math.PI/2,Math.PI/2);
+          ctx.ellipse(0,0,lr*Math.abs(xScaleL),lr,0,-Math.PI/2,Math.PI/2,xScaleL<0);
+          ctx.closePath();
+        }
+        ctx.fillStyle="rgba(230,228,210,0.95)"; ctx.fill();
+        ctx.restore();
       }
-      ctx.fillStyle="rgba(230,228,210,0.95)"; ctx.fill();
-      ctx.restore();
+      // (En eclipse el disco base oscuro ya es suficiente — no se dibuja fase)
       // Puntero exterior
       ctx.beginPath();
       ctx.moveTo(px + ux*lr, py + uy*lr);
@@ -8651,9 +9372,15 @@ function drawAstrolabio(){
   // 3. Limbo exterior (sobre el clip)
   drawLimbo();
 
+  // ── Resplandor perimetral en Astrolabio ──────────────────────────
+  drawPerimeterGlow();
+
   // 4. Marco
   ctx.beginPath(); ctx.arc(centerX,centerY,radius,0,Math.PI*2);
   ctx.strokeStyle="rgba(200,180,100,0.55)"; ctx.lineWidth=2; ctx.stroke();
+
+  // ── Panel de aspectos activos (esquina inferior izquierda) ───────
+  drawAstrolabeAspectPanel();
 
   // 5. Indicador modo natal si activo
   drawNatalIndicator();
@@ -8724,7 +9451,221 @@ function calcAspectos(){
   return result;
 }
 
-// ── Dibuja las líneas de aspecto entre los planetas visibles ──────
+// ══════════════════════════════════════════════════════════════════
+// RESPLANDOR PERIMETRAL — Sprint 2
+// Comunica visualmente aspectos activos, tránsitos natales y eclipses
+// mediante iluminación del arco exterior del instrumento.
+// ══════════════════════════════════════════════════════════════════
+
+// Colores base por tipo de aspecto (RGB sin alpha)
+const _GLOW_COLORS = {
+  "Conjunción": "255,240,160",
+  "Oposición":  "255,100, 90",
+  "Trígono":    "100,180,255",
+  "Cuadratura": "255,140, 60",
+  "Sextil":     "120,220,140",
+};
+
+// Estado suavizado del resplandor — interpolación entre frames
+let _glowState = []; // [{ color, alpha, start, end, isNatal, isEclipse }]
+
+// Calcular aspectos del cielo actual vs carta natal guardada
+function _calcNatalTransits(){
+  // Requiere carta natal guardada y que exista getSnapshotAt
+  const natal = window._caelisNatalSnap;
+  if(!natal || !natal.bodies) return [];
+
+  const currentBodies = getBodyLons(); // planetas actuales
+  const natalBodies   = Object.entries(natal.bodies)
+    .filter(([k]) => ['Sol','Luna','Mercurio','Venus','Marte','Júpiter','Saturno'].includes(k))
+    .map(([k,v]) => ({ key:k, lon: v.lon_ecl }));
+
+  const result = [];
+  for(const cur of currentBodies){
+    for(const nat of natalBodies){
+      let diff = Math.abs(cur.lon - nat.lon) % 360;
+      if(diff > 180) diff = 360 - diff;
+      for(const asp of ASPECTOS_VIS){
+        const orbe = Math.abs(diff - asp.angulo);
+        if(orbe <= asp.orbe){
+          const exactitud = 1 - orbe / asp.orbe;
+          result.push({ cur, nat, asp, exactitud, isNatal:true });
+        }
+      }
+    }
+  }
+  return result;
+}
+
+// Dibujar el resplandor perimetral en el canvas
+function drawPerimeterGlow(){
+  // ── Recopilar todos los eventos activos ──────────────────────────
+  const events = [];
+
+  // Prioridad 1: eclipses (toman el arco completo)
+  const eclNow = _eclipseActivoAhora();
+  if(eclNow){
+    const isSolar = eclNow.mag !== undefined;
+    events.push({
+      color:     isSolar ? "255,200,50" : "180,200,255",
+      alpha:     isSolar ? Math.min(0.85, 0.55 + eclNow.mag * 0.15) : 0.65,
+      blur:      isSolar ? 28 : 22,
+      width:     isSolar ? 5 : 4,
+      isEclipse: true,
+      isPulse:   true,
+      pulseKey:  isSolar ? "solar" : "lunar",
+    });
+  } else {
+    // Prioridad 2: aspectos natal vs cielo (halo púrpura)
+    const natalTransits = _calcNatalTransits();
+    for(const t of natalTransits){
+      events.push({
+        color:     _GLOW_COLORS[t.asp.nombre] || "200,180,255",
+        alpha:     0.15 + t.exactitud * 0.55,
+        blur:      12 + t.exactitud * 18,
+        width:     3 + t.exactitud * 4,
+        isNatal:   true,
+        exactitud: t.exactitud,
+        label:     `${t.cur.key} ${ASP_GLYPH[t.asp.nombre]||''} ${t.nat.key} natal`,
+      });
+    }
+
+    // Prioridad 3: aspectos del cielo actual
+    const skyAspects = calcAspectos();
+    for(const asp of skyAspects){
+      events.push({
+        color:     _GLOW_COLORS[asp.asp.nombre] || "200,200,200",
+        alpha:     0.12 + asp.exactitud * 0.45,
+        blur:      10 + asp.exactitud * 15,
+        width:     2 + asp.exactitud * 3,
+        isNatal:   false,
+        exactitud: asp.exactitud,
+      });
+    }
+  }
+
+  if(events.length === 0) return;
+
+  ctx.save();
+
+  if(events[0].isEclipse){
+    // Eclipse: arco completo, con pulso temporal
+    const e = events[0];
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / (e.pulseKey === "solar" ? 800 : 1400));
+    const a = e.alpha * (0.75 + 0.25 * pulse);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${e.color},${a.toFixed(2)})`;
+    ctx.lineWidth   = e.width;
+    ctx.shadowColor = `rgba(${e.color},${(a * 0.8).toFixed(2)})`;
+    ctx.shadowBlur  = e.blur;
+    ctx.stroke();
+
+    // Halo exterior difuso para eclipse
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${e.color},${(a * 0.35).toFixed(2)})`;
+    ctx.lineWidth   = e.width * 2;
+    ctx.shadowBlur  = e.blur * 1.5;
+    ctx.stroke();
+
+  } else {
+    // Aspectos: dividir el arco en segmentos proporcionales
+    const n = events.length;
+    const segAng = (Math.PI * 2) / n;
+
+    events.forEach((ev, i) => {
+      const startAng = -Math.PI / 2 + i * segAng;       // empezar desde arriba
+      const endAng   = startAng + segAng * 0.92;         // 8% de gap entre segmentos
+
+      // Arco principal del aspecto
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, startAng, endAng);
+      ctx.strokeStyle = `rgba(${ev.color},${ev.alpha.toFixed(2)})`;
+      ctx.lineWidth   = ev.width;
+      ctx.shadowColor = `rgba(${ev.color},${(ev.alpha * 0.7).toFixed(2)})`;
+      ctx.shadowBlur  = ev.blur;
+      ctx.stroke();
+
+      // Halo púrpura adicional para aspectos natales
+      if(ev.isNatal){
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 1800 + i);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 5, startAng, endAng);
+        ctx.strokeStyle = `rgba(180,120,255,${(0.25 + 0.20 * pulse).toFixed(2)})`;
+        ctx.lineWidth   = ev.width + 3;
+        ctx.shadowColor = `rgba(180,120,255,0.50)`;
+        ctx.shadowBlur  = 20;
+        ctx.stroke();
+      }
+    });
+  }
+
+  ctx.shadowBlur  = 0;
+  ctx.shadowColor = "transparent";
+  ctx.restore();
+}
+
+// Panel de aspectos activos en modo Astrolabio
+// Muestra una lista compacta en esquina inferior izquierda
+function drawAstrolabeAspectPanel(){
+  const skyAspects   = calcAspectos().slice(0, 5);
+  const natalTransits= _calcNatalTransits().slice(0, 3);
+  const eclNow       = _eclipseActivoAhora();
+
+  const allEvents = [];
+  if(eclNow) allEvents.push({ label: eclNow.mag ? "⊗ Eclipse solar" : "☽ Eclipse lunar",
+    color: eclNow.mag ? "#ffcc32" : "#b4c8ff", border: eclNow.mag ? "#ffcc32" : "#b4c8ff", isEclipse:true });
+  natalTransits.forEach(t => allEvents.push({
+    label: `${ASP_GLYPH[t.asp.nombre]||''} ${t.cur.key} · ${t.nat.key} natal`,
+    color: `rgb(${_GLOW_COLORS[t.asp.nombre]||"200,180,255"})`,
+    border: "rgba(180,120,255,0.8)", isNatal:true }));
+  skyAspects.forEach(a => allEvents.push({
+    label: `${ASP_GLYPH[a.asp.nombre]||''} ${a.a.key} · ${a.b.key}`,
+    color: `rgb(${_GLOW_COLORS[a.asp.nombre]||"200,200,200"})`,
+    border: "transparent" }));
+
+  if(allEvents.length === 0) return;
+
+  const pad  = 10;
+  const rowH = 18;
+  const panW = 160;
+  const panH = pad * 2 + allEvents.length * rowH;
+  const px   = pad;
+  const py   = canvas.height - pad - panH;
+
+  ctx.save();
+  // Fondo del panel
+  ctx.fillStyle   = "rgba(6,4,16,0.75)";
+  ctx.strokeStyle = "rgba(160,120,255,0.25)";
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.roundRect(px, py, panW, panH, 7);
+  ctx.fill(); ctx.stroke();
+
+  // Filas
+  allEvents.forEach((ev, i) => {
+    const ry = py + pad + i * rowH;
+    // Cuadrado de color
+    ctx.fillStyle   = ev.color;
+    ctx.strokeStyle = ev.border;
+    ctx.lineWidth   = ev.isNatal || ev.isEclipse ? 1.5 : 0;
+    ctx.beginPath();
+    ctx.roundRect(px + 6, ry + 2, 10, 10, 2);
+    ctx.fill();
+    if(ev.isNatal || ev.isEclipse) ctx.stroke();
+    // Texto
+    ctx.fillStyle  = "rgba(220,210,255,0.88)";
+    ctx.font       = "10px Georgia, serif";
+    ctx.textAlign  = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(ev.label, px + 22, ry + 2);
+  });
+
+  ctx.restore();
+}
+
+
 // Se llama desde draw() ANTES de dibujar los planetas para que las
 // líneas queden debajo de los cuerpos celestes.
 function drawAspectos(sun, vis){
@@ -8961,7 +9902,10 @@ function draw(){
 
   ctx.restore(); // fin clip
 
-  // Marco exterior
+  // ── Resplandor perimetral — aspectos, natal, eclipses ────────────
+  drawPerimeterGlow();
+
+  // Marco exterior (encima del resplandor para definir el borde limpio)
   ctx.beginPath();ctx.arc(centerX,centerY,radius,0,Math.PI*2);
   ctx.strokeStyle="rgba(255,255,255,0.25)";ctx.lineWidth=2;ctx.stroke();
 
@@ -8984,6 +9928,13 @@ function draw(){
 
 draw();
 initLocation();
+// ── Cargar y aplicar preferencias guardadas ───────────────────────
+(function(){
+  const p = _prefsLoad();
+  _prefsApply(p);
+})();
+// Inicializar contador de lecturas IA gratuitas [3.2]
+_iaInitCounter();
 // Aplicar idioma guardado al arrancar
 _applyLang();
 
@@ -9735,16 +10686,29 @@ window.addEventListener("resize", ()=>{
   threeRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 // ── Controles de velocidad Oculus ─────────────────────────────────
-let oculusSpeedRaw = 1.0; // multiplicador libre
+let oculusSpeedRaw = 100; // velocidad inicial en Oculus: 100x
+const OCULUS_SPEED_MIN =  10;  // mínimo 10x
+const OCULUS_SPEED_MAX = 963;  // barrera dura — no superable
+const OCULUS_SPEED_STEP = 10;  // incremento/decremento fijo
+
 function oculusUpdateDisplay(){
-  document.getElementById("oculusSpeedDisplay").innerText =
-    oculusSpeedRaw.toFixed(2)+"x";
+  // Clamp a la barrera dura
+  oculusSpeedRaw = Math.max(OCULUS_SPEED_MIN, Math.min(OCULUS_SPEED_MAX, Math.round(oculusSpeedRaw)));
+  document.getElementById("oculusSpeedDisplay").innerText = oculusSpeedRaw + "x";
   oculusSpeed = oculusSpeedRaw;
 }
 function oculusChangeSpeed(d){
-  oculusSpeedRaw = Math.max(0.01, oculusSpeedRaw * (d > 0 ? 1.5 : 1/1.5));
+  // Suma/resta fija de 10 en 10, sin multiplicar
+  oculusSpeedRaw = oculusSpeedRaw + (d > 0 ? OCULUS_SPEED_STEP : -OCULUS_SPEED_STEP);
   oculusUpdateDisplay();
 }
+function oculusResetSpeed(){
+  oculusSpeedRaw = 100; oculusUpdateDisplay();
+}
+// Stub: funciones eliminadas — mantenidas por si hay referencias externas
+function oculusSpeedPhi()  { oculusUpdateDisplay(); }
+function oculusSpeedX10()  { oculusUpdateDisplay(); }
+function oculusSpeedDiv10(){ oculusUpdateDisplay(); }
 
 // ── Auto-acelerador — doble clic en ▶ activa ciclo cada 7s ───────
 let _autoAccelTimer  = null;
@@ -9787,7 +10751,7 @@ function ocuToggleAutoAccel(){
     // Arrancar ciclo inmediato
     function accelTick(){
       if(!_autoAccelActivo) return;
-      oculusSpeedRaw = Math.max(0.01, oculusSpeedRaw * 1.5);
+      oculusSpeedRaw = Math.min(OCULUS_SPEED_MAX, oculusSpeedRaw + OCULUS_SPEED_STEP);
       oculusUpdateDisplay();
       _autoAccelTimer = setTimeout(accelTick, 7000);
     }
@@ -9835,18 +10799,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const btn = document.getElementById("btnSpeedUp");
   if(btn) btn.addEventListener("dblclick", (e)=>{ e.preventDefault(); ocuToggleAutoAccel(); });
 })();
-function oculusResetSpeed(){
-  oculusSpeedRaw = 1.0; oculusUpdateDisplay();
-}
-function oculusSpeedPhi(){
-  oculusSpeedRaw *= PHI; oculusUpdateDisplay();
-}
-function oculusSpeedX10(){
-  oculusSpeedRaw *= 10; oculusUpdateDisplay();
-}
-function oculusSpeedDiv10(){
-  oculusSpeedRaw = Math.max(0.001, oculusSpeedRaw / 10); oculusUpdateDisplay();
-}
 
 // ── Inactividad: vuelve al ahora ──────────────────────────────────
 let _lastActivity = Date.now();
@@ -9945,7 +10897,7 @@ function transformareAstralis(){
     const oui=$("oculusUI"), op=$("oculusPanel");
     if(oui) oui.classList.remove("visible");
     if(op)  op.classList.remove("visible");
-    oculusSpeedRaw=1.0; oculusUpdateDisplay();
+    oculusSpeedRaw=100; oculusUpdateDisplay();
 
     // Apagar auto-acelerador si estaba activo
     if(_autoAccelActivo) ocuToggleAutoAccel();
@@ -10034,8 +10986,8 @@ function ocuToggleRespiracion(){
     btn.textContent       = "☽ Spiritus";
     // Resetear acelerador al apagar
     _respAccelTime = 0;
-    oculusSpeedRaw = 1.0;
-    oculusSpeed    = 1.0;
+    oculusSpeedRaw = 100;
+    oculusSpeed    = 100;
     oculusUpdateDisplay();
     // Los targets quedan donde están — el usuario puede moverlos manualmente
   }
@@ -10089,9 +11041,9 @@ function ocuTickRespiracion(){
 
 // ── Configuración por defecto al entrar a Oculus ─────────────────
 function ocuApplyDefaults(){
-  // Velocidad inicial 1364x
-  oculusSpeedRaw = 1364.0;
-  oculusSpeed    = 1364.0;
+  // Velocidad inicial 100x (barrera máx: 963x)
+  oculusSpeedRaw = 100;
+  oculusSpeed    = 100;
   oculusUpdateDisplay();
 
   // Estelas: longitud 90, opacidad 85%
@@ -10458,8 +11410,8 @@ window.addEventListener("DOMContentLoaded", ()=>{
            onkeydown="if(event.key==='Enter') _clActivate()">
     <button id="_clActivateBtn" onclick="_clActivate()">Activar licencia</button>
     <div id="_clMsg"></div>
-    <a id="_clKofiLink" href="https://ko-fi.com/hermeticalabs" target="_blank">
-      ☕ Obtener licencia en Ko-fi →
+    <a id="_clKofiLink" href="https://hermeticalabs.github.io/caelis-engine/" target="_blank">
+      ✦ Información sobre licencias →
     </a>
   </div>
 </div>

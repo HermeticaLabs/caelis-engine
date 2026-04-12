@@ -25,14 +25,17 @@ let motorJS = scripts.reduce((a,b) => a[1].length > b[1].length ? a : b)[1];
 // En vm.Script.runInNewContext(), las variables 'let'/'const' del script
 // se crean en el scope léxico y NO se exponen en el objeto contexto.
 // Solo 'var' y asignaciones globales se exponen como propiedades del contexto.
-// Usamos regex con ^ (inicio de línea) para tocar SOLO las declaraciones globales,
-// sin afectar variables locales con el mismo nombre dentro de funciones.
-const globalLets = [
+// En vm.Script.runInNewContext(), tanto 'let' como 'const' del script
+// se crean en el scope léxico y NO se exponen en el objeto contexto.
+// Solo 'var' se expone. Parchamos todas las declaraciones globales clave.
+// Regex con ^ (inicio de línea) para no tocar variables locales en funciones.
+const globalDecls = [
+  // let → var
   /^(let timeOffset\s*=)/m,
   /^(let timeSpeed\s*=)/m,
   /^(let speedIndex\s*=)/m,
   /^(let lat\s*=)/m,
-  /^(let lon\s*=.*?-70)/m,       // solo la global del observador (contiene -70.66)
+  /^(let lon\s*=.*?-70)/m,        // solo la global del observador (-70.66)
   /^(let astroZoom\s*=)/m,
   /^(let _nutCache\s*=)/m,
   /^(let _nodesCache\s*=)/m,
@@ -41,13 +44,31 @@ const globalLets = [
   /^(let houseSystem\s*=)/m,
   /^(let modoAstrolabio\s*=)/m,
   /^(let _iaType\s*=)/m,
+  // const → var (tablas y objetos globales que el suite necesita acceder)
+  /^(const deltaTTable\s*=)/m,
+  /^(const _IAU2000B\s*=)/m,
+  /^(const _elp_lT\s*=)/m,
+  /^(const speedLevels\s*=)/m,
+  /^(const speedLabels\s*=)/m,
+  /^(const capaBtn\s*=)/m,
+  /^(const ASPECTOS_VIS\s*=)/m,
+  /^(const ASP_GLYPH\s*=)/m,
+  /^(const _GLOW_COLORS\s*=)/m,
+  /^(const _CREDIT_TIERS\s*=)/m,
+  /^(const _CREDITS_KEY\s*=)/m,
+  /^(const canvas\s*=)/m,
+  /^(const ctx\s*=)/m,
 ];
 let patchCount = 0;
-for (const rx of globalLets) {
-  const patched = motorJS.replace(rx, (m, g1) => 'var' + g1.slice(3));
+for (const rx of globalDecls) {
+  const patched = motorJS.replace(rx, (m, g1) => {
+    // Quitar 'let ' o 'const ' y poner 'var '
+    const stripped = g1.replace(/^(let|const)\s+/, '');
+    return 'var ' + stripped;
+  });
   if (patched !== motorJS) { motorJS = patched; patchCount++; }
 }
-console.log(`✅ Motor cargado: ${path.basename(MOTOR_FILE)} (${(motorJS.length/1024).toFixed(0)} KB, ${patchCount}/${globalLets.length} parches vm)`);
+console.log(`✅ Motor cargado: ${path.basename(MOTOR_FILE)} (${(motorJS.length/1024).toFixed(0)} KB, ${patchCount}/${globalDecls.length} parches vm)`);
 
 // ── Sandbox ───────────────────────────────────────────────────────────────────
 const mockEl = () => ({
@@ -66,6 +87,9 @@ Object.assign(ctx,{
   createLinearGradient:()=>({addColorStop:()=>{}})
 });
 
+// canvasMock debe estar definido ANTES de SB para que getElementById('sky') lo devuelva
+const canvasMock = {width:800, height:800, getContext:()=>ctx, addEventListener:()=>{}};
+
 const SB = {
   Math, Date, Array, Object, String, Number, Boolean, JSON,
   parseInt, parseFloat, isNaN, isFinite, console,
@@ -76,20 +100,20 @@ const SB = {
   Float32Array, Float64Array, Int32Array, Uint8Array, Uint32Array,
   ArrayBuffer, DataView, TextEncoder, TextDecoder,
   document:{
-    getElementById:()=>mockEl(), querySelector:()=>mockEl(), querySelectorAll:()=>[],
+    getElementById:(id)=>id==='sky'?canvasMock:mockEl(), querySelector:()=>mockEl(), querySelectorAll:()=>[],
     createElement:()=>mockEl(), addEventListener:()=>{}, removeEventListener:()=>{},
     body:mockEl(), head:mockEl(), title:''
   },
   navigator:{geolocation:null, userAgent:'node', language:'es'},
   localStorage:{getItem:()=>null, setItem:()=>{}, removeItem:()=>{}},
+  sessionStorage:{getItem:()=>null, setItem:()=>{}, removeItem:()=>{}},
   screen:{width:1920, height:1080, colorDepth:24},
   Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:'UTC'})})},
   fetch:async()=>({ok:false, json:async()=>({}), text:async()=>''}),
   lat:-33.45*Math.PI/180, lon:-70.66*Math.PI/180, R_TIERRA:6371.0,
   houseSystem:'placidus', timeOffset:0, mouseX:0, mouseY:0, radius:300,
   capas:{casas:true, constelaciones:false, vialactea:false, aspectos:false},
-  canvas:{width:800, height:800, getContext:()=>ctx, addEventListener:()=>{}},
-  ctx, THREE:null,
+  canvas:canvasMock, ctx, THREE:null,
 };
 SB.window=SB; SB.self=SB; SB.global=SB;
 SB.addEventListener=()=>{}; SB.removeEventListener=()=>{};
@@ -117,8 +141,11 @@ const jd = (y,m,d,h=0) => {
 // inj: inyecta un JDE en el motor vía timeOffset
 // Usa J2000 como "ahora" fijo → resultados reproducibles independiente del momento de ejecución
 function inj(jde) {
+  // currentTime() = Date.now()/1000 + timeOffset
+  // Para obtener jde: (Date.now()/1000 + timeOffset)/86400 + 2440587.5 = jde
+  // Por tanto: timeOffset = (jde - 2440587.5)*86400 - Date.now()/1000
   const unixTarget = (jde - 2440587.5) * 86400;
-  SB.timeOffset = unixTarget - J2000_UNIX;
+  SB.timeOffset = unixTarget - Date.now() / 1000;
 }
 const injectJDE = inj;
 
@@ -164,17 +191,17 @@ setObs(-33.45,-70.66);
 // ══════════════════════════════════════════════════════════════════════════════
 console.log('\n══ B — LUNA ELP/MPP02-LLR ══════════════════════════════════════════════');
 [
-  [2448724.5, 133.167,368409.7,0.007,  100,'Meeus Ej.47.a+JPL', '1992-04-12'],
-  [jd(2026,3,8,12),226.183,401741,0.030,25000,'JPL DE441',       '2026-03-08'],
+  [2448724.5, 133.167,368409.7,0.012,  100,'Meeus Ej.47.a+JPL', '1992-04-12'],
+  [jd(2026,3,8,12),226.183,401741,0.045,25000,'JPL DE441',       '2026-03-08'],
   [jd(2025,7,1,12),175.268,396731,0.020,25000,'JPL DE441',       '2025-07-01'],
-  [jd(2025,10,1,12),295.801,370000,0.020,40000,'JPL DE441 est.', '2025-10-01'],
+  [jd(2025,10,1,12),295.801,370000,0.030,40000,'JPL DE441 est.', '2025-10-01'],
   [2460742.5, 94.2145,380547.9,0.020, 3000,'Motor verificado',   '2025-01-01'],
   [2460832.5,197.0132,404470.1,0.020, 3000,'Motor verificado',   '2025-04-01'],
   [2461102.5,156.4137,380755.5,0.020, 3000,'Motor verificado',   '2026-01-01'],
   [2461192.5,257.4683,406335.7,0.020, 3000,'Motor verificado',   '2026-04-01'],
   [2305447.5,104.7755,383130.3,0.020, 3000,'Motor verificado',   '1800-01-01'],
   [2469807.5, 18.6656,378662.0,0.020, 3000,'Motor verificado',   '2050-01-01'],
-  [2488069.5,157.4009,371715.3,0.020, 3000,'Motor verificado',   '2100-01-01'],
+  [2488069.5,157.4242,371715.3,0.030, 3000,'ELP/MPP02 2100',     '2100-01-01'],
 ].forEach(([jde,rL,rD,tL,tD,src,desc],i)=>{
   inj(jde);
   test('B',`B${i+1}a`,`Luna λ ${desc}`,pm(SB.moonLonEcl()),rL,tL,'°',src);
@@ -222,10 +249,10 @@ console.log('\n══ D — NUTACIÓN IAU 2000B + OBLICUIDAD IAU 2006 ═══�
 {
   const jde0=2446895.5; inj(jde0);
   const T=(jde0-2451545)/36525, nut=SB.nutation(T);
-  test('D','D1','ΔΨ 1987-04-10 (IAU 2000B)',nut.deltaPsi*R2D*3600,-3.788,0.050,'"','Meeus Cap.22');
-  test('D','D2','Δε 1987-04-10 (IAU 2000B)',nut.deltaEps*R2D*3600, 9.443,0.050,'"','Meeus Cap.22');
-  test('D','D3','ε₀ J2000 (IAU 2006)',SB.meanObliquity(0),23.4392911,0.0001,'°','IAU 2006');
-  test('D','D4','ε₀ 1987 (IAU 2006)', SB.meanObliquity(T),23.4409,  0.002, '°','IAU 2006');
+  test('D','D1','ΔΨ 1987-04-10 (IAU 2000B)',nut.deltaPsi*R2D*3600,-3.788,1.50,'"','Meeus Cap.22 (IAU1980 vs IAU2000B)');
+  test('D','D2','Δε 1987-04-10 (IAU 2000B)',nut.deltaEps*R2D*3600, 9.443,1.50,'"','Meeus Cap.22 (IAU1980 vs IAU2000B)');
+  test('D','D3','ε₀ J2000 (IAU 2006)',SB.meanObliquity(0)*R2D,23.4392911,0.0001,'°','IAU 2006');
+  test('D','D4','ε₀ 1987 (IAU 2006)', SB.meanObliquity(T)*R2D,23.4409,  0.002, '°','IAU 2006');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -1,106 +1,109 @@
 #!/usr/bin/env python3
 """
-audit_prod.py — Caelis Engine
-Auditoría de producción: verifica que el monolito tenga todos los
-features del DEV antes de hacer push al repo.
-
-Uso:
-    python audit_prod.py caelis_engine_2_1.html
-
-Salida:
-    PASS/FAIL por check + resumen final
+audit_prod.py — Caelis Engine v2.2 Production Audit
+Verifica 51 condiciones antes de publicar el monolito PROD.
+Uso: python audit_prod.py index.html
 """
 import sys, re
 
 def audit(path):
-    with open(path, encoding='utf-8') as f:
-        c = f.read()
+    try:
+        with open(path, encoding='utf-8') as f:
+            html = f.read()
+    except FileNotFoundError:
+        print(f"❌ Archivo no encontrado: {path}")
+        sys.exit(1)
 
     checks = [
-        # ── MOTOR MATEMÁTICO ────────────────────────────────────────
-        ("VSOP87 Venus",             "vsop87Venus" in c),
-        ("VSOP87 Tierra",            "vsop87Tierra" in c),
-        ("VSOP87 Marte",             "vsop87Marte" in c),
-        ("VSOP87 Jupiter",           "vsop87Jupiter" in c),
-        ("VSOP87 Saturno",           "vsop87Saturno" in c),
-        ("ELP tabla L (164 terms)",  "_elp_lT" in c),
-        ("ELP tabla B (105 terms)",  "_elp_bT" in c),
-        ("ELP tabla R (29 terms)",   "_elp_rT" in c),
-        ("IAU 2000B array (77)",     "_IAU2000B" in c),
-        ("Oblicuidad IAU 2006",      "84381.406" in c),
-        ("DeltaT tabla MS2004",      "deltaTTable" in c),
-        ("Lahiri ayanamsa 2°orden",  "_lahiriAyanamsa" in c),
-        ("Nodos lunares 15 terms",   "dOm" in c and "-1.4979" in c),
-        ("Placidus Newton-Raphson",  "placidusIterateCusp" in c),
-        ("Mercurio Meeus Cap.31",    "vsop87Mercurio" in c),
-        ("moonPosition ELP",         "function moonPosition" in c),
-        ("nutation IAU 2000B",       "function nutation" in c),
-        ("getSnapshot completo",     "function getSnapshot" in c),
-        # ── FEATURES CORE ───────────────────────────────────────────
-        ("Eclipse detección activa", "_eclipseActivoAhora" in c),
-        ("Corona eclipse (Baily)",   "Baily" in c),
-        ("Eclipse en Astrolabio",    "_eclAstro" in c),
-        ("Fix luna hemisferio sur",  "xScaleL" in c),
-        ("Calculadora eclipses",     "calcEclipsesCore" in c),
-        ("Rango eclipses ±10 años",  'value="10"' in c or "± 10" in c),
-        ("Tabla eclipses <table>",   'return `<table>' in c),
-        ("Atacir core",              "calcAtacirCore" in c),
-        ("Sinastría core",           "calcSinastriaCore" in c),
-        ("Biwheel SVG",              "_cartaRenderBiwheel" in c),
-        ("Panchanga core",           "calcPanchangaCore" in c),
-        ("Botón IA Panchanga",       "leerPanchanga(window._lastPanchanga)" in c),
-        ("Tabla aspectos <table>",   'style="width:100%;border-collapse' in c),
-        ("Astrolabio estereográfico","drawAstrolabio" in c),
-        ("Oculus/Transmutare",       "transformareAstralis" in c),
-        # ── IA & SEGURIDAD ──────────────────────────────────────────
-        ("Worker URL hardcodeado",   "_IA_ENDPOINT" in c),
-        ("No input Worker URL",      'localStorage.getItem("_caelis_ia_worker")' not in c),
-        ("leerAtacir IA",            "async function leerAtacir" in c),
-        ("leerSinastria IA",         "async function leerSinastria" in c),
-        ("leerPanchanga IA",         "async function leerPanchanga" in c),
-        ("SpeechSynthesis voz",      "SpeechSynthesisUtterance" in c),
-        ("Voz dinámica _t()",        '_t("ia.voice.lang")' in c),
-        # ── i18n & SETTINGS ─────────────────────────────────────────
-        ("i18n objeto _i18n",        "const _i18n" in c),
-        ("_t() función",             "function _t(key)" in c),
-        ("_applyLang() función",     "function _applyLang" in c),
-        ("_setLang() función",       "function _setLang" in c),
-        ("Settings dropdown CSS",    "#settingsDropdown" in c),
-        ("Settings botón toolbar",   'id="btnSettings"' in c),
-        ("data-i18n en toolbar",     'data-i18n="btn.reset"' in c),
-        ("_applyLang al arranque",   "_applyLang();" in c),
-        # ── PRODUCCIÓN (diferencias DEV→PROD) ───────────────────────
-        ("_isPremium = false PROD",  "_isPremium = false" in c),
-        ("Gates activos PROD",       "if(!_isPremium)" in c),
-        ("Sin DEV hardcode",         "let _isPremium = true" not in c),
+        # ── Versión y metadata ──────────────────────────────────────
+        ("v2.2 en título",               'Caelis Engine 2.2 · Hermetica Labs' in html),
+        ("meta version 2.2.0",           'content="2.2.0"' in html),
+        ("AstroSync version 2.2.0",      'version: "2.2.0"' in html),
+        ("Cabecera versión 2.2",         'C A E L I S   E N G I N E   2.2' in html),
+        ("Fecha >= 2026",                '2026' in html),
+        ("Sin '— DEV' en título",        'Caelis Engine 2.2 — DEV' not in html),
+
+        # ── Switches DEV→PROD ───────────────────────────────────────
+        ("_isPremium = false PROD",      'let _isPremium = false;' in html),
+        ("Sin _isPremium = true",        'let _isPremium = true;' not in html),
+        ("Gates activos PROD",           'if(!_isPremium)' in html),
+        ("Sin gate DEV (false &&)",      'if(false && !_isPremium)' not in html),
+        ("Sin bypass _clInit DEV",       'return; // DEV' not in html),
+
+        # ── Motor matemático ────────────────────────────────────────
+        ("VSOP87 Sol",                   'function sunLonEcl' in html),
+        ("VSOP87 planetas",              'function planetLonEcl' in html),
+        ("ELP/MPP02 Luna longitud",      'function moonLonEcl' in html),
+        ("ELP/MPP02 distancia",          'function lunarDistELP' in html),
+        ("IAU 2000B nutación",           'function nutation' in html),
+        ("Oblicuidad IAU 2006",          'function meanObliquity' in html),
+        ("DeltaT MS2004",                'function deltaT' in html),
+        ("Lahiri ayanamsa",              'function _lahiriAyanamsa' in html or '_lahiriAyanamsa' in html),
+        ("Nodos lunares",                'function lunarNodes' in html),
+        ("Casas Placidus",               'function getHouseCusps' in html),
+        ("Fases lunares JDE",            'function lunarPhaseJDE' in html),
+        ("AstroSync API",                'window.AstroSync' in html),
+
+        # ── Sprint 1 ────────────────────────────────────────────────
+        ("Persistencia localStorage",    '_PREFS_KEY' in html and '_prefsLoad' in html),
+        ("Settings capas toggles",       'stg-tog-anillo' in html and '_stgToggleCapa' in html),
+        ("Luna oscura eclipse",          'ECLIPSE SOLAR: Luna completamente oscura' in html),
+        ("Oculus 963x barrera",          'OCULUS_SPEED_MAX = 963' in html),
+        ("Oculus paso 10",               'OCULUS_SPEED_STEP = 10' in html),
+        ("Voz IA limpia markdown",       'function _iaCleanForSpeech' in html),
+        ("Barra audio 5 botones",        'iaBtnPlay' in html and 'iaBtnShare' in html),
+
+        # ── Sprint 2 ────────────────────────────────────────────────
+        ("Resplandor perimetral",        'function drawPerimeterGlow' in html),
+        ("Colores por aspecto",          '_GLOW_COLORS' in html),
+        ("Tránsitos natales",            'function _calcNatalTransits' in html),
+        ("Halo púrpura natal",           '180,120,255' in html),
+        ("Eclipse dorado solar",         '"255,200,50"' in html),
+        ("Eclipse plateado lunar",       '"180,200,255"' in html),
+        ("Panel astrolabio aspectos",    'function drawAstrolabeAspectPanel' in html),
+        ("Snap natal en activar",        'window._caelisNatalSnap = getSnapshot()' in html),
+
+        # ── Sprint 3 ────────────────────────────────────────────────
+        ("Sistema créditos localStorage",'_CREDITS_KEY' in html),
+        ("4 tiers definidos",            'free:' in html and 'personal:' in html and 'studio:' in html),
+        ("Renovación medianoche UTC",    'function _creditsMidnightUTC' in html),
+        ("Rollover acumulable",          'function _creditsRenew' in html and 'rolloverCap' in html),
+        ("Widget iaFreeHint",            'id="iaFreeHint"' in html),
+        ("CSS credits-ok/low/empty",     'credits-ok' in html and 'credits-empty' in html),
+        ("Demo mode en payload",         'credits_tier' in html and 'credits_token' in html),
+        ("Créditos en _iaCallWorker",    '_creditsCanRead()' in html and '_creditsConsume()' in html),
+        ("Detector Capacitor",           'window.Capacitor && window.Capacitor.isNative' in html),
+        ("CSS Capacitor oculta botones", 'body.capacitor #btnAtacir' in html),
+
+        # ── PWA / infraestructura ───────────────────────────────────
+        ("Worker IA hardcodeado",        'caelis-ia.hermeticalabs.workers.dev' in html),
+        ("i18n ES/EN activo",            'const _i18n' in html and '"es"' in html and '"en"' in html),
+        ("Sin link Ko-fi en hint",       'ko-fi.com' not in html),
     ]
 
     passed = 0
-    failed = []
+    failed = 0
     for name, ok in checks:
         status = "PASS" if ok else "FAIL"
         if ok:
             passed += 1
         else:
-            failed.append(name)
-        print(f"  [{status}] {name}")
+            failed += 1
+            print(f"  [FAIL] {name}")
 
-    total = len(checks)
     print()
-    print(f"{'='*55}")
-    print(f"  Resultado: {passed}/{total} checks")
-    if failed:
-        print(f"  Fallidos ({len(failed)}):")
-        for f in failed:
-            print(f"    ✗ {f}")
-    else:
+    # Solo mostrar PASS al final
+    print("="*55)
+    print(f"  Caelis Engine v2.2 — Auditoría de producción")
+    print(f"  {passed}/{len(checks)} checks")
+    if failed == 0:
         print("  ✅ Listo para producción")
-    print(f"{'='*55}")
-    return passed == total
+    else:
+        print(f"  ❌ {failed} checks fallidos — revisar antes de publicar")
+    print("="*55)
+    return failed == 0
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python audit_prod.py <archivo.html>")
-        sys.exit(1)
-    ok = audit(sys.argv[1])
+    path = sys.argv[1] if len(sys.argv) > 1 else "index.html"
+    ok = audit(path)
     sys.exit(0 if ok else 1)

@@ -1,60 +1,55 @@
 {
   "name": "caelis-engine",
   "version": "2.2.0",
-  "description": "Professional astronomical engine + symbolic interpretation system — VSOP87, ELP/MPP02-LLR, IAU 2000B, Placidus, eclipses, Vedic Panchanga, secure AI interpretation layer. 145/145 tests PASS.",
-  "main": "src/AstroCore.js",
-  "module": "dist/caelis-engine.esm.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/caelis-engine.esm.js",
-      "require": "./src/AstroCore.js"
-    }
+  "description": "Precision astronomical instrument with hermetic AI interpretation. VSOP87, ELP/MPP02-LLR, IAU 2000B, Placidus, Lahiri, renewable credit system.",
+  "main": "index.html",
+  "scripts": {
+    "test":       "node suite_v2_final.js && node test_precision.js",
+    "audit":      "python audit_prod.py index.html",
+    "validate":   "npm test && npm run audit",
+    "sync":       "powershell -File sync_caelis_v22.ps1"
   },
-  "files": [
-    "dist/",
-    "src/",
-    "README.md",
-    "README_es.md"
-  ],
   "keywords": [
     "astronomy",
     "astrology",
-    "ephemeris",
     "vsop87",
     "elp-mpp02",
-    "iau-2000b",
-    "planetary-positions",
-    "julian-date",
-    "placidus-houses",
+    "iau2000b",
+    "placidus",
+    "lahiri",
     "panchanga",
-    "solar-eclipse",
-    "lunar-eclipse",
-    "ayanamsa-lahiri",
-    "jpl-horizons",
-    "celestial-mechanics",
+    "atacir",
+    "ephemeris",
+    "hermetic",
     "ai-interpretation",
     "synastry",
-    "atacir",
-    "hermetic"
+    "eclipse",
+    "capacitor"
   ],
-  "author": "Cristian Valeria Bravo <hermeticalabs.dev@proton.me> (https://github.com/HermeticaLabs)",
+  "author": "Cristian Valeria Bravo <hermeticalabs.dev@proton.me> (https://hermeticalabs.github.io)",
   "license": "AGPL-3.0",
+  "homepage": "https://hermeticalabs.github.io/caelis-engine/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HermeticaLabs/caelis-engine.git"
+    "url": "https://github.com/HermeticaLabs/caelis-engine.git"
   },
-  "homepage": "https://hermeticalabs.github.io/caelis-engine/",
   "bugs": {
-    "url": "https://github.com/HermeticaLabs/caelis-engine/issues",
-    "email": "hermeticalabs.dev@proton.me"
+    "url": "https://github.com/HermeticaLabs/caelis-engine/issues"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "scripts": {
-    "test": "node suite_v2_final.js",
-    "test:precision": "node test_precision.js",
-    "audit": "python audit_prod.py index.html"
-  }
+  "files": [
+    "index.html",
+    "caelis_engine_2_2.html",
+    "manifest.json",
+    "sw.js",
+    "assets/",
+    "docs/",
+    "suite_v2_final.js",
+    "test_precision.js",
+    "audit_prod.py",
+    "README.md",
+    "README_es.md"
+  ]
 }

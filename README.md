@@ -1,158 +1,131 @@
-# Caelis Engine v2.2
+# Caelis Engine 2.2
 
-**Mathematical astronomical engine + symbolic interpretation system.**
+**Precision astronomical instrument with hermetic AI interpretation**
 
-Caelis Engine computes real planetary positions with professional precision (VSOP87, ELP/MPP02-LLR, IAU 2000B) and transforms them into a navigable symbolic framework — extended with secure AI-assisted interpretation.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-hermeticalabs.github.io-8b5cf6)](https://hermeticalabs.github.io/caelis-engine/)
+[![npm](https://img.shields.io/npm/v/caelis-engine)](https://www.npmjs.com/package/caelis-engine)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
-**[▶ Live Demo](https://hermeticalabs.github.io/caelis-engine/)**  ·  **[npm](https://npmjs.com/package/caelis-engine)**  ·  **[Ko-fi](https://ko-fi.com/hermeticalabs)**
-
----
-
-## What Caelis Engine is
-
-- Not just a sky viewer
-- Not just an astrology tool
-- Not just a library
-
-Caelis Engine is a **symbolic astronomical instrument** — combining real celestial mechanics with structured interpretation, running entirely in the browser with no server dependencies for the mathematical core.
+Caelis Engine is a professional astronomical instrument that runs entirely in the browser as a single HTML monolith. It combines precision mathematical algorithms (VSOP87, ELP/MPP02-LLR, IAU 2000B) with an AI interpretation layer, all without external dependencies for the core engine.
 
 ---
 
-## What it does
+## Live Demo
 
-| Feature | Description |
-|---|---|
-| **Real-time sky** | Stereographic polar projection, all bodies, constellations, Milky Way |
-| **Astrolabe mode** | Classic stereographic astrolabe with rete and tympanum |
-| **Atacir** | Directional arcs by oblique ascension (Al-Biruni / Ptolemy / Naibod) |
-| **Synastry** | Cross-aspects, antiscia, symmetries, elemental distribution, biwheel SVG |
-| **Eclipse calculator** | Solar + lunar, ±10 year range, geolocalised visibility |
-| **Panchanga** | Vedic almanac: Tithi, Vara, Nakshatra, Yoga, Karana with Lahiri ayanamsa |
-| **AI Hermetic Reading** | Structured interpretation of computed astronomical data (Premium) |
-| **i18n** | English / Español (Deutsch, हिन्दी roadmap) |
+**[hermeticalabs.github.io/caelis-engine](https://hermeticalabs.github.io/caelis-engine/)**
 
 ---
 
-## Mathematical Core
+## What's New in v2.2
 
-All algorithms validated against independent reference data. **145/145 tests PASS.**
+- **Perimeter glow system** — real-time visual feedback for active aspects, natal transits (purple halo) and eclipses (gold/silver)
+- **Astrolabe aspect panel** — compact overlay showing active aspects in astrolabe mode
+- **Renewable credit system** — 3 free credits/day with automatic midnight UTC renewal; Personal (15/day, 45 rollover), Developer (40/day, 120 rollover), Studio (unlimited)
+- **Dark moon during solar eclipse** — astronomically correct: lunar disk goes dark when occulting the sun
+- **Oculus speed refactor** — 10x–963x range, ±10 step, hard 963x barrier
+- **Clean IA voice** — markdown stripped before speech synthesis
+- **5-button audio bar** — play · pause · repeat · copy · share
+- **Settings layer toggles** — constellations, houses, Milky Way, aspects as ON/OFF switches
+- **localStorage persistence** — observer location, house system, layers, natal chart, language all saved across sessions
+- **Capacitor detector** — `body.capacitor` class for Android app feature gating
 
-| Algorithm | Source | Precision |
+---
+
+## Mathematical Engine
+
+| Algorithm | Source | Verified |
 |---|---|---|
-| **VSOP87** | Bretagnon & Francou (1987) | < 1″ (2000 AD ± 500y) |
-| **ELP/MPP02-LLR** | Chapront & Francou (2002) — 164L + 105B + 29R terms | < 10″ |
-| **IAU 2000B Nutation** | Mathews et al. (2002) — 77 luni-solar series | < 1 mas |
-| **Obliquity IAU 2006** | Capitaine et al. — degree-5 polynomial | < 0.01″ |
-| **ΔT** | Morrison & Stephenson (2004) + Stephenson (2016) | 500–2150 AD |
-| **Lahiri Ayanamsa** | IAU 1955, Lieske 1977 2nd-order integration | < 0.01° |
-| **Lunar Nodes** | Meeus Ch.47 — 15-term series | < 0.25° |
-| **Placidus Houses** | Newton-Raphson iteration | < 0.001° |
-| **Mercury** | Meeus Ch.31 equation of centre | < 0.5° |
+| VSOP87 | Bretagnon & Francou 1987 | ✅ Sun + 5 planets |
+| ELP/MPP02-LLR | Chapront 2002 — 164L+105B+29R | ✅ Moon |
+| IAU 2000B nutation | Mathews 2002 — 77 series | ✅ |
+| Obliquity IAU 2006 | Capitaine — degree 5 polynomial | ✅ |
+| ΔT MS2004 + Stephenson 2016 | 74 points 500–2150 CE | ✅ |
+| Lahiri ayanamsa 2nd order | IAU 1955 + Lieske 1977 | ✅ |
+| Lunar nodes 15 terms | Meeus Ch.47 | ✅ |
+| Placidus houses | Newton-Raphson | ✅ |
+| Mercury Meeus Ch.31 | Equation of centre | ✅ |
 
-Guaranteed range: **500–2150 AD**
-
----
-
-## AI Interpretation Layer
-
-Caelis Engine integrates a secure AI interpretation system built **on top of** its deterministic astronomical core.
-
-- **Structured input** — planets, aspects, houses, cycles, ayanamsa
-- **No raw prompt exposure** — all prompts are server-side templates
-- **Worker-based execution** — no API keys in the client
-- **License-gated access** — Premium only
-- **4 reading types** — current sky · natal chart · Atacir transits · synastry · Panchanga
-- **Voice output** — SpeechSynthesis, language-aware (ES/EN)
-
-The AI does not replace the astronomical model — it interprets the already-computed structure.
+**Validated range:** 500–2150 CE  
+**Test suite:** 145/145 JPL precision tests · 29/29 algorithm unit tests · 51/51 production audit checks
 
 ---
 
-## Security Model
+## Features
 
-The AI layer runs through a protected Cloudflare Worker backend:
-
-- **No API keys exposed to client** — hardcoded endpoint, key is a Worker secret
-- **Origin validation** — requests from unauthorised domains are rejected (403)
-- **License-based access control** — `X-Caelis-License` header validated server-side
-- **Payload validation** — structured astronomical data only, no free-text injection
-- **Rate limiting** — per user, configurable
-
-Caelis Engine assumes a hostile client environment and keeps all sensitive logic server-side.
-
----
-
-## Architecture
-
-```
-caelis-engine/        ← Public repo (this) — GitHub Pages
-caelis-web/           ← PWA (private)
-caelis-app/           ← Capacitor Android (private)
-caelis-worker/        ← Cloudflare Worker AI backend (private)
-```
-
-**Stack:** Vanilla JS · Canvas 2D · SVG · Web Speech API · Cloudflare Workers · Anthropic Claude
+- Stereographic polar projection (Caelis mode)
+- Astrolabe mode (rete + tympanum)
+- Oculus 3D mode (Three.js)
+- Primary directions / Atacir (Al-Biruni, Ptolemy, Naibod)
+- Full synastry (cross-aspects, antiscia, biwheel SVG export)
+- Eclipse calculator (±10 years, click-to-jump)
+- Vedic Panchanga (5 elements + Lahiri ayanamsa)
+- Hermetic AI reading (4 types + voice + audio bar)
+- Solar corona rendering during total eclipse
+- Full ES/EN i18n with `_t()` system
+- PWA (installable, offline-capable)
+- Android app via Capacitor
 
 ---
 
-## Premium
+## Pricing
 
-One-time payment · No subscription · No account required
-
-| Tier | Price | Includes |
-|---|---|---|
-| **Personal** | $19 USD | Full instrument + AI readings + all calculators |
-| **Developer** | $49 USD | Personal + commercial use + npm package |
-| **Studio** | $199 USD | Developer + white-label + priority support |
-
-Includes secure AI interpretation layer (Atacir · Synastry · Panchanga · Natal).
+| Tier | Price | Credits | Rollover |
+|---|---|---|---|
+| Free | — | 3/day | none |
+| Personal | $19 | 15/day | up to 45 |
+| Developer | $49 | 40/day | up to 120 |
+| Studio | $199 | unlimited | — |
 
 ---
 
-## Quick Start (npm)
-
-```bash
-npm install caelis-engine
-```
+## AstroSync API
 
 ```javascript
-import { sunPosition, moonPosition, getSnapshot } from 'caelis-engine';
+import CaelisEngine from 'caelis-engine';
 
-const snap = getSnapshot();  // full astronomical snapshot
+const engine = new CaelisEngine();
+const snap = engine.getSnapshot();
+
 console.log(snap.bodies.Sol.lon_ecl);  // ecliptic longitude
+console.log(snap.moon.phase);          // 0–1
+console.log(snap.houses.asc);          // ascendant degree
 ```
 
 ---
 
-## Running Tests
+## Validation
 
 ```bash
-node test_precision.js
-# 145/145 PASS — VSOP87, ELP/MPP02, IAU 2000B, ΔT, Placidus, Panchanga
+node suite_v2_final.js    # 145/145 JPL precision tests
+node test_precision.js    # 29/29 algorithm unit tests
+python audit_prod.py index.html  # 51/51 production checks
 ```
 
 ---
 
-## Roadmap
+## Repository Structure
 
-- [ ] Demo mode (AI without license, limited payload)
-- [ ] SSE streaming for AI responses
-- [ ] IAU 2000A nutation (1365 terms, ~0.1 mas)
-- [ ] Natal chart memory (localStorage profile)
-- [ ] Conversational AI panel (message history)
-- [ ] Deutsch / हिन्दी i18n
-- [ ] Google Play Store (Capacitor)
+```
+caelis-engine/
+├── index.html              ← Production monolith (PROD)
+├── caelis_engine_2_2.html  ← Versioned copy
+├── manifest.json           ← PWA manifest
+├── sw.js                   ← Service worker
+├── suite_v2_final.js       ← JPL precision test suite
+├── test_precision.js       ← Algorithm unit tests
+├── audit_prod.py           ← Production audit (51 checks)
+├── sync_caelis_v22.ps1     ← Full sync script (engine→web→app)
+├── docs/
+│   ├── astrocore.md
+│   ├── atacir.md
+│   ├── references.md
+│   └── timeengine.md
+└── assets/icons/
+```
 
 ---
 
 ## License
 
-**AGPL-3.0** — open source, modifications must be published.  
-**Commercial license** available for closed-source use (see Premium tiers above).
-
----
-
-*"Caelis Engine exists at the boundary between mathematical precision and symbolic observation — where the structure of time becomes navigable."*
-
-**Hermetica Labs** · [hermeticalabs.dev@proton.me](mailto:hermeticalabs.dev@proton.me)  
-Author: Cristian Valeria Bravo
+AGPL-3.0 © 2024–2026 Cristian Valeria Bravo / Hermetica Labs  
+[hermeticalabs.github.io/caelis-engine](https://hermeticalabs.github.io/caelis-engine/)
