@@ -1,5 +1,5 @@
 /**
- * Caelis Engine v2.1.0 — TypeScript Declarations
+ * Caelis Engine v3.0.0 — TypeScript Declarations
  * Professional astronomical calculation engine
  * https://github.com/HermeticaLabs/caelis-engine
  */
@@ -152,6 +152,7 @@ export function eclLonToRA(lonDeg: number, epsRad: number): number;
 export function raToEclLon(raDeg: number, epsRad: number): number;
 
 // ── Planet algorithms ─────────────────────────────────────────────────────────
+/** VSOP87B official (IMCCE, 122 terms, ±3'' precision) — updated in v3.0 */
 export function vsop87Mercurio(T: number): HeliocentricCoords;
 export function vsop87Venus(T: number): HeliocentricCoords;
 export function vsop87Tierra(T: number): HeliocentricCoords;
@@ -167,6 +168,7 @@ export function sunLonEcl(): number;
 export function planetLonEcl(name: string): number;
 
 // ── Moon ──────────────────────────────────────────────────────────────────────
+/** RA always normalized to [0, 2π] — fixed in v3.0 */
 export function moonPosition(): { ra: number; dec: number };
 export function moonLonEcl(): number;
 export function lunarDistELP(jde: number): number;

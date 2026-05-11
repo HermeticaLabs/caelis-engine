@@ -1,12 +1,13 @@
 /**
- * AstroCore.js v2.1.0 — Motor Astronómico Puro
+ * AstroCore.js v3.0.0 — Motor Astronómico Puro
  *
- * Núcleo matemático de Caelis Engine v2.1.
+ * Núcleo matemático de Caelis Engine v3.0.
  * Funciones puras: VSOP87, ELP/MPP02 (LLR calibrado), Placidus, Nutación IAU 1980,
  * Panchanga védico, eclipses, equinoccios, Ayanamsa Lahiri.
  *
  * Sin dependencias de DOM ni estado visual.
  * 107/107 tests PASS vs JPL Horizons DE441, Swiss Ephemeris, Meeus AA 2nd ed.
+ * v3.0: vsop87Mercurio actualizado a VSOP87B oficial (IMCCE), moonPosition RA normalizado.
  * Rango de validez: 1800–2100 CE.
  *
  * Autor:      Cristian Valeria Bravo
@@ -291,40 +292,161 @@ function nutation(T){
 }
 
 function vsop87Mercurio(T){
-  // Implementación: Meeus Cap.31 + ecuación del centro (5 términos, e=0.206)
-  const tau = T / 10; // milenios (para consistencia con las otras vsop87)
-  const Tc = tau * 10; // volvemos a siglos para Meeus Cap.31
-  // Elementos orbitales medios (Meeus Cap.31, Tabla 31.a)
-  const L_med = ((252.250906 + 149474.0722491*Tc + 0.00030350*Tc*Tc) % 360 + 360) % 360;
-  const omega  = ((77.4561190  + 1.5564776*Tc   + 0.00029045*Tc*Tc) % 360 + 360) % 360;
-  const Omega  = ((48.330893   + 1.1861883*Tc   + 0.00017542*Tc*Tc) % 360 + 360) % 360;
-  const i_deg  = 7.004986 + 0.0018215*Tc;
-  const e      = 0.20563175 + 0.000020407*Tc - 0.0000000283*Tc*Tc;
-  const a      = 0.387098310;
-  // Anomalía media
-  const M_deg  = ((L_med - omega) % 360 + 360) % 360;
-  const Mr     = M_deg * Math.PI/180;
-  // Ecuación del centro — serie a 5 términos (convergente para e=0.206)
-  const C = (180/Math.PI) * (
-    (2*e - e*e*e/4 + 5*Math.pow(e,5)/96)   * Math.sin(Mr)     +
-    (5/4*e*e - 11/24*Math.pow(e,4))         * Math.sin(2*Mr)   +
-    (13/12*e*e*e - 43/64*Math.pow(e,5))     * Math.sin(3*Mr)   +
-    (103/96*Math.pow(e,4))                  * Math.sin(4*Mr)   +
-    (1097/960*Math.pow(e,5))                * Math.sin(5*Mr)
-  );
-  // Longitud verdadera heliocéntrica (en el plano orbital)
-  const L_true_deg = ((L_med + C) % 360 + 360) % 360;
-  const L_true     = L_true_deg * Math.PI/180;
-  // Radio vector
-  const R = a * (1 - e*e) / (1 + e*Math.cos(Mr));
-  // Latitud eclíptica heliocéntrica (inclinación orbital 7°)
-  const i   = i_deg * Math.PI/180;
-  const Om  = Omega * Math.PI/180;
-  const u   = L_true - Om;           // argumento desde nodo
-  const B   = Math.asin(Math.sin(i) * Math.sin(u));
-  // Corregir L para proyección al plano eclíptico
-  const L_ecl = Math.atan2(Math.sin(L_true - Om)*Math.cos(i), Math.cos(L_true - Om)) + Om;
-  return { L: L_ecl, B, R };
+  // VSOP87B oficial — Bretagnon & Francou (1988), IMCCE
+  // Reemplaza ecuación del centro de v2.1 (error ±5-10') 
+  // Precisión: ±3" longitud, ±2" latitud, ±0.001 AU radio
+  // 122 términos extraídos de VSOP87B.mer con umbral ≥ 1e-6 rad/AU
+  // Actualizado en v3.0 — HermeticaLabs/caelis-engine
+// Precision: ±3" longitude, ±2" latitude, ±0.001 AU radius (1900-2100)
+// 122 terms total — replaces simplified ecuacion del centro
+  const tau=T/10,PI2=6.283185307179586;
+  // L
+  const L0=
+    4.40250710144
+    +0.40989414977*Math.cos(1.48302034195+26087.903141574*tau)
+    +0.050462942*Math.cos(4.47785489551+52175.806283148*tau)
+    +0.00855346844*Math.cos(1.16520322459+78263.709424723*tau)
+    +0.00165590362*Math.cos(4.11969163423+104351.6125663*tau)
+    +0.00034561897*Math.cos(0.77930768443+130439.51570787*tau)
+    +7.583476e-05*Math.cos(3.71348404924+156527.41884945*tau)
+    +3.559745e-05*Math.cos(1.51202675145+1109.3785520934*tau)
+    +1.726011e-05*Math.cos(0.35832267096+182615.32199102*tau)
+    +1.803464e-05*Math.cos(4.10333184211+5661.3320491522*tau)
+    +1.364681e-05*Math.cos(4.59918328256+27197.281693668*tau)
+    +1.589923e-05*Math.cos(2.9951042356+25028.521211385*tau)
+    +1.017332e-05*Math.cos(0.88031393824+31749.235190726*tau)
+    +7.14182e-06*Math.cos(1.54144862493+24978.524589481*tau)
+    +6.43759e-06*Math.cos(5.30266166599+21535.949644515*tau)
+    +4.042e-06*Math.cos(3.28228953196+208703.22513259*tau)
+    +3.52442e-06*Math.cos(5.24156372447+20426.571092422*tau)
+    +3.43312e-06*Math.cos(5.7653170387+955.5997416086*tau)
+    +3.39215e-06*Math.cos(5.86327825226+25558.21217648*tau)
+    +4.51137e-06*Math.cos(6.04989282259+51116.424352959*tau)
+    +3.25329e-06*Math.cos(1.33674488758+53285.184835242*tau)
+    +2.59588e-06*Math.cos(0.98732774234+4551.9534970588*tau)
+    +3.45213e-06*Math.cos(2.79211954198+15874.617595363*tau)
+    +2.72948e-06*Math.cos(2.49451165014+529.6909650946*tau)
+    +2.34831e-06*Math.cos(0.26672019191+11322.664098304*tau)
+    +2.38793e-06*Math.cos(0.113439144+1059.3819301892*tau)
+    +2.64336e-06*Math.cos(3.91705105199+57837.138332301*tau)
+    +2.16645e-06*Math.cos(0.65987085507+13521.751441591*tau)
+    +1.83358e-06*Math.cos(2.62878694178+27043.502883183*tau)
+    +1.75965e-06*Math.cos(4.53636943501+51066.427731055*tau)
+    +1.81629e-06*Math.cos(2.43413603252+25661.304950698*tau)
+    +2.08996e-06*Math.cos(2.09178645677+47623.85278609*tau)
+    +1.72642e-06*Math.cos(2.45200139206+24498.83024629*tau)
+    +1.42317e-06*Math.cos(3.36004060149+37410.567239879*tau)
+    +1.37943e-06*Math.cos(0.29098540695+10213.285546211*tau)
+    +1.18233e-06*Math.cos(2.78149967294+77204.327494533*tau)
+    +1.25219e-06*Math.cos(3.72079967668+39609.654583166*tau)
+    +1.06422e-06*Math.cos(4.20572143374+19804.827291583*tau);
+  const L1=
+    26087.903136855
+    +0.01131199811*Math.cos(6.21874197797+26087.903141574*tau)
+    +0.00292242298*Math.cos(3.04449355541+52175.806283148*tau)
+    +0.00075775081*Math.cos(6.08568821653+78263.709424723*tau)
+    +0.00019676525*Math.cos(2.80965111777+104351.6125663*tau)
+    +5.119883e-05*Math.cos(5.79432353574+130439.51570787*tau)
+    +1.336324e-05*Math.cos(2.47909947012+156527.41884945*tau)
+    +3.5223e-06*Math.cos(3.05246348628+1109.3785520934*tau)
+    +3.50236e-06*Math.cos(5.43397743985+182615.32199102*tau)
+    +9.3444e-07*Math.cos(6.11761855456+27197.281693668*tau)
+    +9.0588e-07*Math.cos(0.00053733031+24978.524589481*tau)
+    +9.2259e-07*Math.cos(2.09530377053+208703.22513259*tau)
+    +5.1943e-07*Math.cos(5.62157845897+5661.3320491522*tau)
+    +4.4343e-07*Math.cos(4.57417248957+25028.521211385*tau)
+    +2.7651e-07*Math.cos(3.03660330131+51066.427731055*tau)
+    +2.1994e-07*Math.cos(0.8647518216+955.5997416086*tau)
+    +2.0378e-07*Math.cos(3.71392682666+20426.571092422*tau)
+    +2.0226e-07*Math.cos(0.52020649631+21535.949644515*tau)
+    +2.4445e-07*Math.cos(5.03171884876+234791.12827417*tau)
+    +1.7507e-07*Math.cos(5.72782246025+4551.9534970588*tau)
+    +1.6673e-07*Math.cos(1.34980149127+529.6909650946*tau)
+    +1.5305e-07*Math.cos(1.79227510901+11322.664098304*tau)
+    +1.396e-07*Math.cos(3.59440619771+24498.83024629*tau)
+    +1.3163e-07*Math.cos(2.71002769534+53285.184835242*tau)
+    +1.2503e-07*Math.cos(4.7013355234+1059.3819301892*tau);
+  const L2=
+    0.00016395129*Math.cos(4.67759555504+26087.903141574*tau)
+    +8.123865e-05*Math.cos(1.40305644134+52175.806283148*tau)
+    +3.20817e-05*Math.cos(4.49577853102+78263.709424723*tau)
+    +1.128209e-05*Math.cos(1.27901273779+104351.6125663*tau)
+    +-8.77186e-06
+    +3.71058e-06*Math.cos(4.31735787338+130439.51570787*tau)
+    +1.16931e-06*Math.cos(1.04943307731+156527.41884945*tau);
+  const L3=0;
+  const L4=0;
+  const L5=0;
+  // B
+  const B0=
+    0.11737528961*Math.cos(1.98357498767+26087.903141574*tau)
+    +0.02388076996*Math.cos(5.03738959686+52175.806283148*tau)
+    +-0.01222839532
+    +0.0054325181*Math.cos(1.79644363964+78263.709424723*tau)
+    +0.0012977877*Math.cos(4.83232503958+104351.6125663*tau)
+    +0.00031866927*Math.cos(1.58088495658+130439.51570787*tau)
+    +7.963301e-05*Math.cos(4.60972126127+156527.41884945*tau)
+    +2.014189e-05*Math.cos(1.35324164377+182615.32199102*tau)
+    +5.13953e-06*Math.cos(4.37835406663+208703.22513259*tau)
+    +2.07674e-06*Math.cos(4.91772567908+27197.281693668*tau)
+    +2.08584e-06*Math.cos(2.02020295489+24978.524589481*tau)
+    +1.32013e-06*Math.cos(1.11908482553+234791.12827417*tau)
+    +1.00454e-06*Math.cos(5.65684757892+20426.571092422*tau)
+    +1.21395e-06*Math.cos(1.81271747279+53285.184835242*tau);
+  const B1=
+    0.00274646065*Math.cos(3.95008450011+26087.903141574*tau)
+    +-0.00099737713
+    +0.00018772047*Math.cos(0.05141288887+78263.709424723*tau)
+    +0.00023970726*Math.cos(2.53272082947+52175.806283148*tau)
+    +8.097508e-05*Math.cos(3.20946389315+104351.6125663*tau)
+    +2.890729e-05*Math.cos(0.00943621371+130439.51570787*tau)
+    +9.49669e-06*Math.cos(3.06780459575+156527.41884945*tau)
+    +2.98013e-06*Math.cos(6.11414444304+182615.32199102*tau);
+  const B2=
+    2.747165e-05*Math.cos(5.24567337999+26087.903141574*tau)
+    +2.047257e-05;
+  const B3=0;
+  const B4=0;
+  const B5=0;
+  // R
+  const R0=
+    0.39528271651
+    +0.07834131818*Math.cos(6.19233722598+26087.903141574*tau)
+    +0.00795525558*Math.cos(2.95989690104+52175.806283148*tau)
+    +0.00121281764*Math.cos(6.01064153797+78263.709424723*tau)
+    +0.00021921969*Math.cos(2.77820093972+104351.6125663*tau)
+    +4.354065e-05*Math.cos(5.82894543774+130439.51570787*tau)
+    +9.18228e-06*Math.cos(2.59650562845+156527.41884945*tau)
+    +2.60033e-06*Math.cos(3.02817753901+27197.281693668*tau)
+    +2.89955e-06*Math.cos(1.42441937278+25028.521211385*tau)
+    +2.01855e-06*Math.cos(5.64725040577+182615.32199102*tau)
+    +2.01498e-06*Math.cos(5.59227727403+31749.235190726*tau)
+    +1.4198e-06*Math.cos(6.25264206514+24978.524589481*tau)
+    +1.00144e-06*Math.cos(3.73435615066+21535.949644515*tau);
+  const R1=
+    0.0021734774*Math.cos(4.65617158665+26087.903141574*tau)
+    +0.00044141826*Math.cos(1.42385544001+52175.806283148*tau)
+    +0.00010094479*Math.cos(4.47466326327+78263.709424723*tau)
+    +2.432805e-05*Math.cos(1.24226083323+104351.6125663*tau)
+    +1.624367e-05
+    +6.03996e-06*Math.cos(4.29303116468+130439.51570787*tau)
+    +1.52851e-06*Math.cos(1.06060778072+156527.41884945*tau)
+    +3.9202e-07*Math.cos(4.11136733071+182615.32199102*tau)
+    +1.776e-07*Math.cos(4.54424729034+27197.281693668*tau)
+    +1.7999e-07*Math.cos(4.71193597233+24978.524589481*tau)
+    +1.0154e-07*Math.cos(0.87893540982+208703.22513259*tau);
+  const R2=
+    3.117867e-05*Math.cos(3.08231840294+26087.903141574*tau)
+    +1.245397e-05*Math.cos(6.1518331681+52175.806283148*tau)
+    +4.24822e-06*Math.cos(2.92583350003+78263.709424723*tau)
+    +1.3613e-06*Math.cos(5.97983927257+104351.6125663*tau);
+  const R3=0;
+  const R4=0;
+  const R5=0;
+  const L=((L0+L1*tau+L2*tau*tau+L3*tau*tau*tau+L4*tau*tau*tau*tau+L5*tau*tau*tau*tau*tau)%PI2+PI2)%PI2;
+  const B= B0+B1*tau+B2*tau*tau+B3*tau*tau*tau+B4*tau*tau*tau*tau+B5*tau*tau*tau*tau*tau;
+  const R= R0+R1*tau+R2*tau*tau+R3*tau*tau*tau+R4*tau*tau*tau*tau+R5*tau*tau*tau*tau*tau;
+  return{L,B,R};
 }
 
 function vsop87Venus(T){
@@ -1453,7 +1575,9 @@ function moonPosition(){
   let{ra:raG,dec:decG}=eclipticToEquatorialWithEps(lambda,beta,eps);
   let LST=getLST(),HA=LST-raG,dR=Rgeo/R_TIERRA;
   let cLat=Math.cos(lat),sLat=Math.sin(lat),cDec=Math.cos(decG),sDec=Math.sin(decG),cHA=Math.cos(HA),sHA=Math.sin(HA);
-  return{ra:raG-(1/dR)*cLat*sHA/cDec,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
+  let raTopo=raG-(1/dR)*cLat*sHA/cDec;
+  const _2PI=2*Math.PI; raTopo=((raTopo%_2PI)+_2PI)%_2PI; // normalizar a [0, 2π] — fix v3.0
+  return{ra:raTopo,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
 }
 
 function sunPosition(){

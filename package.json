@@ -1,55 +1,55 @@
-{
-  "name": "caelis-engine",
-  "version": "2.2.0",
-  "description": "Precision astronomical instrument with hermetic AI interpretation. VSOP87, ELP/MPP02-LLR, IAU 2000B, Placidus, Lahiri, renewable credit system.",
-  "main": "index.html",
-  "scripts": {
-    "test":       "node suite_v2_final.js && node test_precision.js",
-    "audit":      "python audit_prod.py index.html",
-    "validate":   "npm test && npm run audit",
-    "sync":       "powershell -File sync_caelis_v22.ps1"
-  },
-  "keywords": [
-    "astronomy",
-    "astrology",
-    "vsop87",
-    "elp-mpp02",
-    "iau2000b",
-    "placidus",
-    "lahiri",
-    "panchanga",
-    "atacir",
-    "ephemeris",
-    "hermetic",
-    "ai-interpretation",
-    "synastry",
-    "eclipse",
-    "capacitor"
-  ],
-  "author": "Cristian Valeria Bravo <hermeticalabs.dev@proton.me> (https://hermeticalabs.github.io)",
-  "license": "AGPL-3.0",
-  "homepage": "https://hermeticalabs.github.io/caelis-engine/",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/HermeticaLabs/caelis-engine.git"
-  },
-  "bugs": {
-    "url": "https://github.com/HermeticaLabs/caelis-engine/issues"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "files": [
-    "index.html",
-    "caelis_engine_2_2.html",
-    "manifest.json",
-    "sw.js",
-    "assets/",
-    "docs/",
-    "suite_v2_final.js",
-    "test_precision.js",
-    "audit_prod.py",
-    "README.md",
-    "README_es.md"
-  ]
+﻿{
+    "name":  "caelis-engine",
+    "version":  "3.0.0",
+    "description":  "Precision astronomical instrument with hermetic AI interpretation. VSOP87, ELP/MPP02-LLR, IAU 2000B, Placidus, Lahiri, renewable credit system.",
+    "main":  "index.html",
+    "scripts":  {
+                    "test":  "node suite_v2_final.js \u0026\u0026 node test_precision.js",
+                    "audit":  "python audit_prod.py index.html",
+                    "validate":  "npm test \u0026\u0026 npm run audit",
+                    "sync":  "powershell -File sync_caelis_v22.ps1"
+                },
+    "keywords":  [
+                     "astronomy",
+                     "astrology",
+                     "vsop87",
+                     "elp-mpp02",
+                     "iau2000b",
+                     "placidus",
+                     "lahiri",
+                     "panchanga",
+                     "atacir",
+                     "ephemeris",
+                     "hermetic",
+                     "ai-interpretation",
+                     "synastry",
+                     "eclipse",
+                     "capacitor"
+                 ],
+    "author":  "Cristian Valeria Bravo \u003chermeticalabs.dev@proton.me\u003e (https://hermeticalabs.github.io)",
+    "license":  "AGPL-3.0",
+    "homepage":  "https://hermeticalabs.github.io/caelis-engine/",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/HermeticaLabs/caelis-engine.git"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/HermeticaLabs/caelis-engine/issues"
+             },
+    "engines":  {
+                    "node":  "\u003e=18.0.0"
+                },
+    "files":  [
+                  "index.html",
+                  "caelis_engine_2_2.html",
+                  "manifest.json",
+                  "sw.js",
+                  "assets/",
+                  "docs/",
+                  "suite_v2_final.js",
+                  "test_precision.js",
+                  "audit_prod.py",
+                  "README.md",
+                  "README_es.md"
+              ]
 }

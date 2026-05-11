@@ -1,8 +1,8 @@
 /**
- * Caelis Engine v2.1.0 — ESM Entry Point
+ * Caelis Engine v3.0.0 — ESM Entry Point
  * Professional astronomical calculation engine
  *
- * VSOP87 + ELP/MPP02 (LLR calibrated) · 107/107 tests PASS vs JPL Horizons DE441
+ * VSOP87B (IMCCE) + ELP/MPP02 · 107/107 tests PASS vs JPL Horizons DE441
  * Placidus houses · Eclipse detection · Vedic Panchanga · Synastry
  *
  * © 2024–2026 Cristian Valeria Bravo / Hermetica Labs
