@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Build output
+dist/
+*.map
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+api-keys.json
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test output
+coverage/
+.nyc_output/
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# NEVER commit — proprietary Atacir implementation
+# These files contain the cloud API logic and must stay server-side
+atacir/plugins/
+atacir/Atacir.compute.js
+atacir/AtacirBase.js
+atacir/AtacirToggleUI.js

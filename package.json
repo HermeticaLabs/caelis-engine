@@ -1,0 +1,63 @@
+{
+  "name": "caelis-engine",
+  "version": "4.0.0",
+  "description": "Deterministic astronomical computation engine. VSOP87B + ELP/MPP02-LLR. No server. No API key. No dependencies.",
+  "author": {
+    "name": "Cristian Valeria Bravo",
+    "email": "hermeticalabs@[domain]",
+    "url": "https://github.com/HermeticaLabs"
+  },
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/HermeticaLabs/caelis-engine",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HermeticaLabs/caelis-engine.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HermeticaLabs/caelis-engine/issues"
+  },
+  "keywords": [
+    "astronomy", "planets", "ephemeris", "celestial",
+    "vsop87", "elp", "moon", "eclipse", "astrology",
+    "javascript", "browser", "offline", "deterministic",
+    "nutation", "sidereal"
+  ],
+  "type": "commonjs",
+  "main":    "./core/CaelisEngine.js",
+  "module":  "./core/CaelisEngine.js",
+  "exports": {
+    ".": {
+      "import":  "./core/CaelisEngine.js",
+      "default": "./core/CaelisEngine.js"
+    },
+    "./client": {
+      "import":  "./client/AtacirClient.js",
+      "default": "./client/AtacirClient.js"
+    }
+  },
+  "files": [
+    "core/CaelisEngine.js",
+    "client/AtacirClient.js",
+    "dist/caelis-minimal.html",
+    "validation/run.js",
+    "validation/caelis-validation.html",
+    "docs/",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "COMMERCIAL_LICENSE.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "validate":   "node validation/run.js",
+    "validate:v": "node validation/run.js --verbose",
+    "prepublish": "node validation/run.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "funding": {
+    "type":  "commercial",
+    "url":   "https://github.com/HermeticaLabs/caelis-engine/blob/main/COMMERCIAL_LICENSE.md"
+  }
+}

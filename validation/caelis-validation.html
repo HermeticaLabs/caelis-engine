@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Caelis Engine — Validation Suite v4.0</title>
+<style>
+  :root {
+    --bg: #0a0a12; --bg2: #0f0f1a; --bd: rgba(120,100,255,.15);
+    --f: 'JetBrains Mono', monospace;
+    --w: rgba(220,235,255,.85); --d: rgba(220,235,255,.45);
+    --g: rgba(80,220,130,1);   --r: rgba(255,90,90,1);
+    --y: rgba(255,200,60,1);   --p: rgba(160,100,255,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--w); font-family: var(--f); font-size: 11px; padding: 20px; }
+  h1 { color: var(--p); font-size: 14px; letter-spacing: .15em; margin-bottom: 4px; }
+  .sub { color: var(--d); font-size: 9px; letter-spacing: .08em; margin-bottom: 20px; }
+  .epoch { background: var(--bg2); border: 1px solid var(--bd); border-radius: 3px; margin-bottom: 16px; overflow: hidden; }
+  .epoch-hd { padding: 8px 12px; border-bottom: 1px solid var(--bd); display: flex; align-items: center; justify-content: space-between; }
+  .epoch-label { color: var(--p); font-size: 10px; letter-spacing: .08em; }
+  .epoch-jd { color: var(--d); font-size: 9px; }
+  .epoch-status { font-size: 9px; padding: 2px 8px; border-radius: 10px; border: 1px solid; }
+  .status-pass { color: var(--g); border-color: rgba(80,220,130,.3); background: rgba(80,220,130,.07); }
+  .status-fail { color: var(--r); border-color: rgba(255,90,90,.3);  background: rgba(255,90,90,.07); }
+  .status-run  { color: var(--y); border-color: rgba(255,200,60,.3);  background: rgba(255,200,60,.07); }
+  table { width: 100%; border-collapse: collapse; }
+  th { color: var(--d); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 12px; text-align: left; border-bottom: 1px solid var(--bd); }
+  td { padding: 4px 12px; font-size: 10px; border-bottom: 1px solid rgba(120,100,255,.06); }
+  td.pass { color: var(--g); }
+  td.fail { color: var(--r); font-weight: bold; }
+  td.warn { color: var(--y); }
+  td.dim  { color: var(--d); }
+  td.src  { color: rgba(160,100,255,.5); font-size: 8px; max-width: 220px; }
+  .summary { margin-top: 20px; padding: 12px 16px; background: var(--bg2); border: 1px solid var(--bd); border-radius: 3px; display: flex; gap: 24px; align-items: center; }
+  .sum-val { font-size: 18px; font-weight: bold; }
+  .sum-lbl { font-size: 9px; color: var(--d); letter-spacing: .06em; margin-top: 2px; }
+  .sum-pass { color: var(--g); }
+  .sum-fail { color: var(--r); }
+  .sum-warn { color: var(--y); }
+  .run-btn { background: rgba(160,100,255,.15); border: 1px solid rgba(160,100,255,.4); color: var(--p); padding: 6px 16px; border-radius: 2px; cursor: pointer; font-family: var(--f); font-size: 10px; letter-spacing: .08em; transition: all .15s; margin-bottom: 20px; }
+  .run-btn:hover { background: rgba(160,100,255,.25); }
+  .log { margin-top: 12px; padding: 8px; background: rgba(0,0,0,.3); border-radius: 2px; font-size: 9px; color: var(--d); max-height: 120px; overflow-y: auto; white-space: pre; }
+  .delta-good { color: var(--g); }
+  .delta-warn { color: var(--y); }
+  .delta-fail { color: var(--r); }
+</style>
+</head>
+<body>
+
+<h1>⬡ CAELIS ENGINE — VALIDATION SUITE v4.0</h1>
+<div class="sub">
+  Hermetica Labs · Mathematical pipeline verification against canonical sources<br>
+  Sources: Meeus "Astronomical Algorithms" 2nd ed. · VSOP87 verification table · ELP/MPP02-LLR paper · IAU SOFA · IERS
+</div>
+
+<button class="run-btn" onclick="runAll()">▶ Run All Tests</button>
+<div id="results"></div>
+<div class="summary" id="summary" style="display:none">
+  <div><div class="sum-val sum-pass" id="s-pass">—</div><div class="sum-lbl">PASSED</div></div>
+  <div><div class="sum-val sum-fail" id="s-fail">—</div><div class="sum-lbl">FAILED</div></div>
+  <div><div class="sum-val sum-warn" id="s-warn">—</div><div class="sum-lbl">WARNINGS</div></div>
+  <div style="flex:1"></div>
+  <div style="color:var(--d);font-size:9px;text-align:right" id="s-time"></div>
+</div>
+<div class="log" id="log" style="display:none"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     CAELIS ENGINE — inline (will be replaced by script src in modular)
+     ═══════════════════════════════════════════════════════════════════ -->
+<script src="CaelisEngine.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// REFERENCE DATA
+// Sources:
+//   [M] Meeus, J. "Astronomical Algorithms" 2nd ed. (1998)
+//   [V] Bretagnon & Francou (1987) VSOP87 — verification table
+//   [E] Chapront & Francou (2002) ELP/MPP02-LLR paper
+//   [S] IAU SOFA C library documentation
+//   [I] IERS Bulletin C / Conventions 2003
+//   [C] Caelis Engine v4.0 canonical output (regression baseline)
+// ══════════════════════════════════════════════════════════════════════
+
+const EPOCHS = [
+
+  // ── Epoch 1: J2000.0 ────────────────────────────────────────────────
+  {
+    id:    'j2000',
+    label: 'J2000.0',
+    desc:  '2000-Jan-01 12:00:00 TT · Geocentric · London (51.5°, -0.1°)',
+    jd_tt: 2451545.0,
+    lat:   51.5,
+    lon:   -0.1,
+    tests: [
+      // Obliquity
+      {
+        field:  'meta.obliquity.true_deg',
+        expect: 23.43929,
+        tol:    0.0005,
+        label:  'True obliquity ε',
+        source: '[S] IAU 2006 polynomial T=0 → 84381.406″ = 23.43929°'
+      },
+      // ΔT
+      {
+        field:  'meta.delta_t_sec',
+        expect: 63.83,
+        tol:    0.5,
+        label:  'ΔT (TT−UTC)',
+        source: '[I] IERS table, 2000-Jan'
+      },
+      // Sol — Meeus Ch.25 canonical example
+      {
+        field:  'bodies.Sol.lon_ecl_geocentric_deg',
+        expect: 280.458,
+        tol:    0.010,
+        label:  'Sol λ geocentric',
+        source: '[M] Ch.25 p.164-165 + [V] VSOP87 Table 6: 280.4665°'
+      },
+      // Luna — ELP/MPP02 mean longitude at J2000.0
+      {
+        field:  'bodies.Luna.lon_ecl_geocentric_deg',
+        expect: 218.316,
+        tol:    0.15,
+        label:  'Luna λ geocentric',
+        source: '[E] ELP/MPP02-LLR paper: W1(J2000.0) = 218.3165°'
+      },
+      // Jupiter — Meeus App.II abridged VSOP87
+      {
+        field:  'bodies.Jupiter.lon_ecl_geocentric_deg',
+        expect: 34.349,
+        tol:    0.020,
+        label:  'Jupiter λ geocentric',
+        source: '[V] VSOP87 abridged (Meeus App.II) J2000.0'
+      },
+      // Sidereal time — GAST at J2000.0
+      // Meeus p.88: GAST at J2000.0 = 280.46061837° (approx, depends on ΔT)
+      {
+        field:  'meta.sidereal.gast_deg',
+        expect: 280.461,
+        tol:    0.05,
+        label:  'GAST',
+        source: '[M] Ch.12 p.88: GAST at J2000.0 ≈ 280.46°'
+      },
+    ]
+  },
+
+  // ── Epoch 2: Meeus Ch.25 exact example ──────────────────────────────
+  {
+    id:    'meeus_ch25',
+    label: 'Meeus Ch.25',
+    desc:  '1987-Apr-10 0h TT · Canonical solar/lunar example from Meeus p.148,165,342',
+    jd_tt: 2446895.5,
+    lat:   48.8,
+    lon:   2.3,
+    tests: [
+      // True obliquity — Meeus Ch.22 p.148 exact
+      {
+        field:  'meta.obliquity.true_deg',
+        expect: 23.4436,
+        tol:    0.001,
+        label:  'True obliquity ε',
+        source: '[M] Ch.22 p.148: ε_true = 23°26\'36.9″ = 23.4436°'
+      },
+      // Sol longitude — Meeus Ch.25 p.165 exact
+      {
+        field:  'bodies.Sol.lon_ecl_geocentric_deg',
+        expect: 201.807,
+        tol:    0.005,
+        label:  'Sol λ geocentric',
+        source: '[M] Ch.25 p.165: apparent longitude = 201°48\'25.0″ = 201.807°'
+      },
+      // Luna longitude — Meeus Ch.47 p.342 exact
+      {
+        field:  'bodies.Luna.lon_ecl_geocentric_deg',
+        expect: 133.167,
+        tol:    0.050,
+        label:  'Luna λ geocentric',
+        source: '[M] Ch.47 p.342: Moon\'s longitude = 133°10.0\' ≈ 133.167°'
+      },
+      // Nutation — Meeus Ch.22 p.148
+      {
+        field:  'meta.nutation.delta_psi_arcsec',
+        expect: -3.788,
+        tol:    0.1,
+        label:  'ΔΨ nutation arcsec',
+        source: '[M] Ch.22 p.148: ΔΨ = -3.788″'
+      },
+    ]
+  },
+
+  // ── Epoch 3: Meeus Ch.33 Venus example ──────────────────────────────
+  {
+    id:    'meeus_ch33',
+    label: 'Meeus Ch.33 Venus',
+    desc:  '1992-Apr-12 0h TT · VSOP87 Venus verification — Meeus p.225',
+    jd_tt: 2448724.5,
+    lat:   48.8,
+    lon:   2.3,
+    tests: [
+      // Venus apparent longitude — Meeus Ch.33 p.225 exact VSOP87 example
+      {
+        field:  'bodies.Venus.lon_ecl_geocentric_deg',
+        expect: 26.115,
+        tol:    0.010,
+        label:  'Venus λ geocentric',
+        source: '[M] Ch.33 p.225: apparent long. = 26°6\'53″ = 26.115° (VSOP87)'
+      },
+    ]
+  },
+
+  // ── Epoch 4: 2026-06-01 regression baseline ──────────────────────────
+  {
+    id:    'epoch_2026',
+    label: '2026 Baseline',
+    desc:  '2026-Jun-01 23:58:00 UTC · Santiago (-33.45°, -70.66°) · Caelis v4.0 canonical',
+    jd_tt: 2461193.499437,
+    lat:   -33.45,
+    lon:   -70.66,
+    tests: [
+      {
+        field:  'meta.obliquity.true_deg',
+        expect: 23.4383,
+        tol:    0.0001,
+        label:  'True obliquity ε',
+        source: '[C] Caelis v4.0 canonical output'
+      },
+      {
+        field:  'meta.sidereal.lst_deg',
+        expect: 179.618,
+        tol:    0.050,
+        label:  'LST',
+        source: '[C] Caelis v4.0 canonical output'
+      },
+      {
+        field:  'meta.delta_t_sec',
+        expect: 71.35,
+        tol:    0.5,
+        label:  'ΔT',
+        source: '[I] IERS table interpolated'
+      },
+      {
+        field:  'bodies.Sol.lon_ecl_geocentric_deg',
+        expect: 71.498,
+        tol:    0.005,
+        label:  'Sol λ geocentric',
+        source: '[C] Caelis v4.0 canonical output'
+      },
+      {
+        field:  'bodies.Sol.alt_geometric_deg',
+        expect: -27.896,
+        tol:    0.1,
+        label:  'Sol altitude geometric',
+        source: '[C] Caelis v4.0 canonical output'
+      },
+      {
+        field:  'bodies.Luna.lon_ecl_geocentric_deg',
+        expect: 269.330,
+        tol:    0.020,
+        label:  'Luna λ geocentric',
+        source: '[C] Caelis v4.0 canonical output'
+      },
+      {
+        field:  'bodies.Luna.lon_ecl_topocentric_deg',
+        expect: 270.082,
+        tol:    0.050,
+        label:  'Luna λ topocentric',
+        source: '[C] Caelis v4.0 canonical output (parallax ~57\')'
+      },
+      {
+        field:  'bodies.Jupiter.lon_ecl_geocentric_deg',
+        expect: 114.254,
+        tol:    0.005,
+        label:  'Jupiter λ geocentric',
+        source: '[C] Caelis v4.0 canonical output'
+      },
+    ]
+  },
+
+  // ── Epoch 5: Schema integrity ─────────────────────────────────────────
+  {
+    id:    'schema',
+    label: 'Schema v3.1',
+    desc:  'Schema completeness and invariants — current epoch',
+    jd_tt: null, // uses current time
+    lat:   -33.45,
+    lon:   -70.66,
+    tests: [
+      {
+        field:   '__schema_version',
+        expect:  '3.1',
+        tol:     null,
+        label:   'schema_version === "3.1"',
+        source:  'Schema contract'
+      },
+      {
+        field:   '__bodies_count',
+        expect:  11,
+        tol:     null,
+        label:   '11 bodies present (9 planets + 2 nodes)',
+        source:  'Schema contract'
+      },
+      {
+        field:   '__no_house_on_bodies',
+        expect:  true,
+        tol:     null,
+        label:   'No .house field on any body',
+        source:  'Invariant I-3: no interpretive concepts in AstroCore'
+      },
+      {
+        field:   '__no_root_houses',
+        expect:  true,
+        tol:     null,
+        label:   'No .houses at snapshot root',
+        source:  'Invariant I-3: houses → atacir.houses plugin'
+      },
+      {
+        field:   '__luna_has_topocentric',
+        expect:  true,
+        tol:     null,
+        label:   'Luna has lon_ecl_topocentric_deg',
+        source:  'Invariant I-6: lunar parallax always present'
+      },
+      {
+        field:   '__all_bodies_have_both_altitudes',
+        expect:  true,
+        tol:     null,
+        label:   'Every body has alt_geometric + alt_apparent',
+        source:  'Invariant I-5: both altitudes always present'
+      },
+      {
+        field:   '__meta_frame_declared',
+        expect:  true,
+        tol:     null,
+        label:   'meta.frame declares all algorithms',
+        source:  'Invariant I-4: every field names its frame'
+      },
+      {
+        field:   '__no_internal_fields_in_json',
+        expect:  true,
+        tol:     null,
+        label:   'No _ fields in public JSON output',
+        source:  'Schema contract: internal fields filtered'
+      },
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════════════════════════
+// FIELD RESOLVER
+// ══════════════════════════════════════════════════════════════════════
+function resolve(snap, field) {
+  // Special schema checks
+  if (field === '__schema_version')
+    return snap.schema_version;
+
+  if (field === '__bodies_count')
+    return Object.keys(snap.bodies || {}).filter(k => !k.startsWith('_')).length;
+
+  if (field === '__no_house_on_bodies') {
+    const bodies = snap.bodies || {};
+    return !Object.values(bodies).some(b => b && 'house' in b);
+  }
+
+  if (field === '__no_root_houses')
+    return !('houses' in snap) || typeof snap.houses === 'function'; // proxy OK
+
+  if (field === '__luna_has_topocentric')
+    return 'lon_ecl_topocentric_deg' in (snap.bodies?.Luna || {});
+
+  if (field === '__all_bodies_have_both_altitudes') {
+    const bodies = snap.bodies || {};
+    return Object.entries(bodies)
+      .filter(([k]) => !k.startsWith('_'))
+      .every(([, b]) => b && 'alt_geometric_deg' in b && 'alt_apparent_deg' in b);
+  }
+
+  if (field === '__meta_frame_declared') {
+    const f = snap.meta?.frame || {};
+    return ['nutation','obliquity','planets','moon'].every(k => k in f);
+  }
+
+  if (field === '__no_internal_fields_in_json') {
+    const j = JSON.stringify(snap, (k,v) => k.startsWith('_') ? undefined : v);
+    const parsed = JSON.parse(j);
+    const check = obj => {
+      if (typeof obj !== 'object' || !obj) return true;
+      return Object.keys(obj).every(k => !k.startsWith('_') && check(obj[k]));
+    };
+    return check(parsed);
+  }
+
+  // Normal field path: 'bodies.Sol.lon_ecl_geocentric_deg'
+  const parts = field.split('.');
+  let val = snap;
+  for (const p of parts) {
+    if (val === undefined || val === null) return undefined;
+    val = val[p];
+  }
+  return val;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RUN ENGINE
+// ══════════════════════════════════════════════════════════════════════
+function runEpoch(epoch) {
+  // Set observer
+  if (typeof setObserver === 'function') setObserver(epoch.lat, epoch.lon);
+
+  // Get snapshot
+  let snap;
+  if (epoch.jd_tt !== null) {
+    // Historical epoch via offset
+    const jdNow = Date.now() / 86400000 + 2440587.5;
+    if (typeof setOffset === 'function') {
+      // Use timeOffset to travel to target JD
+      const dtSec = (epoch.jd_tt - jdNow) * 86400;
+      if (typeof timeOffset !== 'undefined') {
+        const savedOffset = timeOffset;
+        timeOffset = dtSec;
+        snap = getSnapshot();
+        timeOffset = savedOffset;
+      } else {
+        snap = getSnapshot();
+      }
+    } else {
+      snap = getSnapshot();
+    }
+  } else {
+    snap = getSnapshot();
+  }
+  return snap;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// COMPARE
+// ══════════════════════════════════════════════════════════════════════
+function compare(got, expect, tol) {
+  if (tol === null) {
+    // Exact equality (schema tests)
+    if (typeof expect === 'string') return { pass: got === expect, delta: null };
+    if (typeof expect === 'boolean') return { pass: got === expect, delta: null };
+    if (typeof expect === 'number') return { pass: got === expect, delta: null };
+    return { pass: JSON.stringify(got) === JSON.stringify(expect), delta: null };
+  }
+  if (typeof got !== 'number') return { pass: false, delta: null };
+  const delta = Math.abs(got - expect);
+  return {
+    pass:  delta <= tol,
+    delta: delta,
+    pct:   (delta / tol * 100).toFixed(0)
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════════════
+function runAll() {
+  const t0 = performance.now();
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+
+  let totalPass = 0, totalFail = 0, totalWarn = 0;
+  const logs = [];
+
+  for (const epoch of EPOCHS) {
+    let snap;
+    try {
+      snap = runEpoch(epoch);
+    } catch(e) {
+      container.innerHTML += `<div class="epoch">
+        <div class="epoch-hd">
+          <span class="epoch-label">${epoch.label}</span>
+          <span class="epoch-status status-fail">ENGINE ERROR</span>
+        </div>
+        <div style="padding:10px;color:var(--r);font-size:10px">${e.message}</div>
+      </div>`;
+      totalFail++;
+      continue;
+    }
+
+    let epochPass = 0, epochFail = 0;
+    const rows = [];
+
+    for (const test of epoch.tests) {
+      const got    = resolve(snap, test.field);
+      const result = compare(got, test.expect, test.tol);
+
+      let statusClass, gotDisplay, deltaDisplay;
+
+      if (result.pass) {
+        epochPass++; totalPass++;
+        statusClass = 'pass';
+      } else {
+        epochFail++; totalFail++;
+        statusClass = 'fail';
+        logs.push(`FAIL [${epoch.label}] ${test.label}: got=${got}, expected=${test.expect}±${test.tol}`);
+      }
+
+      // Format got value
+      if (typeof got === 'number') {
+        gotDisplay = got.toFixed(test.tol !== null ? Math.max(3, -Math.log10(test.tol)+1) : 3);
+      } else {
+        gotDisplay = String(got);
+      }
+
+      // Format delta
+      if (result.delta !== null) {
+        const cls = result.pass ? 'delta-good' : 'delta-fail';
+        deltaDisplay = `<span class="${cls}">${result.delta.toFixed(5)}° (${result.pct}% of tol)</span>`;
+      } else {
+        deltaDisplay = result.pass
+          ? '<span class="delta-good">✓</span>'
+          : '<span class="delta-fail">✗</span>';
+      }
+
+      rows.push(`<tr>
+        <td class="${statusClass}">${result.pass ? '✓' : '✗'}</td>
+        <td class="${statusClass}">${test.label}</td>
+        <td class="${statusClass}">${gotDisplay}</td>
+        <td class="dim">${test.expect !== null ? test.expect : '—'}${test.tol !== null ? ' ±'+test.tol : ''}</td>
+        <td>${deltaDisplay}</td>
+        <td class="src">${test.source}</td>
+      </tr>`);
+    }
+
+    const epochStatus = epochFail === 0 ? 'status-pass' : 'status-fail';
+    const epochLabel  = epochFail === 0 ? `PASS ${epochPass}/${epoch.tests.length}` : `FAIL ${epochFail}/${epoch.tests.length}`;
+
+    container.innerHTML += `<div class="epoch">
+      <div class="epoch-hd">
+        <div>
+          <span class="epoch-label">${epoch.label}</span>
+          <span class="dim" style="margin-left:8px;font-size:9px">${epoch.desc}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="dim" style="font-size:9px">JD_TT ${epoch.jd_tt !== null ? epoch.jd_tt.toFixed(1) : 'now'}</span>
+          <span class="epoch-status ${epochStatus}">${epochLabel}</span>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th></th><th>Test</th><th>Got</th><th>Expected</th><th>Delta</th><th>Source</th>
+        </tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // Summary
+  const elapsed = (performance.now() - t0).toFixed(1);
+  document.getElementById('s-pass').textContent = totalPass;
+  document.getElementById('s-fail').textContent = totalFail;
+  document.getElementById('s-warn').textContent = totalWarn;
+  document.getElementById('s-time').textContent =
+    `${EPOCHS.length} epochs · ${totalPass+totalFail} assertions · ${elapsed}ms`;
+  document.getElementById('summary').style.display = 'flex';
+
+  if (logs.length) {
+    document.getElementById('log').style.display = 'block';
+    document.getElementById('log').textContent = logs.join('\n');
+  }
+}
+
+// Auto-run on load
+window.addEventListener('load', () => {
+  // Small delay to let engine initialize
+  setTimeout(runAll, 100);
+});
+</script>
+
+</body>
+</html>
