@@ -324,7 +324,7 @@ Caelis Engine is released under **AGPL-3.0**.
 Free to use in open source software under AGPL-3.0 terms.
 **If you are building a commercial or proprietary product, you need a commercial license.**
 
-Commercial licensing: `hermeticalabs@[domain]`
+Commercial licensing: `hermeticalabs.dev@proton.me]`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 
 ---
