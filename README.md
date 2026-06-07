@@ -60,7 +60,7 @@ It is what products are built on.
 
 ## Who builds with Caelis Engine
 
-**For platforms that require deterministic celestial computation without external dependencies:**
+**For platforms that cannot afford external dependencies in celestial computation:**
 
 **Astrology applications** — birth charts, transits, synastry, progressions.
 Real planetary positions without subscription costs or rate limits. Runs 100% offline on the user's device. No data leaves the client.
@@ -321,7 +321,7 @@ The R1-R5 Digital Signature is a cryptographic certification that the output was
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
 
-If this aligns with your infrastructure challenges or research direction, we are open to early technical collaborations.
+If this aligns with how you think infrastructure should behave, we should talk.
 
 **Early access:** `hermeticalabs.dev@proton.me`
 
