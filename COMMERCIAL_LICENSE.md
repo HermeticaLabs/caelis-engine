@@ -61,7 +61,7 @@ Includes: unlimited products and developers · custom terms · SLA options · de
 ## Contact
 
 **Commercial licensing:**  
-`hermeticalabs@[domain]`
+`hermeticalabs.dev@proton.me`
 
 **GitHub:**  
 Open an issue tagged `commercial-license`

@@ -1,5 +1,7 @@
 # Caelis Engine
 
+**Stop calling astrology APIs.**
+
 **Every number this engine produces can be traced back to a known astronomical model, with declared precision and zero hidden assumptions.**
 
 Caelis Engine is a deterministic computation engine for celestial data. It replaces opaque APIs and black-box calculations with a fully auditable, reproducible, self-contained system — running entirely in the browser or Node.js, with no server, no API key, no ephemeris files, and no dependencies.
@@ -58,14 +60,22 @@ It is what products are built on.
 
 ## Who builds with Caelis Engine
 
+**For platforms that cannot afford external dependencies in celestial computation:**
+
 **Astrology applications** — birth charts, transits, synastry, progressions.
 Real planetary positions without subscription costs or rate limits. Runs 100% offline on the user's device. No data leaves the client.
+
+**For teams building scientific or educational systems where reproducibility matters:**
 
 **Astronomy and educational tools** — observational planning, sky simulators, interactive planetariums.
 Deterministic output means reproducible results across every device, every run.
 
+**For companies currently relying on APIs with opaque outputs or inconsistent schemas:**
+
 **AI pipelines and data infrastructure** — any system where celestial data must be consistent, traceable, and unambiguous.
 A disabled plugin does not exist in the JSON. No null fields, no implicit states.
+
+**For teams building interactive systems that require lightweight and portable computation:**
 
 **Games and interactive experiences** — procedural sky systems, lunar calendar logic, celestial mechanics.
 Single-file distribution. Works offline. No build step required.
@@ -89,10 +99,14 @@ Receives time from TimeEngine. Computes the physical state of the solar system. 
 Zero interpretive concepts. No houses. No aspects. No symbolic content.
 The engine does not interpret the sky. It measures it.
 
-### A.T.A.C.I.R. — interpretive layer
+### A.T.A.C.I.R. — optional interpretive layer
 **A**rc-based **T**ransformation of **A**stronomical **C**oordinates for **I**nterpretive **R**esolution.
 
-Architecturally separate from the astronomical core by design. Receives the snapshot. Appends derived computations under `result.atacir.*`. Never modifies the astronomical data.
+Optional layer for astrology and derived interpretations.
+
+Architecturally separate from the astronomical core by design. Receives the snapshot. Appends derived computations under `result.atacir.*`. 
+Never modifies the astronomical data.
+Fully isolated by design
 
 Available plugins: `houses` · `aspects` · `symmetries` · `lunar` · `cycles` · `resonances` · `panchanga` · `synastry` · `eclipses` · `directions`
 
@@ -132,7 +146,7 @@ Download `dist/caelis-minimal.html`. Open with a local server:
 python -m http.server 8080
 # open http://localhost:8080/caelis-minimal.html
 ```
-
+Open in browser. Done.
 No installation. No dependencies. No build step.
 
 ### Option B — Node.js or bundler
@@ -256,6 +270,8 @@ Full schema: [`docs/CAELIS_ENGINE_SPEC_v4_0.md`](docs/CAELIS_ENGINE_SPEC_v4_0.md
 Third-party APIs add latency, cost, and a dependency you don't control.
 Swiss Ephemeris is the precision standard — but it requires a server, a C wrapper, and ephemeris files.
 
+If you need deterministic, portable, auditable computation --> Caelis Engine it's for you.
+
 Caelis Engine runs where neither can: directly in the browser, in edge functions, in React Native, in any JavaScript environment. Offline. Deterministically.
 
 ---
@@ -279,7 +295,7 @@ node validation/run.js
 
 ## Precision and limitations
 
-Designed for portability and auditability — not sub-arcsecond astrometry.
+Designed for portability, determinism and auditability — not sub-arcsecond astrometry.
 
 | Source | Declared max error |
 |---|---|
@@ -289,24 +305,26 @@ Designed for portability and auditability — not sub-arcsecond astrometry.
 | Refraction near horizon | 1–5′ |
 | ΔT outside 500–2150 AD | variable |
 
-For sub-arcsecond requirements, use JPL Horizons or Swiss Ephemeris with full VSOP87.
 For everything that needs to run in a browser, offline, and deterministically — this is it.
 
 ---
 
 ## A.T.A.C.I.R. Cloud
 
-The interpretive layer is available as a managed API through Hermetica Labs.
+The interpretive optional layer managed API for interpretive computations.
 
-What it adds on top of the astronomical core:
-house systems · natal and transit aspects · ecliptic symmetries · primary directions · lunar apsides and cycles · orbital resonances · Vedic Panchanga · synastry · eclipse prediction · **R1-R5 Digital Signature**
+Adds:
+house systems · natal and transit aspects · ecliptic symmetries · primary directions · lunar apsides and cycles · orbital resonances · Vedic Panchanga · synastry · eclipse prediction · **Includes R1–R5 digital signature for output integrity.**
 
 The R1-R5 Digital Signature is a cryptographic certification that the output was produced under the full Plugin Contract and has not been modified. Every result is auditable, traceable, and independently verifiable.
 
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
 
-**Early access:** `hermeticalabs@[domain]`
+If this aligns with how you think infrastructure should behave, we should talk.
+
+**Early access:** `hermeticalabs.dev@proton.me`
+
 
 ---
 
@@ -317,7 +335,7 @@ Caelis Engine is released under **AGPL-3.0**.
 Free to use in open source software under AGPL-3.0 terms.
 **If you are building a commercial or proprietary product, you need a commercial license.**
 
-Commercial licensing: `hermeticalabs@[domain]`
+Commercial licensing: `hermeticalabs.dev@proton.me`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 
 ---
