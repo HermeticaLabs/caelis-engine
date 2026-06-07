@@ -60,14 +60,22 @@ It is what products are built on.
 
 ## Who builds with Caelis Engine
 
+**For platforms that require deterministic celestial computation without external dependencies:**
+
 **Astrology applications** — birth charts, transits, synastry, progressions.
 Real planetary positions without subscription costs or rate limits. Runs 100% offline on the user's device. No data leaves the client.
+
+**For teams building scientific or educational systems where reproducibility matters:**
 
 **Astronomy and educational tools** — observational planning, sky simulators, interactive planetariums.
 Deterministic output means reproducible results across every device, every run.
 
+**For companies currently relying on APIs with opaque outputs or inconsistent schemas:**
+
 **AI pipelines and data infrastructure** — any system where celestial data must be consistent, traceable, and unambiguous.
 A disabled plugin does not exist in the JSON. No null fields, no implicit states.
+
+**For teams building interactive systems that require lightweight and portable computation:**
 
 **Games and interactive experiences** — procedural sky systems, lunar calendar logic, celestial mechanics.
 Single-file distribution. Works offline. No build step required.
@@ -312,6 +320,8 @@ The R1-R5 Digital Signature is a cryptographic certification that the output was
 
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
+
+If this aligns with your infrastructure challenges or research direction, we are open to early technical collaborations.
 
 **Early access:** `hermeticalabs.dev@proton.me`
 
