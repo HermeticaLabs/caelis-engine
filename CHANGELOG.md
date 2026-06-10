@@ -17,7 +17,7 @@ The snapshot produced by `getSnapshot()` and `getSnapshotAt()` no longer contain
 - `snapshot.bodies[*].house` — removed entirely from body entries
 - `NodoNorte` and `NodoSur` remain in `snapshot.bodies` with correct `lon_ecl_geocentric_deg` field (previously used non-standard `lon_ecl`)
 
-**NEW: Atacir plugin system.**
+**NEW: A.T.A.C.I.R. plugin system.**
 `Atacir.compute(snapshot, config)` is now the formal entry point for all interpretive computations. Output is appended under `result.atacir.*` — the snapshot is never modified.
 
 **NEW: Plugin Contract R1-R5.**
