@@ -1,0 +1,67 @@
+name: Caelis Engine — Validation Suite
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'core/CaelisEngine.js'
+      - 'atacir/**'
+      - 'validation/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'core/CaelisEngine.js'
+      - 'atacir/**'
+
+jobs:
+  validate:
+    name: Mathematical Pipeline Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run validation suite
+        run: node validation/run.js --verbose
+
+      - name: Upload results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-failure-${{ github.sha }}
+          path: validation/
+
+  schema:
+    name: Schema v3.1 Invariants
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Schema invariants only
+        run: node validation/run.js --epoch=schema --verbose
+
+  regression:
+    name: Regression — Canonical Epochs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        epoch: [j2000, meeus_ch25, meeus_ch33, epoch_2026]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run epoch ${{ matrix.epoch }}
+        run: node validation/run.js --epoch=${{ matrix.epoch }} --verbose
