@@ -328,3 +328,5 @@ if (failures.length > 0) {
 
 console.log('');
 process.exit(allPass ? 0 : 1);
+
+// CI trigger
