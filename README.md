@@ -340,7 +340,7 @@ Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 ---
 
 [![Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://hermeticalabs.github.io/caelis-engine/)
-[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions)
+[![Caelis Engine — Validation Suite](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
 
 ---
 
