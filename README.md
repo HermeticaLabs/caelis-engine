@@ -325,7 +325,6 @@ If this aligns with how you think infrastructure should behave, we should talk.
 
 **Early access:** `hermeticalabs.dev@proton.me`
 
-
 ---
 
 ## License

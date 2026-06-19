@@ -24,7 +24,7 @@
  *
  * COMMERCIAL USE:
  * Use in proprietary or commercial applications requires a commercial license.
- * Contact: hermeticalabs@[domain]
+ * Contact: hermeticalab.dev@proton.me
  * See COMMERCIAL_LICENSE.md for details.
  *
  * ----------------------------------------------------------------------------
