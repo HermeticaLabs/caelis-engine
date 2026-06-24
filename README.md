@@ -1,4 +1,4 @@
-# Caelis Engine - By Cristian Valeria Bravo / Hermetica Labs
+# CAELIS ENGINE
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
