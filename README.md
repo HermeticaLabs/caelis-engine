@@ -1,5 +1,11 @@
 # Caelis Engine
 
+[![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
+[![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
+[![license](https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square)](./LICENSE)
+[![demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)](https://hermeticalabs.github.io/caelis-engine/)
+[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
+
 **Stop calling astrology APIs.**
 
 **Every number this engine produces can be traced back to a known astronomical model, with declared precision and zero hidden assumptions.**
@@ -336,11 +342,6 @@ Free to use in open source software under AGPL-3.0 terms.
 
 Commercial licensing: `hermeticalabs.dev@proton.me`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
-
----
-
-[![Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://hermeticalabs.github.io/caelis-engine/)
-[![Caelis Engine — Validation Suite](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
 
 ---
 
