@@ -259,26 +259,28 @@ Full schema: [`docs/CAELIS_ENGINE_SPEC_v4_0.md`](docs/CAELIS_ENGINE_SPEC_v4_0.md
 
 ---
 
-## Why not a third-party API or Swiss Ephemeris?
+## How Caelis Engine compares
 
-|  | Third-party APIs | Swiss Ephemeris | **Caelis Engine** |
-|---|:---:|:---:|:---:|
-| Runs in browser | ✗ | ✗ | **✓** |
-| No server required | ✗ | ✗ | **✓** |
-| No API key or cost | ✗ | ✓ | **✓** |
-| Declared precision per field | ✗ | partial | **✓** |
-| Algorithm named in every output | ✗ | ✗ | **✓** |
-| Single JS file · no install | ✗ | ✗ | **✓** |
-| Offline capable | ✗ | ✓ | **✓** |
-| Schema-stable versioned output | ✗ | ✗ | **✓** |
-| Interpretive layer optional | N/A | N/A | **✓** |
+| | JPL Horizons | Swiss Ephemeris | Astronomy Engine | suncalc3 | **Caelis Engine** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Runs in browser | ✗ | ✗ | ✗ | ✓ | **✓** |
+| No server required | ✗ | ✗ | ✓ | ✓ | **✓** |
+| No dependencies | ✗ | ✗ | ✓ | ✓ | **✓** |
+| VSOP87B planets | ✓ | ✓ | ✓ (full) | ✗ | **✓** |
+| ELP/MPP02 Moon | ✓ | ✓ | ✗ | ✗ | **✓** |
+| IAU 2000B nutation | ✓ | ✓ (2000A) | ✗ | ✗ | **✓** |
+| House systems | ✗ | ✓ | ✗ | ✗ | **✓ 5 systems** |
+| Deterministic output | ✗ | ✓ | ✓ | ✓ | **✓** |
+| Algorithm declared in output | ✗ | ✗ | ✗ | ✗ | **✓** |
+| JavaScript native | ✗ | ✗ | ✗ | ✓ | **✓** |
+| Schema-stable versioned JSON | ✗ | ✗ | ✗ | ✗ | **✓** |
 
-Third-party APIs add latency, cost, and a dependency you don't control.
-Swiss Ephemeris is the precision standard — but it requires a server, a C wrapper, and ephemeris files.
+**JPL Horizons** — the precision reference. Web service only, no local computation.  
+**Swiss Ephemeris** — the professional standard. Requires a server, a C wrapper, and binary ephemeris files.  
+**Astronomy Engine (Don Cross)** — closest philosophy. C + bindings, more precise for outer planets, no house systems, no interpretive layer.  
+**suncalc3** — lightweight, browser-native, but a toy compared to a full ephemeris engine.
 
-If you need deterministic, portable, auditable computation --> Caelis Engine it's for you.
-
-Caelis Engine runs where neither can: directly in the browser, in edge functions, in React Native, in any JavaScript environment. Offline. Deterministically.
+Caelis Engine is the only option that combines scientific-grade algorithms with zero dependencies, browser compatibility, and a stable auditable output schema.
 
 ---
 
