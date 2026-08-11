@@ -254,48 +254,22 @@ Texto mínimo recomendado para `COMMERCIAL_LICENSE.md`:
 
 ---
 
-## Checklist antes del primer commit público
+## Checklist — v4.0 release status
 
-- [x] P1: funciones de casas migradas a Atacir (7 funciones — v4.0)
-- [x] P2: UI functions fuera del motor (4 funciones — v4.0)
-- [x] P3: validation suite 28/28 — 5 epochs, 3 fuentes canónicas (v4.0)
-- [x] Monolito actualizado — caelis-minimal_v4_p3.html
-- [ ] `CATALOGO.md` actualizado (función por función)
-- [ ] `COMMERCIAL_LICENSE.md` redactado
-- [ ] `CONTRIBUTING.md` con reglas de PR (especialmente: no tocar algoritmos sin validación)
-- [ ] `.gitignore` configurado
-- [ ] `package.json` inicial
-- [ ] Tag `v4.0.0` en el primer commit estable
+- [x] P1 — funciones de casas migradas a Atacir (7 funciones)
+- [x] P2 — funciones UI fuera del motor (4 funciones)
+- [x] P3 — validation suite **28/28 passing** · 5 epochs · CI en GitHub Actions
+- [x] Monolito actualizado — caelis-minimal v4.0.1
+- [x] CATALOGO.md — función por función con arquitectura v4.0
+- [x] COMMERCIAL_LICENSE.md
+- [x] CONTRIBUTING.md
+- [x] README.md — modelo de negocio, comparativa técnica, badges
+- [x] NPM publicado — `caelis-engine@4.0.1`
+- [x] GitHub Pages — demo live
+- [x] CI badge — verde en main
 
----
 
-## Resumen de pendientes de esta sesión
 
-Lo que está hecho y estable en el monolito actual:
 
-✅ Arquitectura AstroCore / Atacir separada con fronteras formales  
-✅ Schema v3.1 astronómico puro (sin houses, sin house por cuerpo)  
-✅ 10 plugins Atacir bajo Plugin Contract v1.0  
-✅ Toggle system UI con pills violeta/gris  
-✅ Modales por plugin (Houses, Aspects, Symmetries, Panchanga, Synastry, Eclipses)  
-✅ Timezone handling sin fricción (hora local → UTC automático)  
-✅ Bodies tab con JSON astronómico puro + GetSnapshot + export  
-✅ Eclipse "Ver ↗" carga snapshot de ese momento celeste  
-✅ Sinastría como flujo paralelo independiente con JSON propio  
-✅ Safety Polar Switch™ en modal Houses  
-✅ Documentación (README, MATEMATICA, ARQUITECTURA, SPEC)  
-
-Lo que queda antes del repo público:
-
-⬜ P1: migrar casas fuera de AstroCore  
-⬜ P2: migrar UI functions fuera de motor  
-⬜ P3: validation suite JPL Horizons  
-⬜ CATALOGO.md actualizado  
-⬜ COMMERCIAL_LICENSE.md  
-⬜ CONTRIBUTING.md  
-⬜ Build tooling (Rollup)  
-⬜ `package.json` inicial  
-
----
 
 *Caelis Engine v4.0 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

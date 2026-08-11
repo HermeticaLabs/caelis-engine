@@ -286,18 +286,24 @@ Caelis Engine is the only option that combines scientific-grade algorithms with 
 
 ## Validation
 
+**28 assertions · 5 reference epochs · 0 failures · runs on every push.**
+
 ```bash
 node validation/run.js
-# 28 assertions · 5 epochs · 0 failures
+# ✓ ALL TESTS PASSED  28 passed · 0 failed · 595ms
 ```
 
 | Epoch | Source | Assertions |
 |---|---|---|
-| J2000.0 — 2000-Jan-01 12:00 TT | IAU SOFA + VSOP87 paper | 6 |
+| J2000.0 — 2000-Jan-01 12:00 TT | IAU SOFA + VSOP87 verification table | 6 |
 | 1987-Apr-10 (Meeus Ch.25) | Meeus *Astronomical Algorithms* 2nd ed. | 4 |
-| 1992-Apr-12 (Meeus Ch.33 Venus) | VSOP87 verification table | 1 |
+| 1992-Apr-12 Venus (Meeus Ch.33) | VSOP87 verification table | 1 |
 | 2026-Jun-01 regression baseline | Caelis v4.0 canonical output | 8 |
-| Schema v3.1 invariants | Architecture contract | 9 |
+| Schema v3.1 invariants | Architecture contract (10 invariants) | 9 |
+
+Every epoch tests both numerical precision and architectural invariants — field naming, coordinate frame declarations, absence of interpretive concepts in the astronomical schema, and determinism guarantees.
+
+Run the browser version: [`validation/caelis-validation.html`](validation/caelis-validation.html) |
 
 ---
 
