@@ -14,7 +14,7 @@ Date:         2026-06
 El motor está funcional y arquitectónicamente correcto en su capa pública.
 El monolito `caelis-minimal.html` es el artefacto de referencia.
 
-### Lo que está bien
+### 
 
 - AstroCore produce snapshot v3.1 100% astronómico puro
 - `house`, `houses` y `NodoNorte/NodoSur` correctamente separados del schema público
@@ -60,7 +60,7 @@ Impacto: `CaelisEngine.js` queda sin ninguna referencia al DOM.
 **[P3] Validation suite vs JPL Horizons**
 
 Estado: en progreso.
-Necesario antes del primer release público de NPM.
+
 
 Epochs objetivo:
 - J2000.0 (2000-01-01 12:00 TT)
@@ -91,9 +91,9 @@ parámetros explícitos para eliminar el estado global completamente.
 
 ---
 
-## Hacia NPM — plan de empaquetado
+## NPM — plan de empaquetado
 
-### Estructura objetivo del paquete
+### Estructura objetivo
 
 ```
 @hermeticalabs/caelis-engine/
@@ -176,7 +176,7 @@ console.log(result.atacir.houses.asc);
 
 ### Build tooling
 
-Herramienta recomendada: **Rollup** (mínimo overhead, output limpio).
+**Rollup** (mínimo overhead, output limpio).
 
 ```javascript
 // rollup.config.js
@@ -189,7 +189,7 @@ export default [
 
 ---
 
-## Hacia GitHub — preparación del repo
+## GitHub
 
 ### Archivos necesarios
 
@@ -238,7 +238,7 @@ caelis-engine/
 
 ### Licencia comercial
 
-Texto mínimo recomendado para `COMMERCIAL_LICENSE.md`:
+`COMMERCIAL_LICENSE.md`:
 
 > Caelis Engine is available under AGPL-3.0 for open source use.
 > A commercial license is required for use in proprietary software,
@@ -250,7 +250,7 @@ Texto mínimo recomendado para `COMMERCIAL_LICENSE.md`:
 > - Startups and small teams (< 10 employees)
 > - Enterprise and white-label
 >
-> Contact: hermeticalabs@[domain]
+> Contact: hermeticalabs.dev@proton.me
 
 ---
 
@@ -267,6 +267,29 @@ Texto mínimo recomendado para `COMMERCIAL_LICENSE.md`:
 - [x] NPM publicado — `caelis-engine@4.0.1`
 - [x] GitHub Pages — demo live
 - [x] CI badge — verde en main
+
+## Issues conocidos — v4.0.2 (próximo patch)
+
+| Issue | Origen | Severidad |
+|---|---|---|
+| Lunar node latitude floating-point underflow `~1e-15` | Gemini analysis | Baja — cosmético |
+| `directions` plugin anida `meta` duplicado — viola I-8 | Gemini analysis | Media — arquitectura |
+| `_isPremium = true` hardcodeado — código muerto | Kimi analysis | Baja — limpieza |
+| `calcAtacirCore` viola R3 — llama a `getSnapshotAt()` internamente | Kimi analysis | Media — arquitectura |
+| `_getHouses()` / `_attachHousesProxy()` duplicados en scope | Kimi analysis | Baja — deuda técnica |
+
+## Roadmap v4.1
+
+- `getSnapshot(jd_tt, lat, lon, houseSystem)` — firma completamente explícita, sin globals
+- `houseSystem` como parámetro puro, no estado global
+- TypeScript type definitions
+- Lazy-load de coeficientes VSOP87B opcionales
+
+## Roadmap v5.0
+
+- WebAssembly core para computación masiva
+- VSOP2013 para mayor precisión en planetas exteriores
+- Full ELP/MPP02 (35,000 términos) como opción premium
 
 
 
