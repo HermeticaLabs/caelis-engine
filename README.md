@@ -286,24 +286,49 @@ Caelis Engine is the only option that combines scientific-grade algorithms with 
 
 ## Validation
 
-**28 assertions · 5 reference epochs · 0 failures · runs on every push.**
+**95 assertions · 15 reference epochs · 0 failures · runs on every push.**
+
+The mathematical pipeline is validated at two levels:
+
+**Core suite** (`validation/run.js`) — 28 assertions · runs in CI on every push
+**Extended benchmarks** (`validation/benchmarks/extended.js`) — 67 assertions · 10 epochs · 5 canonical sources
 
 ```bash
 node validation/run.js
 # ✓ ALL TESTS PASSED  28 passed · 0 failed · 595ms
+
+node validation/benchmarks/extended.js
+# ✓ ALL TESTS PASSED  67 passed · 0 failed · 151ms
 ```
+
+### Extended benchmark epochs
 
 | Epoch | Source | Assertions |
 |---|---|---|
-| J2000.0 — 2000-Jan-01 12:00 TT | IAU SOFA + VSOP87 verification table | 6 |
-| 1987-Apr-10 (Meeus Ch.25) | Meeus *Astronomical Algorithms* 2nd ed. | 4 |
-| 1992-Apr-12 Venus (Meeus Ch.33) | VSOP87 verification table | 1 |
-| 2026-Jun-01 regression baseline | Caelis v4.0 canonical output | 8 |
-| Schema v3.1 invariants | Architecture contract (10 invariants) | 9 |
+| J2000.0 — 2000-Jan-01 12:00 TT | IAU SOFA + VSOP87 paper [V] | 11 |
+| 1987-Apr-10 — Meeus Ch.22 nutation | Meeus *Astronomical Algorithms* [M] | 6 |
+| 1992-Apr-12 — Meeus Ch.33 Venus | VSOP87 verification table [V] | 4 |
+| 1992-Apr-12 — Meeus Ch.47 Moon | ELP/MPP02-LLR paper [E] | 4 |
+| 2000-Mar-20 — Vernal Equinox | Meeus Ch.27 [M] | 4 |
+| 1900-Jan-01 — Historical | VSOP87B long-range + IERS [V][I] | 5 |
+| 2050-Jan-01 — Future | IAU 2006 + IERS projected [S][I] | 4 |
+| 2026-Jun-01 — Regression baseline | Caelis v4.0 canonical [C] | 13 |
+| Schema v3.1 invariants | Architecture contract (10 invariants) | 11 |
+| Precision bounds | Declared error envelope verification | 5 |
 
-Every epoch tests both numerical precision and architectural invariants — field naming, coordinate frame declarations, absence of interpretive concepts in the astronomical schema, and determinism guarantees.
+### Reference sources
 
-Run the browser version: [`validation/caelis-validation.html`](validation/caelis-validation.html) |
+| Code | Source |
+|---|---|
+| [M] | Meeus, J. *Astronomical Algorithms* 2nd ed. (1998) |
+| [V] | Bretagnon & Francou (1987) A&A 202 — VSOP87 original paper |
+| [E] | Chapront & Francou (2002) A&A 412 — ELP/MPP02-LLR paper |
+| [S] | IAU SOFA C library documentation (2023) |
+| [I] | IERS Bulletin C + Conventions 2003 |
+| [C] | Caelis Engine v4.0 canonical output — regression baseline |
+
+Every numerical tolerance reflects the declared precision bound of the
+algorithm in use — not an arbitrary margin.
 
 ---
 
