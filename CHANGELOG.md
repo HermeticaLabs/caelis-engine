@@ -6,6 +6,60 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.2] — 2026-06
+
+### Fixed — Final pre-release cleanup
+
+**Lunar node latitude floating-point underflow (Issue #1)**
+`bodies.NodoNorte.lat_ecl_deg` and `bodies.NodoSur.lat_ecl_deg` returned
+floating-point residuals (~1e-15) from the equatorial-to-ecliptic transformation.
+Lunar nodes are geometric intersections with the ecliptic — their ecliptic
+latitude is exactly 0 by definition. Fixed in both `getSnapshot()` and
+`getSnapshotAt()` by explicitly setting `lat_ecl_deg: 0` after `_bodyData()`.
+
+**Audited and confirmed resolved (no code change needed):**
+- `_sunLonAtJDE` — R3 compliant, `timeOffset` correctly restored
+- `setObserver` — zero DOM refs in motor scope (stubs are comments only)
+- `_isPremium` — removed from motor in v4.0, confirmed absent
+- `applyManualLocation` / `initLocation` — migrated to UI Controller in v4.0
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing (10 epochs · 5 canonical sources)
+- Total: 95/95 assertions · 0 failures
+
+---
+
+## [4.0.1] — 2026-06
+
+### Fixed — Defensive validation
+
+Three guard clauses added to prevent cascading failures when the snapshot
+structure is invalid or corrupted. These do not affect any valid usage —
+they only intercept malformed data before it reaches the render layer.
+
+**`Atacir.compute(snapshot)`** — now validates that `snapshot` is a non-null
+object with `meta.jd_tt` and `bodies` before executing any plugin. Returns
+the input unchanged if invalid, with a `console.error` message. Previously,
+a corrupted snapshot would cause cryptic errors deep in the plugin pipeline.
+
+**`renderSnap(s)`** — now checks for `s.meta.jd_tt` and `s.meta.sidereal`
+before accessing nested fields. Uses optional chaining (`?.`) throughout.
+Previously, a missing `meta.sidereal` caused `TypeError: Cannot read
+properties of undefined (reading 'lst_deg')`.
+
+**`computeAll()`** — now validates the result of `Atacir.compute()` before
+assigning it to `_snap` and calling the render chain. Displays a clear
+status message if the result is invalid.
+
+### Notes
+
+These fixes address the UI rendering layer only. The mathematical pipeline
+(TimeEngine, AstroCore, VSOP87B, ELP/MPP02-LLR) is unchanged.
+The validation suite remains 28/28 passing.
+
+---
+
 ## [4.0.0] — 2026-06
 
 ### Architecture
@@ -17,7 +71,7 @@ The snapshot produced by `getSnapshot()` and `getSnapshotAt()` no longer contain
 - `snapshot.bodies[*].house` — removed entirely from body entries
 - `NodoNorte` and `NodoSur` remain in `snapshot.bodies` with correct `lon_ecl_geocentric_deg` field (previously used non-standard `lon_ecl`)
 
-**NEW: A.T.A.C.I.R. plugin system.**
+**NEW: Atacir plugin system.**
 `Atacir.compute(snapshot, config)` is now the formal entry point for all interpretive computations. Output is appended under `result.atacir.*` — the snapshot is never modified.
 
 **NEW: Plugin Contract R1-R5.**

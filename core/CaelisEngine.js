@@ -24,7 +24,7 @@
  *
  * COMMERCIAL USE:
  * Use in proprietary or commercial applications requires a commercial license.
- * Contact: hermeticalab.dev@proton.me
+ * Contact: hermeticalabs@[domain]
  * See COMMERCIAL_LICENSE.md for details.
  *
  * ----------------------------------------------------------------------------
@@ -1204,11 +1204,13 @@ function getSnapshot(config){
       // lon_ecl_geocentric_deg usa el campo estándar del schema v3.1
       NodoNorte: Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
         lon_ecl_geocentric_deg: nodes.omega,
-        lat_ecl_geocentric_deg: 0
+        lat_ecl_geocentric_deg: 0,
+        lat_ecl_deg: 0
       }),
       NodoSur: Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
         lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-        lat_ecl_geocentric_deg: 0
+        lat_ecl_geocentric_deg: 0,
+        lat_ecl_deg: 0
       }),
       // _nodes: referencia interna para plugin houses
       _nodes: { north: nodes.north, south: nodes.south, omega: nodes.omega }
@@ -1357,11 +1359,13 @@ function _getSnapshotFromJD(jd_tt_explicit){
   const nodes = lunarNodes();
   snap.bodies.NodoNorte = Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
     lon_ecl_geocentric_deg: nodes.omega,
-    lat_ecl_geocentric_deg: 0
+    lat_ecl_geocentric_deg: 0,
+    lat_ecl_deg: 0
   });
   snap.bodies.NodoSur = Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
     lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-    lat_ecl_geocentric_deg: 0
+    lat_ecl_geocentric_deg: 0,
+    lat_ecl_deg: 0
   });
 
   return snap;
