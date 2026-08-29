@@ -763,7 +763,7 @@ function applyRefraction(alt){
 }
 
 
-let houseSystem = "equal"; // "equal" | "placidus"
+let houseSystem = "placidus"; // default: Placidus (most common in Western astrology) // "equal" | "placidus"
 
 // toggleHouseSystem → UI Controller (manipula DOM + houseSystem global)
 
@@ -819,9 +819,13 @@ const _SEQ_DATA = [
 function _sunLonAtJDE(jde){
   const nowJD  = Date.now()/86400000 + 2440587.5;
   const saved  = timeOffset;
-  timeOffset   = (jde - nowJD)*86400 - deltaT(jde);
-  const lon    = sunLonEcl();
-  timeOffset   = saved;
+  let lon;
+  try {
+    timeOffset = (jde - nowJD)*86400 - deltaT(jde);
+    lon = sunLonEcl();
+  } finally {
+    timeOffset = saved; // always restore — even if sunLonEcl() throws
+  }
   return lon;
 }
 
@@ -1373,3 +1377,26 @@ function _getSnapshotFromJD(jd_tt_explicit){
 
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
+
+// ── Module exports (Node.js / CommonJS + ESM compatibility) ──────────────────
+// Allows: const { getSnapshot } = require('caelis-engine')
+// Or via vm.runInThisContext (used by validation suite)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    // Core API
+    getSnapshot,
+    getSnapshotAt,
+    setObserver,
+    setOffset,
+    // TimeEngine
+    julianDate,
+    julianDateUTC,
+    deltaT,
+    gast,
+    // Utilities
+    deg2rad,
+    rad2deg,
+  };
+}
+// ESM named exports (when bundled with Rollup/Vite/esbuild)
+// export { getSnapshot, getSnapshotAt, setObserver, setOffset };

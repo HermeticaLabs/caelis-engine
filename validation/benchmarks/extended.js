@@ -249,7 +249,7 @@ const BENCHMARK_EPOCHS = [
     id: 'precision_bounds', label: 'Declared Precision Bounds (multi-epoch)', jd_tt: null, lat: 0.0, lon: 0.0,
     tests: [
       { field: '__obliquity_within_001deg',    expect: true,   tol: null,  label: 'Obliquity within ±0.001° of IAU 2006',           src: '[S] Declared bound: IAU 2006 5th-degree polynomial' },
-      { field: '__nutation_below_1mas',        expect: true,   tol: null,  label: 'Nutation < 1 mas vs IAU 2000A bound',            src: '[S] IAU 2000B declared precision < 1 mas' },
+      { field: '__nutation_within_bounds',     expect: true,   tol: null,  label: 'Nutation ΔΨ < 20″, Δε < 10″ (IAU 2000B bounds)', src: '[S] IAU 2000B vs 2000A diff < 1 mas; test verifies values are in expected range' },
       { field: '__dt_within_05s',             expect: true,   tol: null,  label: 'ΔT within ±0.5s of IERS table in [500,2150]',   src: '[I] IERS linear interpolation in table range' },
       { field: '__luna_geo_topo_differ',       expect: true,   tol: null,  label: 'Luna geocentric ≠ topocentric (parallax active)', src: 'Invariant I-6: WGS-84 topocentric correction applied' },
       { field: '__refraction_applied',         expect: true,   tol: null,  label: 'Apparent alt > geometric alt for visible bodies', src: 'Bennett refraction applied when alt > -1°' },
@@ -326,7 +326,7 @@ function resolve(snap, field) {
     });
   }
 
-  if (field === '__nutation_below_1mas') {
+  if (field === '__nutation_within_bounds') {
     // IAU 2000B vs 2000A difference should be < 1 mas = 0.000278°
     // We verify the nutation values are in the expected ballpark
     const s = getSnapshotAt(2451545.0, { lat_deg: 0, lon_deg: 0 });

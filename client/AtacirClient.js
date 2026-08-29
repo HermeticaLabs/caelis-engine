@@ -37,7 +37,8 @@
  *   });
  *
  * API docs:   https://api.hermeticalabs.com/docs
- * Licensing: hermeticalabs.dev@proton.me
+ * Pricing:    https://hermeticalabs.com/pricing
+ * Licensing:  hermeticalabs@[domain]
  * ============================================================================
  */
 
@@ -305,19 +306,36 @@ class AtacirClient {
   async _get(path) {
     const url = `${this._base}/${this._version}${path}`;
 
-    const response = await fetch(url, {
-      method:  'GET',
-      headers: {
-        'Authorization': `Bearer ${this._apiKey}`,
-        'X-Client':      `caelis-engine/4.0`,
-      },
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this._timeout);
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method:  'GET',
+        headers: {
+          'Authorization': `Bearer ${this._apiKey}`,
+          'X-Client':      `caelis-engine/4.0.2`,
+        },
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === 'AbortError')
+        throw new Error(`A.T.A.C.I.R. API timeout after ${this._timeout}ms.`);
+      throw new Error(`A.T.A.C.I.R. API network error: ${err.message}`);
+    } finally {
+      clearTimeout(timer);
+    }
 
     const data = await response.json().catch(() => null);
     if (!response.ok) {
       throw new Error(
         `A.T.A.C.I.R. API error ${response.status}: ${data?.error || response.statusText}`
       );
+    }
+    if (data === null) {
+      throw new Error('A.T.A.C.I.R. API returned non-JSON response.');
     }
     return data;
   }
