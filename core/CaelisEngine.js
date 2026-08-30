@@ -925,8 +925,10 @@ function setObserver(latDeg, lonDeg, label){
   lat      = latDeg * deg2rad;
   lon      = lonDeg * deg2rad;
   R_TIERRA = geocentricRadius();
-  let status = document.getElementById("locStatus");
-  if(status) status.textContent = label || `${latDeg.toFixed(3)}°, ${lonDeg.toFixed(3)}°`;
+  if(typeof document !== 'undefined'){
+    let status = document.getElementById("locStatus");
+    if(status) status.textContent = label || `${latDeg.toFixed(3)}°, ${lonDeg.toFixed(3)}°`;
+  }
 }
 
 // Entrada manual: acepta "lat, lon" en grados decimales
@@ -936,16 +938,21 @@ function applyManualLocation(raw){
     let latD = Math.max(-90, Math.min(90,  parts[0]));
     let lonD = Math.max(-180,Math.min(180, parts[1]));
     setObserver(latD, lonD);
-    document.getElementById("locInput").blur();
+    if(typeof document !== 'undefined'){
+      const inp = document.getElementById("locInput");
+      if(inp) inp.blur();
+    }
   } else {
-    let status = document.getElementById("locStatus");
-    if(status) status.textContent = "formato: lat, lon";
+    if(typeof document !== 'undefined'){
+      let status = document.getElementById("locStatus");
+      if(status) status.textContent = "formato: lat, lon";
+    }
   }
 }
 
 // Geolocalización del navegador — se llama una vez al inicio
 function initLocation(){
-  if(!navigator.geolocation){
+  if(typeof navigator === 'undefined' || !navigator.geolocation){
     // Sin soporte: permanece en Santiago
     return;
   }
@@ -1296,9 +1303,14 @@ function lunarNodes(){
 // Versión parametrizable de getSnapshot — permite calcular para cualquier
 // momento y lugar sin modificar el estado del motor.
 function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
+  // Input validation
+  if(typeof jdTarget !== 'number' || isNaN(jdTarget))
+    throw new RangeError('getSnapshotAt: jdTarget must be a valid Julian Date number');
   // Acepta (jd, lat, lon) o (jd, {lat_deg, lon_deg})
   const latDeg = (latDegOrObs && typeof latDegOrObs === 'object') ? latDegOrObs.lat_deg : latDegOrObs;
   const lonDeg = (latDegOrObs && typeof latDegOrObs === 'object') ? latDegOrObs.lon_deg : lonDegParam;
+  if(typeof latDeg !== 'number' || isNaN(latDeg) || typeof lonDeg !== 'number' || isNaN(lonDeg))
+    throw new RangeError('getSnapshotAt: observer lat/lon must be valid numbers');
 
   // ── Cálculo determinista directo desde jd_tt ──────────────────────────────
   // No usa timeOffset + Date.now() — elimina race condition y garantiza
@@ -1344,33 +1356,30 @@ function _getSnapshotFromJD(jd_tt_explicit){
   let snap;
   try {
     snap = getSnapshot();
+    // Nodos lunares calculados DENTRO del try — timeOffset aún apunta al JD objetivo
+    const nodes = lunarNodes();
+    snap.bodies.NodoNorte = Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
+      lon_ecl_geocentric_deg: nodes.omega,
+      lat_ecl_geocentric_deg: 0,
+      lat_ecl_deg: 0
+    });
+    snap.bodies.NodoSur = Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
+      lon_ecl_geocentric_deg: nodes.south.lon_ecl,
+      lat_ecl_geocentric_deg: 0,
+      lat_ecl_deg: 0
+    });
   } finally {
-    timeOffset = savedOffset;
+    timeOffset = savedOffset; // restored after nodes computed
   }
 
-  // Parche: asegurar que meta.jd_tt refleja el valor exacto solicitado
-  // (pequeñas diferencias por aritmética de punto flotante son aceptables
-  //  pero el valor nominal debe ser el solicitado)
+  // Asegurar que meta.jd_tt refleja el valor exacto solicitado
   if(snap && snap.meta) {
-    snap.meta.jd_tt  = jd_tt;
-    snap.meta.jd_utc = jd_utc;
+    snap.meta.jd_tt       = jd_tt;
+    snap.meta.jd_utc      = jd_utc;
     snap.meta.delta_t_sec = dT_sec;
-    snap.meta.utc = now_d.toISOString();
-    snap.meta.timestamp = (jd_utc - 2440587.5) * 86400;
+    snap.meta.utc         = now_d.toISOString();
+    snap.meta.timestamp   = (jd_utc - 2440587.5) * 86400;
   }
-
-  // Nodos lunares con T explícito
-  const nodes = lunarNodes();
-  snap.bodies.NodoNorte = Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
-    lon_ecl_geocentric_deg: nodes.omega,
-    lat_ecl_geocentric_deg: 0,
-    lat_ecl_deg: 0
-  });
-  snap.bodies.NodoSur = Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
-    lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-    lat_ecl_geocentric_deg: 0,
-    lat_ecl_deg: 0
-  });
 
   return snap;
 }
@@ -1387,7 +1396,6 @@ if (typeof module !== 'undefined' && module.exports) {
     getSnapshot,
     getSnapshotAt,
     setObserver,
-    setOffset,
     // TimeEngine
     julianDate,
     julianDateUTC,

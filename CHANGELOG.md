@@ -6,6 +6,40 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.3] — 2026-08
+
+### Fixed — Critical correctness and robustness fixes
+
+**Lunar nodes incorrect in `getSnapshotAt()` (regression)**
+`lunarNodes()` was called after `finally { timeOffset = savedOffset }`,
+meaning nodes were computed for the current time instead of the target JD.
+Fixed by moving `lunarNodes()` inside the `try` block, before state restoration.
+
+**`setOffset` exported but not defined**
+`module.exports` referenced `setOffset` which does not exist in the motor.
+Removed from exports.
+
+**DOM references without guards in Node.js scope**
+`setObserver()`, `applyManualLocation()`, `initLocation()` accessed
+`document` and `navigator` without checking if they exist.
+Added `typeof document !== 'undefined'` and `typeof navigator === 'undefined'`
+guards — motor now runs cleanly in any JavaScript environment.
+
+**`getSnapshotAt()` input validation**
+Passing `NaN` or `undefined` as `jdTarget` or observer coordinates
+produced silent NaN cascade. Now throws `RangeError` with a clear message.
+
+**`AtacirClient` X-Client header inconsistency**
+`_post()` sent `caelis-engine/4.0`, `_get()` sent `caelis-engine/4.0.2`.
+Unified via `CLIENT_VERSION = '4.0.2'` constant.
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing
+- Total: 95/95 assertions · 0 failures
+
+---
+
 ## [4.0.2] — 2026-06
 
 ### Fixed — Final pre-release cleanup

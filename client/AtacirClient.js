@@ -47,6 +47,7 @@
 const ATACIR_API_VERSION = 'v1';
 const ATACIR_API_BASE    = 'https://api.hermeticalabs.com';
 const SCHEMA_VERSION     = '3.1';
+const CLIENT_VERSION     = '4.0.2'; // keep in sync with package.json
 
 // ── Available plugins in the A.T.A.C.I.R. Cloud API ──────────────────────────
 const AVAILABLE_PLUGINS = [
@@ -275,7 +276,7 @@ class AtacirClient {
         headers: {
           'Content-Type':  'application/json',
           'Authorization': `Bearer ${this._apiKey}`,
-          'X-Client':      `caelis-engine/4.0`,
+          'X-Client':      `caelis-engine/${CLIENT_VERSION}`,
         },
         body:   JSON.stringify(body),
         signal: controller.signal,
@@ -315,7 +316,7 @@ class AtacirClient {
         method:  'GET',
         headers: {
           'Authorization': `Bearer ${this._apiKey}`,
-          'X-Client':      `caelis-engine/4.0.2`,
+          'X-Client':      `caelis-engine/${CLIENT_VERSION}`,
         },
         signal: controller.signal,
       });

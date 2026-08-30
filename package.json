@@ -1,10 +1,10 @@
 {
   "name": "caelis-engine",
-  "version": "4.0.1",
+  "version": "4.0.3",
   "description": "Deterministic astronomical computation engine. VSOP87B + ELP/MPP02-LLR. No server. No API key. No dependencies.",
   "author": {
     "name": "Cristian Valeria Bravo",
-    "email": "hermeticalabs@[domain]",
+    "email": "hermeticalabs.dev@proton.me",
     "url": "https://github.com/HermeticaLabs"
   },
   "license": "AGPL-3.0-or-later",
@@ -33,7 +33,7 @@
     "nutation",
     "sidereal"
   ],
-  "type": "module",
+  "type": "commonjs",
   "main": "./core/CaelisEngine.js",
   "module": "./core/CaelisEngine.js",
   "exports": {
@@ -50,7 +50,6 @@
   "files": [
     "core/CaelisEngine.js",
     "client/AtacirClient.js",
-    "dist/caelis-minimal.html",
     "validation/run.js",
     "validation/caelis-validation.html",
     "docs/",
