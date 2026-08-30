@@ -6,6 +6,37 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.4] — 2026-08
+
+### Fixed — Schema correctness and dead code removal
+
+**`_nodes` moved out of `bodies` namespace**
+`_nodes` was an internal field stored inside the `bodies` object,
+making it an own enumerable property that violated invariant I-3.
+Moved to the snapshot root alongside `_houseConfig`. Both fields
+remain invisible in public JSON output (filtered by `_` prefix).
+
+**Redundant lunar node computation in `_getSnapshotFromJD` removed**
+Nodes were computed twice: once inside `getSnapshot()` with the
+correct `timeOffset`, then again in `_getSnapshotFromJD` after
+`timeOffset` was restored — redundant and slightly inconsistent.
+The second computation is now removed. `getSnapshot()` handles nodes.
+
+**`timeSpeed` dead variable removed**
+Declared as `let timeSpeed = 1` but never read or written after
+initialization. Removed.
+
+**Misleading comment corrected in `_getSnapshotFromJD`**
+Comment stated "no depende de Date.now() ni de timeOffset" which
+was factually incorrect — the function uses both. Corrected.
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing
+- Total: 95/95 assertions · 0 failures
+
+---
+
 ## [4.0.3] — 2026-08
 
 ### Fixed — Critical correctness and robustness fixes

@@ -53,7 +53,6 @@ const C_LIGHT  = 173.1446326;
 let lat        = -33.45 * deg2rad;
 let lon        = -70.66 * deg2rad;
 let timeOffset = 0;
-let timeSpeed  = 1;  // needed by _eclVisibleAt
 function currentTime(){ return Date.now()/1000 + timeOffset; }
 function _invalidateAstroCache(){
   // Declared here for UI access; AstroCore also has internal cache vars
@@ -1223,8 +1222,6 @@ function getSnapshot(config){
         lat_ecl_geocentric_deg: 0,
         lat_ecl_deg: 0
       }),
-      // _nodes: referencia interna para plugin houses
-      _nodes: { north: nodes.north, south: nodes.south, omega: nodes.omega }
     },
 
     // ── Luna extended ──────────────────────────────────────────────────────
@@ -1238,7 +1235,8 @@ function getSnapshot(config){
     // Houses NO vive en el snapshot astronómico puro.
     // Vive en atacir.houses — plugin toggleable.
     // Se mantiene _houseSystemResolved para uso interno del plugin.
-    _houseConfig: { system: _houseSystemResolved, asc, mc, cusps }
+    _houseConfig: { system: _houseSystemResolved, asc, mc, cusps },
+    _nodes:       { north: nodes.north, south: nodes.south, omega: nodes.omega }
   };
   if(typeof _attachHousesProxy === 'function') _attachHousesProxy(_snapResult);
   return _snapResult;
@@ -1335,7 +1333,8 @@ function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
 }
 
 // ── Motor interno: calcula snapshot desde JD_TT explícito ────────────────────
-// No depende de Date.now() ni de timeOffset — completamente determinista.
+// Usa timeOffset internamente para alinear currentTime() con el JD objetivo.
+// try/finally garantiza que timeOffset se restaura siempre.
 function _getSnapshotFromJD(jd_tt_explicit){
   const jd_tt  = jd_tt_explicit;
   const dT_sec = deltaT(jd_tt);
@@ -1356,18 +1355,8 @@ function _getSnapshotFromJD(jd_tt_explicit){
   let snap;
   try {
     snap = getSnapshot();
-    // Nodos lunares calculados DENTRO del try — timeOffset aún apunta al JD objetivo
-    const nodes = lunarNodes();
-    snap.bodies.NodoNorte = Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
-      lon_ecl_geocentric_deg: nodes.omega,
-      lat_ecl_geocentric_deg: 0,
-      lat_ecl_deg: 0
-    });
-    snap.bodies.NodoSur = Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
-      lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-      lat_ecl_geocentric_deg: 0,
-      lat_ecl_deg: 0
-    });
+    // Nodos lunares ya calculados por getSnapshot() con timeOffset correcto.
+    // No se recalculan aquí — evita doble cómputo y garantiza consistencia.
   } finally {
     timeOffset = savedOffset; // restored after nodes computed
   }

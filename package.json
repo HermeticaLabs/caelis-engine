@@ -1,6 +1,6 @@
 {
   "name": "caelis-engine",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "Deterministic astronomical computation engine. VSOP87B + ELP/MPP02-LLR. No server. No API key. No dependencies.",
   "author": {
     "name": "Cristian Valeria Bravo",
