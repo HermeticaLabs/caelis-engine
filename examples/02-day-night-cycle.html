@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!--
+  Caelis Engine v4.0 — Day/Night Cycle Example
+  Real astronomical sky for games and interactive experiences.
+
+  Uses getSnapshot().bodies.Sol to drive sky color, sun position,
+  and lighting. Arrow keys advance/rewind time.
+
+  Caelis Engine · Hermetica Labs
+  © 2024-2026 Cristian Valeria Bravo
+  SPDX-License-Identifier: AGPL-3.0-or-later
+  https://github.com/HermeticaLabs/caelis-engine
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caelis Engine — Day/Night Cycle</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas { display: block; }
+
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: rgba(255,255,255,0.75);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 8px 20px;
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+
+    #credit {
+      position: fixed;
+      bottom: 56px;
+      right: 16px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.04em;
+    }
+    #credit a { color: rgba(255,255,255,0.25); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div id="hud">Loading...</div>
+<canvas id="sky"></canvas>
+<div id="controls">← → advance time 1h · Shift+← → advance 1 day · R reset</div>
+<div id="credit">
+  <a href="https://github.com/HermeticaLabs/caelis-engine">Caelis Engine v4.0</a>
+  · Hermetica Labs
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/HermeticaLabs/caelis-engine@main/core/CaelisEngine.js"></script>
+
+<script>
+  const canvas = document.getElementById('sky');
+  const ctx    = canvas.getContext('2d');
+  const hud    = document.getElementById('hud');
+
+  // ── Resize canvas to fill window ─────────────────────────────────────────
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ── Observer: Santiago, Chile ─────────────────────────────────────────────
+  setObserver(-33.45, -70.66);
+
+  // ── Keyboard: advance/rewind time ─────────────────────────────────────────
+  let _offset = 0;
+  document.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 86400 : 3600;
+    if (e.key === 'ArrowRight') { _offset += step; setOffset(_offset); }
+    if (e.key === 'ArrowLeft')  { _offset -= step; setOffset(_offset); }
+    if (e.key === 'r' || e.key === 'R') { _offset = 0; setOffset(0); }
+  });
+
+  // setOffset is defined in CaelisEngine.js
+  function setOffset(s) {
+    timeOffset = s;
+  }
+
+  // ── Sky colors ─────────────────────────────────────────────────────────────
+  // altitude bands → sky color (RGB)
+  function skyColor(alt) {
+    // alt in degrees, -18 (astronomical twilight) to 90 (zenith)
+    const t = Math.max(0, Math.min(1, (alt + 18) / 36));
+    // night → civil twilight → day
+    const c = [
+      [  5,   5,  18],  // night
+      [ 20,  30,  80],  // civil twilight
+      [ 90, 140, 200],  // day
+    ];
+    if (t < 0.5) {
+      const f = t * 2;
+      return c[0].map((v, i) => v + (c[1][i] - v) * f);
+    } else {
+      const f = (t - 0.5) * 2;
+      return c[1].map((v, i) => v + (c[2][i] - v) * f);
+    }
+  }
+
+  function horizon(alt) {
+    // alt in degrees
+    const t = Math.max(0, Math.min(1, (alt + 6) / 12));
+    return [
+      [ 30,  20,  10],  // pre-dawn / dusk ground
+      [100, 120,  60],  // day ground
+    ][0].map((v, i) => v + ([100, 120, 60][i] - v) * t);
+  }
+
+  // ── Stars ──────────────────────────────────────────────────────────────────
+  const STARS = Array.from({ length: 180 }, () => ({
+    x: Math.random(),
+    y: Math.random() * 0.75,
+    r: 0.5 + Math.random() * 1.0,
+    a: 0.5 + Math.random() * 0.5,
+  }));
+
+  // ── Moon phases — simple phase disc ───────────────────────────────────────
+  function drawMoon(x, y, r, illumination, phaseDeg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(220,220,200,0.9)';
+    ctx.fill();
+    // Dark shadow based on phase
+    const lit = illumination;
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.beginPath();
+    ctx.arc(x + r * (1 - lit * 2) * 0.8, y, r * 0.95, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  }
+
+  // ── Main render ────────────────────────────────────────────────────────────
+  function render() {
+    const W = canvas.width, H = canvas.height;
+    const snap = getSnapshot();
+    const sol  = snap.bodies.Sol;
+    const luna = snap.bodies.Luna;
+
+    const altSun  = sol.alt_geometric_deg;
+    const azSun   = sol.az_deg;
+    const altMoon = luna.alt_geometric_deg;
+    const azMoon  = luna.az_deg;
+
+    // Sky illumination fraction (0=night, 1=full day)
+    const illum = Math.max(0, Math.min(1, (altSun + 18) / 36));
+
+    // ── Background gradient ──────────────────────────────────────────────
+    const [sr, sg, sb] = skyColor(altSun);
+    const [hr, hg, hb] = horizon(altSun);
+
+    const grad = ctx.createLinearGradient(0, 0, 0, H * 0.8);
+    grad.addColorStop(0,   `rgb(${sr|0},${sg|0},${sb|0})`);
+    grad.addColorStop(0.7, `rgb(${sr|0},${sg|0},${sb|0})`);
+    grad.addColorStop(1,   `rgb(${hr|0},${hg|0},${hb|0})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Ground ────────────────────────────────────────────────────────────
+    const groundGrad = ctx.createLinearGradient(0, H * 0.78, 0, H);
+    const gDark  = `rgb(${(hr*0.4)|0},${(hg*0.4)|0},${(hb*0.4)|0})`;
+    const gLight = `rgb(${hr|0},${hg|0},${hb|0})`;
+    groundGrad.addColorStop(0, gLight);
+    groundGrad.addColorStop(1, gDark);
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, H * 0.78, W, H * 0.22);
+
+    // ── Stars (visible at night) ──────────────────────────────────────────
+    const starAlpha = Math.max(0, 1 - illum * 3);
+    if (starAlpha > 0) {
+      ctx.save();
+      for (const s of STARS) {
+        ctx.globalAlpha = s.a * starAlpha;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    // ── Sun ───────────────────────────────────────────────────────────────
+    if (altSun > -10) {
+      // Project Sun position: azimuth → X, altitude → Y
+      // az: 0=N, 90=E, 180=S, 270=W
+      // We center the view on South (az=180)
+      const sunX = W * 0.5 + (azSun - 180) / 180 * W * 0.9;
+      const sunY = H * 0.78 - (altSun / 90) * H * 0.7;
+
+      const sunAlpha = Math.min(1, (altSun + 10) / 15);
+      ctx.save();
+      ctx.globalAlpha = sunAlpha;
+
+      // Halo
+      const glowR = 60 + 30 * illum;
+      const glow  = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, glowR);
+      glow.addColorStop(0, `rgba(255,240,180,${0.7 * illum + 0.2})`);
+      glow.addColorStop(1, 'rgba(255,240,180,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, glowR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Disc
+      ctx.fillStyle = illum > 0.5 ? 'rgba(255,250,220,1)' : 'rgba(255,100,30,0.9)';
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Moon ─────────────────────────────────────────────────────────────
+    if (altMoon > -5) {
+      const moonX = W * 0.5 + (azMoon - 180) / 180 * W * 0.9;
+      const moonY = H * 0.78 - (altMoon / 90) * H * 0.7;
+      const moonAlpha = Math.min(1, (altMoon + 5) / 8) * Math.max(0.2, 1 - illum * 2);
+      ctx.save();
+      ctx.globalAlpha = moonAlpha;
+      drawMoon(moonX, moonY, 12, snap.luna.illumination, snap.luna.phase_deg);
+      ctx.restore();
+    }
+
+    // ── Horizon line ─────────────────────────────────────────────────────
+    ctx.strokeStyle = `rgba(${hr|0},${hg|0},${hb|0},0.3)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, H * 0.78);
+    ctx.lineTo(W, H * 0.78);
+    ctx.stroke();
+
+    // ── HUD ───────────────────────────────────────────────────────────────
+    const utc    = snap.meta.utc?.slice(0, 19).replace('T', ' ') + ' UTC';
+    const solLon = sol.lon_ecl_geocentric_deg?.toFixed(2);
+    const altStr = altSun.toFixed(1);
+    const phase  = (snap.luna.illumination * 100).toFixed(0);
+    const status = altSun > 0 ? 'DAY' : altSun > -6 ? 'TWILIGHT' : 'NIGHT';
+
+    hud.textContent = `${utc}  ·  Sol λ ${solLon}°  alt ${altStr}°  ·  Luna ${phase}% lit  ·  ${status}`;
+  }
+
+  // ── Loop ──────────────────────────────────────────────────────────────────
+  function loop() {
+    render();
+    requestAnimationFrame(loop);
+  }
+  loop();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<!--
+  Caelis Engine v4.0 — Quick Start Example
+  "First chart in 5 minutes"
+
+  This example shows how to get astronomical positions
+  using Caelis Engine. No server, no API key, no dependencies.
+
+  Caelis Engine · Hermetica Labs
+  © 2024-2026 Cristian Valeria Bravo
+  SPDX-License-Identifier: AGPL-3.0-or-later
+  https://github.com/HermeticaLabs/caelis-engine
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caelis Engine — Quick Start</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #09090f;
+      color: #c8c8d8;
+      font-family: 'Georgia', serif;
+      padding: 32px 24px;
+      min-height: 100vh;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid #1e1e2e;
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #e0e0f0;
+      font-weight: normal;
+      letter-spacing: 0.06em;
+    }
+
+    h1 span { color: #7878c0; }
+
+    .subtitle {
+      font-size: 0.78rem;
+      color: #555570;
+      margin-top: 4px;
+      font-family: monospace;
+      letter-spacing: 0.04em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #0e0e1a;
+      border: 1px solid #1e1e30;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .card-title {
+      font-size: 0.72rem;
+      color: #5555aa;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      font-family: monospace;
+    }
+
+    .body-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 5px 0;
+      border-bottom: 1px solid #14141e;
+      font-size: 0.85rem;
+    }
+
+    .body-row:last-child { border-bottom: none; }
+
+    .body-name {
+      color: #8888bb;
+      font-family: monospace;
+      width: 110px;
+      flex-shrink: 0;
+    }
+
+    .body-value {
+      color: #d8d8f0;
+      font-family: monospace;
+      font-size: 0.82rem;
+    }
+
+    .body-status {
+      font-size: 0.72rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .above  { background: #0a2a1a; color: #44cc88; }
+    .below  { background: #1a0a0a; color: #666680; }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.80rem;
+      font-family: monospace;
+      border-bottom: 1px solid #14141e;
+    }
+
+    .meta-row:last-child { border-bottom: none; }
+    .meta-label { color: #555570; }
+    .meta-value { color: #c0c0d8; }
+
+    .phase-bar-wrap {
+      margin-top: 8px;
+      height: 4px;
+      background: #14141e;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .phase-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3333aa, #aaaaff);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 0.72rem;
+      color: #333348;
+      font-family: monospace;
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+
+    footer a { color: #444466; text-decoration: none; }
+    footer a:hover { color: #6666aa; }
+
+    .observer-input {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .observer-input input {
+      background: #0e0e1a;
+      border: 1px solid #2a2a40;
+      border-radius: 6px;
+      color: #c8c8d8;
+      font-family: monospace;
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      width: 110px;
+    }
+
+    .observer-input input:focus {
+      outline: none;
+      border-color: #4444aa;
+    }
+
+    .observer-input button {
+      background: #1a1a30;
+      border: 1px solid #3a3a5a;
+      border-radius: 6px;
+      color: #aaaacc;
+      font-family: monospace;
+      font-size: 0.82rem;
+      padding: 6px 14px;
+      cursor: pointer;
+    }
+
+    .observer-input button:hover { background: #22223a; color: #ccccee; }
+
+    .observer-label {
+      font-size: 0.78rem;
+      color: #444460;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>✦ Caelis Engine <span>v4.0</span> — Quick Start</h1>
+  <div class="subtitle">
+    VSOP87B + ELP/MPP02-LLR + IAU 2000B · No server · No API key · No dependencies
+  </div>
+</header>
+
+<!-- Observer input -->
+<div class="observer-input">
+  <span class="observer-label">Observer:</span>
+  <input type="number" id="inputLat" value="-33.45" step="0.01" placeholder="lat">
+  <input type="number" id="inputLon" value="-70.66" step="0.01" placeholder="lon">
+  <button onclick="updateObserver()">Apply</button>
+  <button onclick="geolocate()">📍 My location</button>
+  <span class="observer-label" id="observerStatus">Santiago, Chile</span>
+</div>
+
+<!-- Planet positions -->
+<div class="grid">
+  <div class="card">
+    <div class="card-title">Planets — Ecliptic longitude</div>
+    <div id="planetRows">Loading...</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Altitude &amp; Horizon</div>
+    <div id="altRows">Loading...</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Luna</div>
+    <div id="lunaRows">Loading...</div>
+    <div class="phase-bar-wrap">
+      <div class="phase-bar" id="phaseBar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Meta — Time &amp; Geometry</div>
+    <div id="metaRows">Loading...</div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/HermeticaLabs/caelis-engine">Caelis Engine</a>
+  · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo · AGPL-3.0
+</footer>
+
+<!--
+  IMPORTANT:
+  In a real project, load CaelisEngine.js from your local copy:
+    <script src="./CaelisEngine.js"></script>
+
+  For this self-contained demo, the engine is embedded below.
+  Download CaelisEngine.js from:
+  https://github.com/HermeticaLabs/caelis-engine/blob/main/core/CaelisEngine.js
+-->
+<script src="https://cdn.jsdelivr.net/gh/HermeticaLabs/caelis-engine@main/core/CaelisEngine.js"></script>
+
+<script>
+  // ── Bodies to display ───────────────────────────────────────────────────
+  const BODIES = [
+    { key: 'Sol',      label: 'Sol ☉' },
+    { key: 'Luna',     label: 'Luna ☽' },
+    { key: 'Mercurio', label: 'Mercury ☿' },
+    { key: 'Venus',    label: 'Venus ♀' },
+    { key: 'Marte',    label: 'Mars ♂' },
+    { key: 'Jupiter',  label: 'Jupiter ♃' },
+    { key: 'Saturno',  label: 'Saturn ♄' },
+    { key: 'Urano',    label: 'Uranus ♅' },
+    { key: 'Neptuno',  label: 'Neptune ♆' },
+  ];
+
+  // ── Render loop ─────────────────────────────────────────────────────────
+  function render() {
+    const snap = getSnapshot();
+    const b    = snap.bodies;
+    const m    = snap.meta;
+
+    // Planets — ecliptic longitude
+    document.getElementById('planetRows').innerHTML = BODIES.map(({ key, label }) => {
+      const body = b[key];
+      if (!body) return '';
+      const lon = body.lon_ecl_geocentric_deg?.toFixed(2) ?? '—';
+      return `<div class="body-row">
+        <span class="body-name">${label}</span>
+        <span class="body-value">${lon}°</span>
+      </div>`;
+    }).join('');
+
+    // Altitude & horizon
+    document.getElementById('altRows').innerHTML = BODIES.map(({ key, label }) => {
+      const body = b[key];
+      if (!body) return '';
+      const alt    = body.alt_geometric_deg?.toFixed(1) ?? '—';
+      const above  = body.above_horizon;
+      const status = above
+        ? '<span class="body-status above">▲ above</span>'
+        : '<span class="body-status below">▼ below</span>';
+      return `<div class="body-row">
+        <span class="body-name">${label}</span>
+        <span class="body-value">${alt}°</span>
+        ${status}
+      </div>`;
+    }).join('');
+
+    // Luna extended
+    const luna = snap.luna;
+    const pct  = (luna.illumination * 100).toFixed(1);
+    document.getElementById('lunaBar')?.remove();
+    document.getElementById('lunaRows').innerHTML = `
+      <div class="body-row">
+        <span class="body-name">Geocentric λ</span>
+        <span class="body-value">${b.Luna.lon_ecl_geocentric_deg?.toFixed(4)}°</span>
+      </div>
+      <div class="body-row">
+        <span class="body-name">Topocentric λ</span>
+        <span class="body-value">${b.Luna.lon_ecl_topocentric_deg?.toFixed(4)}°</span>
+      </div>
+      <div class="body-row">
+        <span class="body-name">Phase angle</span>
+        <span class="body-value">${luna.phase_deg?.toFixed(2)}°</span>
+      </div>
+      <div class="body-row">
+        <span class="body-name">Illumination</span>
+        <span class="body-value">${pct}%</span>
+      </div>`;
+    document.getElementById('phaseBar').style.width = pct + '%';
+
+    // Meta
+    document.getElementById('metaRows').innerHTML = `
+      <div class="meta-row">
+        <span class="meta-label">UTC</span>
+        <span class="meta-value">${m.utc?.slice(0,19).replace('T',' ')}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">JD TT</span>
+        <span class="meta-value">${m.jd_tt?.toFixed(5)}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">ΔT</span>
+        <span class="meta-value">${m.delta_t_sec?.toFixed(2)}s</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">GAST</span>
+        <span class="meta-value">${m.sidereal?.gast_deg?.toFixed(4)}°</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">LST</span>
+        <span class="meta-value">${m.sidereal?.lst_deg?.toFixed(4)}°</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Obliquity ε</span>
+        <span class="meta-value">${m.obliquity?.true_deg?.toFixed(5)}°</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">ΔΨ</span>
+        <span class="meta-value">${m.nutation?.delta_psi_arcsec?.toFixed(3)}″</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Algorithm</span>
+        <span class="meta-value" style="font-size:0.72rem;color:#444466">${m.frame?.planets?.slice(0,20)}...</span>
+      </div>`;
+  }
+
+  // ── Observer controls ───────────────────────────────────────────────────
+  function updateObserver() {
+    const lat = parseFloat(document.getElementById('inputLat').value);
+    const lon = parseFloat(document.getElementById('inputLon').value);
+    if (isNaN(lat) || isNaN(lon)) return;
+    setObserver(lat, lon);
+    document.getElementById('observerStatus').textContent =
+      `${lat.toFixed(3)}°, ${lon.toFixed(3)}°`;
+  }
+
+  function geolocate() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      document.getElementById('inputLat').value = lat.toFixed(4);
+      document.getElementById('inputLon').value = lon.toFixed(4);
+      setObserver(lat, lon);
+      document.getElementById('observerStatus').textContent =
+        `${lat.toFixed(3)}°, ${lon.toFixed(3)}°`;
+    });
+  }
+
+  // ── Start ───────────────────────────────────────────────────────────────
+  setObserver(-33.45, -70.66);
+  render();
+  setInterval(render, 1000);
+</script>
+
+</body>
+</html>
