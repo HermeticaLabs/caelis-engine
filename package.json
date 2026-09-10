@@ -11,7 +11,7 @@
   "homepage": "https://github.com/HermeticaLabs/caelis-engine",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HermeticaLabs/caelis-engine.git"
+    "url": "git+https://github.com/HermeticaLabs/caelis-engine.git"
   },
   "bugs": {
     "url": "https://github.com/HermeticaLabs/caelis-engine/issues"
