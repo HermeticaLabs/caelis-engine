@@ -720,7 +720,7 @@ function moonPosition(){
   let cLat=Math.cos(lat),sLat=Math.sin(lat),cDec=Math.cos(decG),sDec=Math.sin(decG),cHA=Math.cos(HA),sHA=Math.sin(HA);
   let raTopo=raG-(1/dR)*cLat*sHA/cDec;
   const _2PI=2*Math.PI; raTopo=((raTopo%_2PI)+_2PI)%_2PI; // normalizar a [0, 2π]
-  return{ra:raTopo,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
+  return{ra:raTopo,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA),dist_km:Rgeo};
 }
 
 // ── Longitud eclíptica expuesta para aspectos ─────────────────────
@@ -1127,6 +1127,12 @@ function getSnapshot(config){
   // Moon body entry — special: both geocentric and topocentric
   function _moonBody(){
     let b = _bodyData(moon.ra, moon.dec);  // topocentric RA/Dec → horizontal
+    // Expose geocentric distance — Rgeo from ELP series R (385000.56 + sR/1000 km)
+    // dist_km is the geocentric distance; dist_au derived for schema consistency
+    if(moon.dist_km) {
+      b.dist_km = +moon.dist_km.toFixed(0);
+      b.dist_au = +(moon.dist_km / 149597870.7).toFixed(6);
+    }
     // Override ecliptic fields with geocentric values (from ELP directly)
     b.lon_ecl_geocentric_deg  = moonLon;
     b.lat_ecl_geocentric_deg  = (()=>{

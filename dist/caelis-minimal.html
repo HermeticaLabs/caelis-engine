@@ -1599,11 +1599,13 @@ function getSnapshot(config){
       // lon_ecl_geocentric_deg usa el campo estándar del schema v3.1
       NodoNorte: Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
         lon_ecl_geocentric_deg: nodes.omega,
-        lat_ecl_geocentric_deg: 0
+        lat_ecl_geocentric_deg: 0,
+        lat_ecl_deg: 0
       }),
       NodoSur: Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
         lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-        lat_ecl_geocentric_deg: 0
+        lat_ecl_geocentric_deg: 0,
+        lat_ecl_deg: 0
       }),
       // _nodes: referencia interna para plugin houses
       _nodes: { north: nodes.north, south: nodes.south, omega: nodes.omega }
@@ -1752,11 +1754,13 @@ function _getSnapshotFromJD(jd_tt_explicit){
   const nodes = lunarNodes();
   snap.bodies.NodoNorte = Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
     lon_ecl_geocentric_deg: nodes.omega,
-    lat_ecl_geocentric_deg: 0
+    lat_ecl_geocentric_deg: 0,
+    lat_ecl_deg: 0
   });
   snap.bodies.NodoSur = Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
     lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-    lat_ecl_geocentric_deg: 0
+    lat_ecl_geocentric_deg: 0,
+    lat_ecl_deg: 0
   });
 
   return snap;
@@ -1800,7 +1804,7 @@ function _getSnapshotFromJD(jd_tt_explicit){
 // ║    - Mismo snapshot + misma config = mismo output. Siempre.             ║
 // ║    - Un plugin desactivado no existe en el JSON de salida.              ║
 // ║                                                                          ║
-// ║  Caelis Engine v4.0 · Hermetica Labs                                    ║
+// ║  Caelis Engine v4.0.2 · Hermetica Labs                                    ║
 // ║  © 2024–2026 Cristian Valeria Bravo                                     ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
@@ -1964,6 +1968,17 @@ function atacirGetToggles(){
 const Atacir = {
 
   compute(snapshot, config = {}) {
+    // ── Guardia de entrada — snapshot mínimamente válido ────────────────────
+    // Protege render y plugins de recibir estructuras corruptas o nulas.
+    // No impide uso legítimo — solo rechaza lo que nunca debería llegar.
+    if (!snapshot || typeof snapshot !== 'object') {
+      console.error('Atacir.compute: snapshot must be a schema v3.1 object.');
+      return snapshot;
+    }
+    if (!snapshot.meta?.jd_tt || !snapshot.bodies) {
+      console.error('Atacir.compute: snapshot missing meta.jd_tt or bodies — not a valid v3.1 snapshot.');
+      return snapshot;
+    }
     // Config de toggles: usa el estado global pero permite override por llamada
     const pluginConfig = config.plugins || {};
 
@@ -2039,7 +2054,7 @@ const Atacir = {
 // ║  Panel de control de plugins en cascada.                                ║
 // ║  Violeta = plugin activo · Gris = plugin inactivo                       ║
 // ║  Los cambios entran en vigor al presionar GetSnapshot.                  ║
-// ║  Caelis Engine v4.0 · Hermetica Labs                                    ║
+// ║  Caelis Engine v4.0.2 · Hermetica Labs                                    ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 // ── Inyectar CSS del toggle panel ────────────────────────────────────────────
@@ -3633,8 +3648,8 @@ function exportarJSON(){
   }
 
   let out = {
-    engine:  "Caelis Engine v3.0 · Hermetica Labs",
-    version: "3.0.1",
+    engine:  "Caelis Engine v4.0.2 · Hermetica Labs",
+    schema_version: "3.1",
     algorithms: {
       planets:  "VSOP87C (Bretagnon & Francou 1987/1988, IMCCE) — Mercury–Saturn, Uranus, Neptune",
       moon:     "ELP/MPP02-LLR (Chapront & Chapront-Touzé)",
@@ -3651,11 +3666,11 @@ function exportarJSON(){
 
     epoch_natal: {
       datetime_utc:  `${d.rxDate} ${d.rxTime} UTC`,
-      jd:            d.rx.meta.jd,
+      jd_tt:         d.rx.meta.jd_tt || d.rx.meta.jd,
       lat_deg:       d.rxLat,
       lon_deg:       d.rxLon,
-      lst_deg:       +d.rx.meta.lst_deg.toFixed(4),
-      obliquity_deg: +d.rx.meta.obliquity.toFixed(6),
+      lst_deg:       +(d.rx.meta.sidereal?.lst_deg || d.rx.meta.lst_deg || 0).toFixed(4),
+      obliquity_deg: +(d.rx.meta.obliquity?.true_deg || d.rx.meta.obliquity || 0).toFixed(6),
       sectors: {
         system:          sectorSystemLabel,
         // ic_deg = mc_deg + 180 — punto inferior del meridiano, vértice inferior del eje MC/IC
@@ -3669,8 +3684,8 @@ function exportarJSON(){
           // En Equal House / Whole Sign este campo es null (no aplica semi-arcos).
           let sad = null;
           if(sectorSystemLabel !== "equal_house" && sectorSystemLabel !== "whole_sign"){
-            let _ra  = eclLonToRA(c, d.rx.meta.obliquity * deg2rad);
-            let _dec = Math.asin(Math.sin(c*deg2rad)*Math.sin(d.rx.meta.obliquity*deg2rad))*rad2deg;
+            let _ra  = eclLonToRA(c, (d.rx.meta.obliquity?.true_deg || d.rx.meta.obliquity || 23.439) * deg2rad);
+            let _dec = Math.asin(Math.sin(c*deg2rad)*Math.sin((d.rx.meta.obliquity?.true_deg || d.rx.meta.obliquity || 23.439)*deg2rad))*rad2deg;
             let _s   = semiArcDiurno(_dec, d.rxLat);
             sad = _s !== null ? +_s.toFixed(4) : null;
           }
@@ -3700,7 +3715,7 @@ function exportarJSON(){
 
     epoch_transit: {
       datetime_utc: `${d.trDate} ${d.trTime} UTC`,
-      jd:           d.tr.meta.jd,
+      jd_tt:        d.tr.meta.jd_tt || d.tr.meta.jd,
       lat_deg:      d.trLat,
       lon_deg:      d.trLon,
       age_years:    +d.ageNow.toFixed(4),
@@ -3831,7 +3846,7 @@ function exportarJSONSinastria(){
   }
 
   const out = {
-    engine:  "Caelis Engine v3.0 · Hermetica Labs",
+    engine:  "Caelis Engine v4.0.2 · Hermetica Labs",
     module:  "Synastry",
     algorithms: {
       planets:   "VSOP87C (Bretagnon & Francou 1987/1988, IMCCE) — Mercury–Saturn, Uranus, Neptune",
@@ -3848,7 +3863,7 @@ function exportarJSONSinastria(){
       lon_deg: d.lonA,
       lst_deg: d.rxA.meta.sidereal ? +d.rxA.meta.sidereal.lst_deg.toFixed(4) : null
     },
-    version:  _isPremium ? "premium" : "free",
+    // version field removed — _isPremium deprecated in v4.0.2
 
     person_a: fmtPersona(d.rxA, d.fechaA, d.latA, d.lonA),
     person_b: fmtPersona(d.rxB, d.fechaB, d.latB, d.lonB),
@@ -5516,7 +5531,7 @@ function exportarJSONPanchanga(){
   const out = {
     motor:     "Caelis Engine 3.0",
     modulo:    "Panchanga — Almanaque Védico",
-    version:   _isPremium ? "premium" : "free",
+    // version field removed in v4.0.2 — licensing model changed
     exportado: new Date().toISOString(),
 
     consulta: {
@@ -6080,6 +6095,12 @@ function computeAll(){
       // 2. Atacir.compute — capa interpretativa con plugins activos
       // Pasa el snapshot intacto; el resultado agrega el namespace atacir
       const result = Atacir.compute(snap);
+      // Validar que result es un snapshot v3.1 válido antes de renderizar
+      if (!result?.meta?.jd_tt || !result?.bodies) {
+        st('Error: resultado inválido — snapshot corrompido');
+        btn.textContent = '▶ GetSnapshot';
+        return;
+      }
       _snap = result;
 
       // 3. Render — usa result (que contiene snap + atacir namespace)
@@ -6100,15 +6121,20 @@ function computeAll(){
 }
 
 function renderSnap(s){
+  // Guard: snapshot mínimamente válido antes de renderizar
+  if (!s?.meta?.jd_tt || !s?.meta?.sidereal || !s?.bodies) {
+    st('Error: snapshot inválido — ejecuta GetSnapshot');
+    return;
+  }
   const m = s.meta;
   // Meta row
   tx('mJD',  f4(m.jd_tt));
-  tx('mUTC', m.utc.slice(0,19).replace('T',' '));
-  tx('mLST', f2(m.sidereal.lst_deg)+'°');
+  tx('mUTC', (m.utc||'').slice(0,19).replace('T',' '));
+  tx('mLST', f2(m.sidereal?.lst_deg)+'°');
   tx('mDT',  m.delta_t_sec+'s');
-  tx('mObl', m.obliquity.true_deg+'°');
-  tx('mDPsi', m.nutation.delta_psi_arcsec+'"');
-  tx('mObs', f2(m.observer.lat_deg)+'° '+f2(m.observer.lon_deg)+'°');
+  tx('mObl', m.obliquity?.true_deg+'°');
+  tx('mDPsi', m.nutation?.delta_psi_arcsec+'"');
+  tx('mObs', f2(m.observer?.lat_deg)+'° '+f2(m.observer?.lon_deg)+'°');
 
   // Bodies table — show geometric alt, geocentric λ
   document.getElementById('tBodies').innerHTML = ORD.filter(n=>s.bodies[n]).map(n=>{

@@ -6,6 +6,28 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.5] — 2026-08
+
+### Fixed — Luna `dist_km` and `dist_au` now exposed in snapshot
+
+`bodies.Luna` was missing `dist_km` and `dist_au` fields. The geocentric
+distance was already computed internally by the ELP/MPP02 series R
+(`Rgeo = 385000.56 + sR/1000` km) but not returned in the body output.
+
+`moonPosition()` now returns `dist_km` alongside `ra` and `dec`.
+`_moonBody()` exposes it as:
+- `dist_km` — geocentric distance in km (integer, from ELP series R)
+- `dist_au` — same in AU (6 decimal places, for schema consistency with planets)
+
+This fixes consumers using `data.dist_au` generically across all bodies.
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing
+- Total: 95/95 assertions · 0 failures
+
+---
+
 ## [4.0.4] — 2026-08
 
 ### Fixed — Schema correctness and dead code removal
