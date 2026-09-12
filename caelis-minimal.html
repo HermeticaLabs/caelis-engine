@@ -441,6 +441,55 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 </div>
 </div>
 <script>
+
+/**
+ * ============================================================================
+ * CAELIS ENGINE v4.0 - CaelisEngine.js
+ * Deterministic Astronomical Computation Core
+ * ============================================================================
+ *
+ * Copyright (c) 2024-2026 Cristian Valeria Bravo
+ * Hermetica Labs - Santiago, Chile
+ * https://github.com/hermeticalabs/caelis-engine
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * This file is part of Caelis Engine.
+ *
+ * Caelis Engine is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Caelis Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * COMMERCIAL USE:
+ * Use in proprietary or commercial applications requires a commercial license.
+ * Contact: hermeticalabs@[domain]
+ * See COMMERCIAL_LICENSE.md for details.
+ *
+ * ----------------------------------------------------------------------------
+ * MATHEMATICAL ALGORITHMS - PRIMARY SOURCES
+ * ----------------------------------------------------------------------------
+ * Planetary positions  VSOP87B    Bretagnon & Francou (1987) A&A 202
+ * Moon position        ELP/MPP02  Chapront & Francou (2002) A&A 412
+ * Nutation             IAU 2000B  Mathews, Herring & Buffett (2002)
+ * Obliquity            IAU 2006   Capitaine et al. (2006)
+ * Delta-T              IERS table 500-2150 AD + Morrison & Stephenson (2004)
+ * Aberration           Meeus, Astronomical Algorithms 2nd ed. Ch.23
+ * Refraction           Bennett (1982), Journal of Navigation
+ * Lunar nodes          Meeus Ch.47
+ * Geocentric radius    WGS-84
+ * ----------------------------------------------------------------------------
+ * OUTPUT SCHEMA: v3.1
+ * Every field names its own coordinate frame. Every algorithm is declared
+ * in meta.frame. All outputs are deterministic and reproducible.
+ * ----------------------------------------------------------------------------
+ */
+
 // ── Constants & globals ──────────────────────────────────────────────
 const deg2rad  = Math.PI/180;
 const rad2deg  = 180/Math.PI;
@@ -448,7 +497,6 @@ const C_LIGHT  = 173.1446326;
 let lat        = -33.45 * deg2rad;
 let lon        = -70.66 * deg2rad;
 let timeOffset = 0;
-let timeSpeed  = 1;  // needed by _eclVisibleAt
 function currentTime(){ return Date.now()/1000 + timeOffset; }
 function _invalidateAstroCache(){
   // Declared here for UI access; AstroCore also has internal cache vars
@@ -1116,7 +1164,7 @@ function moonPosition(){
   let cLat=Math.cos(lat),sLat=Math.sin(lat),cDec=Math.cos(decG),sDec=Math.sin(decG),cHA=Math.cos(HA),sHA=Math.sin(HA);
   let raTopo=raG-(1/dR)*cLat*sHA/cDec;
   const _2PI=2*Math.PI; raTopo=((raTopo%_2PI)+_2PI)%_2PI; // normalizar a [0, 2π]
-  return{ra:raTopo,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA)};
+  return{ra:raTopo,dec:decG-(1/dR)*(sLat*cDec-cLat*sDec*cHA),dist_km:Rgeo};
 }
 
 // ── Longitud eclíptica expuesta para aspectos ─────────────────────
@@ -1158,7 +1206,7 @@ function applyRefraction(alt){
 }
 
 
-let houseSystem = "equal"; // "equal" | "placidus"
+let houseSystem = "placidus"; // default: Placidus (most common in Western astrology) // "equal" | "placidus"
 
 // toggleHouseSystem → UI Controller (manipula DOM + houseSystem global)
 
@@ -1214,9 +1262,13 @@ const _SEQ_DATA = [
 function _sunLonAtJDE(jde){
   const nowJD  = Date.now()/86400000 + 2440587.5;
   const saved  = timeOffset;
-  timeOffset   = (jde - nowJD)*86400 - deltaT(jde);
-  const lon    = sunLonEcl();
-  timeOffset   = saved;
+  let lon;
+  try {
+    timeOffset = (jde - nowJD)*86400 - deltaT(jde);
+    lon = sunLonEcl();
+  } finally {
+    timeOffset = saved; // always restore — even if sunLonEcl() throws
+  }
   return lon;
 }
 
@@ -1316,8 +1368,10 @@ function setObserver(latDeg, lonDeg, label){
   lat      = latDeg * deg2rad;
   lon      = lonDeg * deg2rad;
   R_TIERRA = geocentricRadius();
-  let status = document.getElementById("locStatus");
-  if(status) status.textContent = label || `${latDeg.toFixed(3)}°, ${lonDeg.toFixed(3)}°`;
+  if(typeof document !== 'undefined'){
+    let status = document.getElementById("locStatus");
+    if(status) status.textContent = label || `${latDeg.toFixed(3)}°, ${lonDeg.toFixed(3)}°`;
+  }
 }
 
 // Entrada manual: acepta "lat, lon" en grados decimales
@@ -1327,16 +1381,21 @@ function applyManualLocation(raw){
     let latD = Math.max(-90, Math.min(90,  parts[0]));
     let lonD = Math.max(-180,Math.min(180, parts[1]));
     setObserver(latD, lonD);
-    document.getElementById("locInput").blur();
+    if(typeof document !== 'undefined'){
+      const inp = document.getElementById("locInput");
+      if(inp) inp.blur();
+    }
   } else {
-    let status = document.getElementById("locStatus");
-    if(status) status.textContent = "formato: lat, lon";
+    if(typeof document !== 'undefined'){
+      let status = document.getElementById("locStatus");
+      if(status) status.textContent = "formato: lat, lon";
+    }
   }
 }
 
 // Geolocalización del navegador — se llama una vez al inicio
 function initLocation(){
-  if(!navigator.geolocation){
+  if(typeof navigator === 'undefined' || !navigator.geolocation){
     // Sin soporte: permanece en Santiago
     return;
   }
@@ -1512,6 +1571,12 @@ function getSnapshot(config){
   // Moon body entry — special: both geocentric and topocentric
   function _moonBody(){
     let b = _bodyData(moon.ra, moon.dec);  // topocentric RA/Dec → horizontal
+    // Expose geocentric distance — Rgeo from ELP series R (385000.56 + sR/1000 km)
+    // dist_km is the geocentric distance; dist_au derived for schema consistency
+    if(moon.dist_km) {
+      b.dist_km = +moon.dist_km.toFixed(0);
+      b.dist_au = +(moon.dist_km / 149597870.7).toFixed(6);
+    }
     // Override ecliptic fields with geocentric values (from ELP directly)
     b.lon_ecl_geocentric_deg  = moonLon;
     b.lat_ecl_geocentric_deg  = (()=>{
@@ -1607,8 +1672,6 @@ function getSnapshot(config){
         lat_ecl_geocentric_deg: 0,
         lat_ecl_deg: 0
       }),
-      // _nodes: referencia interna para plugin houses
-      _nodes: { north: nodes.north, south: nodes.south, omega: nodes.omega }
     },
 
     // ── Luna extended ──────────────────────────────────────────────────────
@@ -1622,7 +1685,8 @@ function getSnapshot(config){
     // Houses NO vive en el snapshot astronómico puro.
     // Vive en atacir.houses — plugin toggleable.
     // Se mantiene _houseSystemResolved para uso interno del plugin.
-    _houseConfig: { system: _houseSystemResolved, asc, mc, cusps }
+    _houseConfig: { system: _houseSystemResolved, asc, mc, cusps },
+    _nodes:       { north: nodes.north, south: nodes.south, omega: nodes.omega }
   };
   if(typeof _attachHousesProxy === 'function') _attachHousesProxy(_snapResult);
   return _snapResult;
@@ -1687,9 +1751,14 @@ function lunarNodes(){
 // Versión parametrizable de getSnapshot — permite calcular para cualquier
 // momento y lugar sin modificar el estado del motor.
 function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
+  // Input validation
+  if(typeof jdTarget !== 'number' || isNaN(jdTarget))
+    throw new RangeError('getSnapshotAt: jdTarget must be a valid Julian Date number');
   // Acepta (jd, lat, lon) o (jd, {lat_deg, lon_deg})
   const latDeg = (latDegOrObs && typeof latDegOrObs === 'object') ? latDegOrObs.lat_deg : latDegOrObs;
   const lonDeg = (latDegOrObs && typeof latDegOrObs === 'object') ? latDegOrObs.lon_deg : lonDegParam;
+  if(typeof latDeg !== 'number' || isNaN(latDeg) || typeof lonDeg !== 'number' || isNaN(lonDeg))
+    throw new RangeError('getSnapshotAt: observer lat/lon must be valid numbers');
 
   // ── Cálculo determinista directo desde jd_tt ──────────────────────────────
   // No usa timeOffset + Date.now() — elimina race condition y garantiza
@@ -1714,7 +1783,8 @@ function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
 }
 
 // ── Motor interno: calcula snapshot desde JD_TT explícito ────────────────────
-// No depende de Date.now() ni de timeOffset — completamente determinista.
+// Usa timeOffset internamente para alinear currentTime() con el JD objetivo.
+// try/finally garantiza que timeOffset se restaura siempre.
 function _getSnapshotFromJD(jd_tt_explicit){
   const jd_tt  = jd_tt_explicit;
   const dT_sec = deltaT(jd_tt);
@@ -1735,37 +1805,48 @@ function _getSnapshotFromJD(jd_tt_explicit){
   let snap;
   try {
     snap = getSnapshot();
+    // Nodos lunares ya calculados por getSnapshot() con timeOffset correcto.
+    // No se recalculan aquí — evita doble cómputo y garantiza consistencia.
   } finally {
-    timeOffset = savedOffset;
+    timeOffset = savedOffset; // restored after nodes computed
   }
 
-  // Parche: asegurar que meta.jd_tt refleja el valor exacto solicitado
-  // (pequeñas diferencias por aritmética de punto flotante son aceptables
-  //  pero el valor nominal debe ser el solicitado)
+  // Asegurar que meta.jd_tt refleja el valor exacto solicitado
   if(snap && snap.meta) {
-    snap.meta.jd_tt  = jd_tt;
-    snap.meta.jd_utc = jd_utc;
+    snap.meta.jd_tt       = jd_tt;
+    snap.meta.jd_utc      = jd_utc;
     snap.meta.delta_t_sec = dT_sec;
-    snap.meta.utc = now_d.toISOString();
-    snap.meta.timestamp = (jd_utc - 2440587.5) * 86400;
+    snap.meta.utc         = now_d.toISOString();
+    snap.meta.timestamp   = (jd_utc - 2440587.5) * 86400;
   }
-
-  // Nodos lunares con T explícito
-  const nodes = lunarNodes();
-  snap.bodies.NodoNorte = Object.assign(_bodyData(nodes.north.ra, nodes.north.dec), {
-    lon_ecl_geocentric_deg: nodes.omega,
-    lat_ecl_geocentric_deg: 0,
-    lat_ecl_deg: 0
-  });
-  snap.bodies.NodoSur = Object.assign(_bodyData(nodes.south.ra, nodes.south.dec), {
-    lon_ecl_geocentric_deg: nodes.south.lon_ecl,
-    lat_ecl_geocentric_deg: 0,
-    lat_ecl_deg: 0
-  });
 
   return snap;
 }
 
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+
+// ── Module exports (Node.js / CommonJS + ESM compatibility) ──────────────────
+// Allows: const { getSnapshot } = require('caelis-engine')
+// Or via vm.runInThisContext (used by validation suite)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    // Core API
+    getSnapshot,
+    getSnapshotAt,
+    setObserver,
+    // TimeEngine
+    julianDate,
+    julianDateUTC,
+    deltaT,
+    gast,
+    // Utilities
+    deg2rad,
+    rad2deg,
+  };
+}
+// ESM named exports (when bundled with Rollup/Vite/esbuild)
+// export { getSnapshot, getSnapshotAt, setObserver, setOffset };
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  F R O N T E R A   A R Q U I T E C T Ó N I C A                         ║
@@ -3648,7 +3729,7 @@ function exportarJSON(){
   }
 
   let out = {
-    engine:  "Caelis Engine v4.0.2 · Hermetica Labs",
+    engine:  "Caelis Engine v4.0.5 · Hermetica Labs",
     schema_version: "3.1",
     algorithms: {
       planets:  "VSOP87C (Bretagnon & Francou 1987/1988, IMCCE) — Mercury–Saturn, Uranus, Neptune",
@@ -3846,7 +3927,7 @@ function exportarJSONSinastria(){
   }
 
   const out = {
-    engine:  "Caelis Engine v4.0.2 · Hermetica Labs",
+    engine:  "Caelis Engine v4.0.5 · Hermetica Labs",
     module:  "Synastry",
     algorithms: {
       planets:   "VSOP87C (Bretagnon & Francou 1987/1988, IMCCE) — Mercury–Saturn, Uranus, Neptune",
