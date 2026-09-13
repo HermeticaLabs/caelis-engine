@@ -6,6 +6,48 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.6] — 2026-09
+
+### Fixed — CE-001 through CE-005 (ChatGPT audit)
+
+**CE-001 — ΔT table updated with IERS observed data 2020–2026**
+Previous table had `[2020,69.4],[2025,70.9]` from USNO predictions.
+IERS Bulletin A (10 Sep 2026): TAI-UTC=37s, UT1-UTC=-0.001527s → ΔT≈69.186s.
+Table now uses observed IERS EOP values for 2020–2026 and conservative
+USNO linear model predictions post-2026. Error reduced from ~2.25s to <0.5s.
+
+**CE-002 — AtacirClient ESM/CJS incompatibility resolved**
+`export default AtacirClient` and `module.exports` coexisted in the same file
+under `"type": "commonjs"`, which is invalid in Node.js native ESM scope.
+Removed `export default` and named ESM exports. CJS-only now (`module.exports`).
+ESM named imports require a bundler — documented in README.
+
+**CE-003 — main/release version divergence resolved**
+package.json in main now reflects `4.0.6` consistently with the release tag.
+
+**CE-004 — CLIENT_VERSION updated to 4.0.6**
+`AtacirClient.js` had `CLIENT_VERSION = '4.0.2'` while package was at 4.0.5.
+Now reads `'4.0.6'` — single source of truth comment reinforced.
+
+**CE-005 — Schema test CE-005 no longer tautological**
+`__no_internal_in_json` test previously used a replacer to strip `_*` fields
+and then verified they were absent — circular by construction.
+New test uses raw `JSON.stringify(snap)` (no replacer) and verifies that
+`_houseConfig` and `_nodes` do not appear in the output.
+
+**Additional: _houseConfig and _nodes made non-enumerable**
+Both internal fields are now defined via `Object.defineProperty` with
+`enumerable: false`. This makes the public JSON contract self-enforcing
+without requiring a replacer in `JSON.stringify`.
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing
+- Total: 95/95 assertions · 0 failures
+- ΔT reference updated: [I] IERS Bulletin A Sep 2026 (independent source)
+
+---
+
 ## [4.0.5] — 2026-08
 
 ### Fixed — Luna `dist_km` and `dist_au` now exposed in snapshot

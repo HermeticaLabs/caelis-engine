@@ -47,7 +47,7 @@
 const ATACIR_API_VERSION = 'v1';
 const ATACIR_API_BASE    = 'https://api.hermeticalabs.com';
 const SCHEMA_VERSION     = '3.1';
-const CLIENT_VERSION     = '4.0.2'; // keep in sync with package.json
+const CLIENT_VERSION     = '4.0.6'; // keep in sync with package.json
 
 // ── Available plugins in the A.T.A.C.I.R. Cloud API ──────────────────────────
 const AVAILABLE_PLUGINS = [
@@ -344,11 +344,8 @@ class AtacirClient {
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
-// ESM
-export { AtacirClient, AVAILABLE_PLUGINS, ATACIR_API_VERSION };
-export default AtacirClient;
-
-// CJS compatibility
+// CJS (Node.js require)
+// ESM named imports require a bundler (Vite/Webpack/Rollup) — see README
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { AtacirClient, AVAILABLE_PLUGINS, ATACIR_API_VERSION };
 }

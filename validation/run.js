@@ -140,7 +140,7 @@ const EPOCHS = [
     tests: [
       { field: 'meta.obliquity.true_deg',                expect: 23.4383,  tol: 0.0001, label: 'True obliquity ε',   src: '[C]' },
       { field: 'meta.sidereal.lst_deg',                  expect: 179.618,  tol: 0.050,  label: 'LST',                src: '[C]' },
-      { field: 'meta.delta_t_sec',                       expect: 71.35,    tol: 0.5,    label: 'ΔT sec',              src: '[I]+[C]' },
+      { field: 'meta.delta_t_sec',                       expect: 69.36,    tol: 0.5,    label: 'ΔT (IERS observed)',  src: '[I] IERS Bulletin A Sep 2026: TAI-UTC=37s, DUT1=-0.0015s → ΔT≈69.19s' },
       { field: 'bodies.Sol.lon_ecl_geocentric_deg',      expect: 71.498,   tol: 0.005,  label: 'Sol λ',               src: '[C]' },
       { field: 'bodies.Sol.alt_geometric_deg',           expect: -27.896,  tol: 0.1,    label: 'Sol alt geometric',   src: '[C]' },
       { field: 'bodies.Luna.lon_ecl_geocentric_deg',     expect: 269.330,  tol: 0.020,  label: 'Luna λ geocentric',   src: '[C]' },
@@ -197,14 +197,14 @@ function resolve(snap, field) {
   }
 
   if (field === '__no_internal_in_json') {
+    // Test A: internal fields CAN exist as own properties on the snapshot object
+    // (they are valid internal state — _houseConfig, _nodes are expected)
+    // Test B: raw JSON.stringify (no replacer) must NOT expose _ fields
+    // This verifies the public contract independently of the replacer
     try {
-      const j = JSON.stringify(snap, (k, v) => k.startsWith('_') ? undefined : v);
-      const parsed = JSON.parse(j);
-      const check = obj => {
-        if (typeof obj !== 'object' || !obj) return true;
-        return Object.keys(obj).every(k => !k.startsWith('_') && check(obj[k]));
-      };
-      return check(parsed);
+      const rawJson = JSON.stringify(snap);
+      const hasInternalLeak = /"_[a-zA-Z]/.test(rawJson);
+      return !hasInternalLeak;
     } catch { return false; }
   }
 
@@ -328,5 +328,3 @@ if (failures.length > 0) {
 
 console.log('');
 process.exit(allPass ? 0 : 1);
-
-// CI trigger

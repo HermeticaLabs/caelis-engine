@@ -93,8 +93,15 @@ const deltaTTable=[
   [1920,  21], [1930,  24], [1940,  24], [1950,  29], [1960,  33],
   [1970,  40], [1975,  45], [1980,  50], [1985,  54], [1990,  57],
   [1995,  60], [2000,63.8], [2005,64.7], [2010,66.1], [2015,67.6],
-  // ── Presente y futuro próximo (IERS + USNO) ─────────────────────
-  [2020,69.4], [2025,70.9], [2030,72.5], [2035,74.5], [2040,77.0],
+  // ── Presente y futuro próximo (IERS observed + USNO predictions) ──────────
+  // Observed values from IERS EOP data (TAI-UTC=37s baseline from 2017):
+  // ΔT = TT - UT1 = (TAI + 32.184s) - (UTC + DUT1)
+  // Sources: IERS Bulletin A + IERS EOP C01/C04 series
+  // Last update: 2026-09 (Bulletin A, 10 Sep 2026: ΔT ≈ 69.186s at 2026.7)
+  [2020,69.36],[2021,69.28],[2022,69.18],[2023,69.22],[2024,69.30],
+  [2025,69.35],[2026,69.19],
+  // Predictions post-2026 (USNO Circular 179 linear model ~+0.5s/yr):
+  [2028,70.0],[2030,71.0],[2035,73.5],[2040,76.0],
   [2050,87.0], [2060,96.0], [2070,107.], [2080,118.], [2090,131.],
   [2100,146.], [2110,162.], [2120,179.], [2130,197.], [2140,217.],
   [2150,238.],
@@ -1241,9 +1248,21 @@ function getSnapshot(config){
     // Houses NO vive en el snapshot astronómico puro.
     // Vive en atacir.houses — plugin toggleable.
     // Se mantiene _houseSystemResolved para uso interno del plugin.
-    _houseConfig: { system: _houseSystemResolved, asc, mc, cusps },
-    _nodes:       { north: nodes.north, south: nodes.south, omega: nodes.omega }
   };
+  // Internal fields: non-enumerable → JSON.stringify omits them without a replacer
+  // This makes the public JSON contract self-enforcing (no replacer needed)
+  Object.defineProperty(_snapResult, '_houseConfig', {
+    value:        { system: _houseSystemResolved, asc, mc, cusps },
+    enumerable:   false,
+    configurable: true,
+    writable:     true
+  });
+  Object.defineProperty(_snapResult, '_nodes', {
+    value:        { north: nodes.north, south: nodes.south, omega: nodes.omega },
+    enumerable:   false,
+    configurable: true,
+    writable:     true
+  });
   if(typeof _attachHousesProxy === 'function') _attachHousesProxy(_snapResult);
   return _snapResult;
 }
