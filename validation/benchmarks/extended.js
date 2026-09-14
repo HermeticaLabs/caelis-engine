@@ -206,7 +206,7 @@ const BENCHMARK_EPOCHS = [
     tests: [
       { field: 'meta.obliquity.true_deg',               expect: 23.4383,   tol: 0.0001, label: 'True obliquity ε',               src: '[C] Caelis v4.0 canonical output' },
       { field: 'meta.sidereal.lst_deg',                  expect: 179.618,   tol: 0.050,  label: 'LST at Santiago',                src: '[C] Caelis v4.0 canonical output' },
-      { field: 'meta.delta_t_sec',                       expect: 69.36,     tol: 0.5,    label: 'ΔT (IERS observed 2026)',         src: '[I] IERS Bulletin A Sep 2026: TAI-UTC=37s, DUT1=-0.0015s → ΔT≈69.19s' },
+      { field: 'meta.delta_t_sec',                       expect: 69.19,     tol: 0.5,    label: 'ΔT (IERS Bulletin A Sep 2026)',   src: '[I] TAI-UTC=37s, UT1-UTC=-0.001527s → ΔT=69.186s' },
       { field: 'bodies.Sol.lon_ecl_geocentric_deg',      expect: 71.498,    tol: 0.005,  label: 'Sol λ',                          src: '[C] Caelis v4.0 canonical output' },
       { field: 'bodies.Sol.alt_geometric_deg',           expect: -27.896,   tol: 0.100,  label: 'Sol altitude geometric',         src: '[C] Caelis v4.0 canonical output' },
       { field: 'bodies.Sol.above_horizon',               expect: false,     tol: null,   label: 'Sol below horizon (night)',       src: '[C] Santiago 23:58 UTC = night' },

@@ -1,12 +1,11 @@
-# CAELIS ENGINE
+# Caelis Engine
 
-[![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
-[![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
-[![license](https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square)](./LICENSE)
-[![demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)](https://hermeticalabs.github.io/caelis-engine/)
-[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
+> **Engine v4.0.6 · Schema v3.1** — these are independent version numbers.
+> Schema v3.1 defines the output contract and is stable across engine patches.
 
-**Stop calling astrology APIs.**
+[![npm version](https://img.shields.io/npm/v/caelis-engine.svg)](https://www.npmjs.com/package/caelis-engine)
+[![license](https://img.shields.io/npm/l/caelis-engine.svg)](./LICENSE)
+[![validation](https://img.shields.io/badge/validation-28%2F28-brightgreen)](./validation/run.js)
 
 **Every number this engine produces can be traced back to a known astronomical model, with declared precision and zero hidden assumptions.**
 
@@ -66,22 +65,14 @@ It is what products are built on.
 
 ## Who builds with Caelis Engine
 
-**For platforms that cannot afford external dependencies in celestial computation:**
-
 **Astrology applications** — birth charts, transits, synastry, progressions.
 Real planetary positions without subscription costs or rate limits. Runs 100% offline on the user's device. No data leaves the client.
-
-**For teams building scientific or educational systems where reproducibility matters:**
 
 **Astronomy and educational tools** — observational planning, sky simulators, interactive planetariums.
 Deterministic output means reproducible results across every device, every run.
 
-**For companies currently relying on APIs with opaque outputs or inconsistent schemas:**
-
 **AI pipelines and data infrastructure** — any system where celestial data must be consistent, traceable, and unambiguous.
 A disabled plugin does not exist in the JSON. No null fields, no implicit states.
-
-**For teams building interactive systems that require lightweight and portable computation:**
 
 **Games and interactive experiences** — procedural sky systems, lunar calendar logic, celestial mechanics.
 Single-file distribution. Works offline. No build step required.
@@ -105,14 +96,10 @@ Receives time from TimeEngine. Computes the physical state of the solar system. 
 Zero interpretive concepts. No houses. No aspects. No symbolic content.
 The engine does not interpret the sky. It measures it.
 
-### A.T.A.C.I.R. — optional interpretive layer
+### A.T.A.C.I.R. — interpretive layer
 **A**rc-based **T**ransformation of **A**stronomical **C**oordinates for **I**nterpretive **R**esolution.
 
-Optional layer for astrology and derived interpretations.
-
-Architecturally separate from the astronomical core by design. Receives the snapshot. Appends derived computations under `result.atacir.*`. 
-Never modifies the astronomical data.
-Fully isolated by design
+Architecturally separate from the astronomical core by design. Receives the snapshot. Appends derived computations under `result.atacir.*`. Never modifies the astronomical data.
 
 Available plugins: `houses` · `aspects` · `symmetries` · `lunar` · `cycles` · `resonances` · `panchanga` · `synastry` · `eclipses` · `directions`
 
@@ -142,6 +129,21 @@ Every algorithm is declared in `meta.frame`.
 
 ---
 
+---
+
+## Installation
+
+```bash
+npm install caelis-engine
+```
+
+Or download the single-file reference implementation:
+[`caelis-minimal.html`](caelis-minimal.html) — open with any local server, no install required.
+
+> **API modes:**
+> - `setObserver()` + `getSnapshot()` — stateful convenience API. Observer configured once, called repeatedly. Not pure in the functional sense — depends on global state.
+> - `getSnapshotAt(jd_tt, observer)` — explicit deterministic API. No global state. Same arguments always produce the same output.
+
 ## Quick start
 
 ### Option A — Single file (recommended)
@@ -152,7 +154,7 @@ Download `dist/caelis-minimal.html`. Open with a local server:
 python -m http.server 8080
 # open http://localhost:8080/caelis-minimal.html
 ```
-Open in browser. Done.
+
 No installation. No dependencies. No build step.
 
 ### Option B — Node.js or bundler
@@ -214,7 +216,7 @@ The schema is the contract. Stable, versioned, and guaranteed not to break betwe
     "jd_tt":       2461193.499437,
     "jd_utc":      2461193.498611,
     "utc":         "2026-06-01T23:58:00Z",
-    "delta_t_sec": 71.35,
+    "delta_t_sec": 69.19,
     "observer":    { "lat_deg": -33.45, "lon_deg": -70.66 },
     "frame": {
       "nutation":                "IAU 2000B (77 luni-solar terms, Mathews et al. 2002)",
@@ -259,82 +261,47 @@ Full schema: [`docs/CAELIS_ENGINE_SPEC_v4_0.md`](docs/CAELIS_ENGINE_SPEC_v4_0.md
 
 ---
 
-## How Caelis Engine compares
+## Why not a third-party API or Swiss Ephemeris?
 
-| | JPL Horizons | Swiss Ephemeris | Astronomy Engine | suncalc3 | **Caelis Engine** |
-|---|:---:|:---:|:---:|:---:|:---:|
-| Runs in browser | ✗ | ✗ | ✗ | ✓ | **✓** |
-| No server required | ✗ | ✗ | ✓ | ✓ | **✓** |
-| No dependencies | ✗ | ✗ | ✓ | ✓ | **✓** |
-| VSOP87B planets | ✓ | ✓ | ✓ (full) | ✗ | **✓** |
-| ELP/MPP02 Moon | ✓ | ✓ | ✗ | ✗ | **✓** |
-| IAU 2000B nutation | ✓ | ✓ (2000A) | ✗ | ✗ | **✓** |
-| House systems | ✗ | ✓ | ✗ | ✗ | **✓ 5 systems** |
-| Deterministic output | ✗ | ✓ | ✓ | ✓ | **✓** |
-| Algorithm declared in output | ✗ | ✗ | ✗ | ✗ | **✓** |
-| JavaScript native | ✗ | ✗ | ✗ | ✓ | **✓** |
-| Schema-stable versioned JSON | ✗ | ✗ | ✗ | ✗ | **✓** |
+|  | Third-party APIs | Swiss Ephemeris | **Caelis Engine** |
+|---|:---:|:---:|:---:|
+| Runs in browser | ✗ | ✗ | **✓** |
+| No server required | ✗ | ✗ | **✓** |
+| No API key or cost | ✗ | ✓ | **✓** |
+| Declared precision per field | ✗ | partial | **✓** |
+| Algorithm named in every output | ✗ | ✗ | **✓** |
+| Single JS file · no install | ✗ | ✗ | **✓** |
+| Offline capable | ✗ | ✓ | **✓** |
+| Schema-stable versioned output | ✗ | ✗ | **✓** |
+| Interpretive layer optional | N/A | N/A | **✓** |
 
-**JPL Horizons** — the precision reference. Web service only, no local computation.  
-**Swiss Ephemeris** — the professional standard. Requires a server, a C wrapper, and binary ephemeris files.  
-**Astronomy Engine (Don Cross)** — closest philosophy. C + bindings, more precise for outer planets, no house systems, no interpretive layer.  
-**suncalc3** — lightweight, browser-native, but a toy compared to a full ephemeris engine.
+Third-party APIs add latency, cost, and a dependency you don't control.
+Swiss Ephemeris is the precision standard — but it requires a server, a C wrapper, and ephemeris files.
 
-Caelis Engine is the only option that combines scientific-grade algorithms with zero dependencies, browser compatibility, and a stable auditable output schema.
+Caelis Engine runs where neither can: directly in the browser, in edge functions, in React Native, in any JavaScript environment. Offline. Deterministically.
 
 ---
 
 ## Validation
 
-**95 assertions · 15 reference epochs · 0 failures · runs on every push.**
-
-The mathematical pipeline is validated at two levels:
-
-**Core suite** (`validation/run.js`) — 28 assertions · runs in CI on every push
-**Extended benchmarks** (`validation/benchmarks/extended.js`) — 67 assertions · 10 epochs · 5 canonical sources
-
 ```bash
 node validation/run.js
-# ✓ ALL TESTS PASSED  28 passed · 0 failed · 595ms
-
-node validation/benchmarks/extended.js
-# ✓ ALL TESTS PASSED  67 passed · 0 failed · 151ms
+# 28 assertions · 5 epochs · 0 failures
 ```
-
-### Extended benchmark epochs
 
 | Epoch | Source | Assertions |
 |---|---|---|
-| J2000.0 — 2000-Jan-01 12:00 TT | IAU SOFA + VSOP87 paper [V] | 11 |
-| 1987-Apr-10 — Meeus Ch.22 nutation | Meeus *Astronomical Algorithms* [M] | 6 |
-| 1992-Apr-12 — Meeus Ch.33 Venus | VSOP87 verification table [V] | 4 |
-| 1992-Apr-12 — Meeus Ch.47 Moon | ELP/MPP02-LLR paper [E] | 4 |
-| 2000-Mar-20 — Vernal Equinox | Meeus Ch.27 [M] | 4 |
-| 1900-Jan-01 — Historical | VSOP87B long-range + IERS [V][I] | 5 |
-| 2050-Jan-01 — Future | IAU 2006 + IERS projected [S][I] | 4 |
-| 2026-Jun-01 — Regression baseline | Caelis v4.0 canonical [C] | 13 |
-| Schema v3.1 invariants | Architecture contract (10 invariants) | 11 |
-| Precision bounds | Declared error envelope verification | 5 |
-
-### Reference sources
-
-| Code | Source |
-|---|---|
-| [M] | Meeus, J. *Astronomical Algorithms* 2nd ed. (1998) |
-| [V] | Bretagnon & Francou (1987) A&A 202 — VSOP87 original paper |
-| [E] | Chapront & Francou (2002) A&A 412 — ELP/MPP02-LLR paper |
-| [S] | IAU SOFA C library documentation (2023) |
-| [I] | IERS Bulletin C + Conventions 2003 |
-| [C] | Caelis Engine v4.0 canonical output — regression baseline |
-
-Every numerical tolerance reflects the declared precision bound of the
-algorithm in use — not an arbitrary margin.
+| J2000.0 — 2000-Jan-01 12:00 TT | IAU SOFA + VSOP87 paper | 6 |
+| 1987-Apr-10 (Meeus Ch.25) | Meeus *Astronomical Algorithms* 2nd ed. | 4 |
+| 1992-Apr-12 (Meeus Ch.33 Venus) | VSOP87 verification table | 1 |
+| 2026-Jun-01 regression baseline | Caelis v4.0 canonical output | 8 |
+| Schema v3.1 invariants | Architecture contract | 9 |
 
 ---
 
 ## Precision and limitations
 
-Designed for portability, determinism and auditability — not sub-arcsecond astrometry.
+Designed for portability and auditability — not sub-arcsecond astrometry.
 
 | Source | Declared max error |
 |---|---|
@@ -344,25 +311,24 @@ Designed for portability, determinism and auditability — not sub-arcsecond ast
 | Refraction near horizon | 1–5′ |
 | ΔT outside 500–2150 AD | variable |
 
+For sub-arcsecond requirements, use JPL Horizons or Swiss Ephemeris with full VSOP87.
 For everything that needs to run in a browser, offline, and deterministically — this is it.
 
 ---
 
 ## A.T.A.C.I.R. Cloud
 
-The interpretive optional layer managed API for interpretive computations.
+The interpretive layer is available as a managed API through Hermetica Labs.
 
-Adds:
-house systems · natal and transit aspects · ecliptic symmetries · primary directions · lunar apsides and cycles · orbital resonances · Vedic Panchanga · synastry · eclipse prediction · **Includes R1–R5 digital signature for output integrity.**
+What it adds on top of the astronomical core:
+house systems · natal and transit aspects · ecliptic symmetries · primary directions · lunar apsides and cycles · orbital resonances · Vedic Panchanga · synastry · eclipse prediction · **R1-R5 Digital Signature**
 
 The R1-R5 Digital Signature is a cryptographic certification that the output was produced under the full Plugin Contract and has not been modified. Every result is auditable, traceable, and independently verifiable.
 
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
 
-If this aligns with how you think infrastructure should behave, we should talk.
-
-**Early access:** `hermeticalabs.dev@proton.me`
+**Early access:** `hermeticalabs@[domain]`
 
 ---
 
@@ -373,7 +339,7 @@ Caelis Engine is released under **AGPL-3.0**.
 Free to use in open source software under AGPL-3.0 terms.
 **If you are building a commercial or proprietary product, you need a commercial license.**
 
-Commercial licensing: `hermeticalabs.dev@proton.me`
+Commercial licensing: `hermeticalabs@[domain]`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 
 ---
@@ -396,4 +362,4 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.1 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

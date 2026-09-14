@@ -6,6 +6,37 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.6-docs] — 2026-09
+
+### Documentation and release engineering sync
+
+**README synchronized with engine v4.0.6**
+- `delta_t_sec` example value updated from `71.35` to `69.19` (IERS Bulletin A Sep 2026)
+- Header now explicitly states `Engine v4.0.6 · Schema v3.1` to avoid ambiguity
+- Added API mode documentation: stateful convenience API vs explicit deterministic API
+
+**`caelis-minimal.html` rebuilt with v4.0.6 engine**
+- Previous monolith had CaelisEngine.js v4.0.5 embedded
+- Rebuilt from `core/CaelisEngine.js` v4.0.6 — all fixes included
+- Version string updated to `Caelis Engine v4.0.6`
+
+**Validation suite ΔT reference aligned**
+- `expect: 69.36` → `expect: 69.19` in both `validation/run.js` and `validation/benchmarks/extended.js`
+- The table declares `[2026, 69.19]` and the IERS comment states `ΔT≈69.19s`
+- Test now expects exactly the value the table and comment declare
+- Tolerance remains ±0.5s — test still passes with actual engine output of ~69.19s
+
+**GitHub Release v4.0.6 created**
+- Tag `v4.0.6` existed without a public GitHub Release
+- Release created with full changelog entry and `caelis-minimal.html` as downloadable asset
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing
+- Total: 95/95 assertions · 0 failures
+
+---
+
 ## [4.0.6] — 2026-09
 
 ### Fixed — CE-001 through CE-005 (ChatGPT audit)

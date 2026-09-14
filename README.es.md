@@ -1,5 +1,8 @@
 # Caelis Engine
 
+> **Motor v4.0.6 · Schema v3.1** — son números de versión independientes.
+> Schema v3.1 define el contrato de output y permanece estable entre parches del motor.
+
 **Cada número que produce este motor puede ser trazado hasta un modelo astronómico conocido, con precisión declarada y sin suposiciones ocultas.**
 
 Caelis Engine es un motor de cómputo determinista para datos celestes. Reemplaza APIs opacas y cálculos de caja negra con un sistema completamente auditable, reproducible y autocontenido — ejecutándose en el browser o Node.js, sin servidor, sin API key, sin archivos de efemérides y sin dependencias externas.
@@ -109,7 +112,7 @@ Cada algoritmo está declarado en `meta.frame`.
 
 ### Opción A — Archivo único (recomendado)
 
-Descarga `dist/caelis-minimal.html`. Ábrelo con un servidor local:
+Descarga `caelis-minimal.html`. Ábrelo con un servidor local:
 
 ```bash
 python -m http.server 8080
@@ -117,6 +120,10 @@ python -m http.server 8080
 ```
 
 Sin instalación. Sin dependencias. Sin paso de build.
+
+> **Modos de API:**
+> - `setObserver()` + `getSnapshot()` — API con estado. El observador se configura una vez y se llama repetidamente.
+> - `getSnapshotAt(jd_tt, observer)` — API determinista explícita. Sin estado global. Mismos argumentos = mismo resultado siempre.
 
 ### Opción B — Node.js o bundler
 
