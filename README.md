@@ -1,6 +1,6 @@
 # Caelis Engine
 
-> **Engine v4.0.6 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.7 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -331,7 +331,7 @@ The R1-R5 Digital Signature is a cryptographic certification that the output was
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
 
-**Early access:** `hermeticalabs@[domain]`
+**Early access:** `hermeticalabs.dev@proton.me`
 
 ---
 
@@ -342,7 +342,7 @@ Caelis Engine is released under **AGPL-3.0**.
 Free to use in open source software under AGPL-3.0 terms.
 **If you are building a commercial or proprietary product, you need a commercial license.**
 
-Commercial licensing: `hermeticalabs@[domain]`
+Commercial licensing: `hermeticalabs.dev@proton.me`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 
 ---
@@ -365,4 +365,7 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.1 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.7 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+
+
+

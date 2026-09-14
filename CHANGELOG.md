@@ -10,22 +10,26 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ### Fixed — UI consistency and test naming
 
-**Botón de exportación corregido**
-`⬇ JSON v3.0.1` → `⬇ JSON v3.1` en `caelis-minimal.html`.
-El schema del output siempre fue v3.1 — el label del botón era un texto
-de versión vieja que quedó sin actualizar.
+**Export button label corrected**
+`⬇ JSON v3.0.1` → `⬇ JSON v3.1` in `caelis-minimal.html` and `index.html`.
+The output schema has always been v3.1 — the button label was a stale
+version string that was never updated.
 
-**CE-006 — Test `__nutation_cached_correctly` renombrado**
-El test verifica que dos llamadas consecutivas a `getSnapshot()` producen
-el mismo valor de nutación — eso es **determinismo**, no verificación de cache.
-Renombrado a `__nutation_deterministic` con label actualizado.
-El comportamiento del test no cambió.
+**CE-006 — Test `__nutation_cached_correctly` renamed**
+The test verifies that two consecutive calls to `getSnapshot()` produce
+the same nutation value — that is **determinism**, not cache verification.
+Renamed to `__nutation_deterministic` with updated label.
+Test behavior unchanged.
 
-**`CLIENT_VERSION` sincronizado a 4.0.7**
-`AtacirClient.js` actualizado para reflejar la versión correcta del paquete.
+**`CLIENT_VERSION` synchronized to 4.0.7**
+`AtacirClient.js` updated to reflect the correct package version.
 
-**Banners internos del monolito sincronizados**
-Comentarios de bloque que decían `v4.0.2` actualizados a `v4.0.7`.
+**Internal monolith banners synchronized**
+Block comment banners that read `v4.0.2` updated to `v4.0.7`.
+
+**`index.html` rebuilt from `caelis-minimal.html` v4.0.7**
+GitHub Pages demo was running a stale copy. Now synchronized with
+the current engine and UI. `JSON Export v3.0.1` label corrected to `JSON Export v3.1`.
 
 ### Validation
 - Core suite: 28/28 passing

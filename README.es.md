@@ -1,6 +1,6 @@
 # Caelis Engine
 
-> **Motor v4.0.6 · Schema v3.1** — son números de versión independientes.
+> **Motor v4.0.7 · Schema v3.1** — son números de versión independientes.
 > Schema v3.1 define el contrato de output y permanece estable entre parches del motor.
 
 **Cada número que produce este motor puede ser trazado hasta un modelo astronómico conocido, con precisión declarada y sin suposiciones ocultas.**
@@ -234,3 +234,4 @@ Cada número es trazable. Cada algoritmo está declarado. Cada output es reprodu
 ---
 
 *Caelis Engine v4.0 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+
