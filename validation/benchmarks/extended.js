@@ -235,7 +235,7 @@ const BENCHMARK_EPOCHS = [
       { field: '__both_altitudes',             expect: true,   tol: null,  label: 'I-5: all bodies have geometric + apparent alt',   src: 'Architecture invariant I-5' },
       { field: '__frame_declared',             expect: true,   tol: null,  label: 'I-4: meta.frame declares all algorithms',         src: 'Architecture invariant I-4' },
       { field: '__no_internal_in_json',        expect: true,   tol: null,  label: 'Schema: no _ fields in public JSON output',       src: 'Schema contract §7' },
-      { field: '__nutation_cache',             expect: true,   tol: null,  label: 'Nutation cache: two calls = identical result',    src: 'Performance contract' },
+      { field: '__nutation_cache',             expect: true,   tol: null,  label: 'Nutation determinism: two calls = identical result',    src: 'Performance contract' },
       { field: '__determinism',                expect: true,   tol: null,  label: 'Determinism: same jd → same output',              src: 'Core invariant I-2' },
       { field: '__above_horizon_criterion',    expect: true,   tol: null,  label: 'above_horizon uses geometric alt (unrefracted)',  src: 'Schema contract meta.frame.above_horizon_criterion' },
     ]

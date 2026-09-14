@@ -6,6 +6,34 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.7] — 2026-09
+
+### Fixed — UI consistency and test naming
+
+**Botón de exportación corregido**
+`⬇ JSON v3.0.1` → `⬇ JSON v3.1` en `caelis-minimal.html`.
+El schema del output siempre fue v3.1 — el label del botón era un texto
+de versión vieja que quedó sin actualizar.
+
+**CE-006 — Test `__nutation_cached_correctly` renombrado**
+El test verifica que dos llamadas consecutivas a `getSnapshot()` producen
+el mismo valor de nutación — eso es **determinismo**, no verificación de cache.
+Renombrado a `__nutation_deterministic` con label actualizado.
+El comportamiento del test no cambió.
+
+**`CLIENT_VERSION` sincronizado a 4.0.7**
+`AtacirClient.js` actualizado para reflejar la versión correcta del paquete.
+
+**Banners internos del monolito sincronizados**
+Comentarios de bloque que decían `v4.0.2` actualizados a `v4.0.7`.
+
+### Validation
+- Core suite: 28/28 passing
+- Extended benchmarks: 67/67 passing
+- Total: 95/95 assertions · 0 failures
+
+---
+
 ## [4.0.6-docs] — 2026-09
 
 ### Documentation and release engineering sync

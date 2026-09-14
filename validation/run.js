@@ -163,7 +163,7 @@ const EPOCHS = [
       { field: '__both_altitudes',             expect: true,  tol: null, label: 'All bodies: geometric+apparent (I-5)' },
       { field: '__frame_declared',             expect: true,  tol: null, label: 'meta.frame declares algorithms (I-4)' },
       { field: '__no_internal_in_json',        expect: true,  tol: null, label: 'No _ fields in JSON output' },
-      { field: '__nutation_cached_correctly',  expect: true,  tol: null, label: 'Nutation cache valid' },
+      { field: '__nutation_deterministic',  expect: true,  tol: null, label: 'Nutation determinism: identical output on repeat call' },
     ]
   },
 ];
@@ -208,7 +208,7 @@ function resolve(snap, field) {
     } catch { return false; }
   }
 
-  if (field === '__nutation_cached_correctly') {
+  if (field === '__nutation_deterministic') {
     // Call getSnapshot twice — nutation result should be identical
     try {
       const s1 = getSnapshot();
