@@ -3,9 +3,12 @@
 > **Engine v4.0.6 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 
-[![npm version](https://img.shields.io/npm/v/caelis-engine.svg)](https://www.npmjs.com/package/caelis-engine)
-[![license](https://img.shields.io/npm/l/caelis-engine.svg)](./LICENSE)
-[![validation](https://img.shields.io/badge/validation-28%2F28-brightgreen)](./validation/run.js)
+[![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
+[![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
+[![GitHub stars](https://img.shields.io/github/stars/HermeticaLabs/caelis-engine?style=flat-square)](https://github.com/HermeticaLabs/caelis-engine/stargazers)
+[![license](https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square)](./LICENSE)
+[![demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)](https://hermeticalabs.github.io/caelis-engine/)
+[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
 
 **Every number this engine produces can be traced back to a known astronomical model, with declared precision and zero hidden assumptions.**
 
