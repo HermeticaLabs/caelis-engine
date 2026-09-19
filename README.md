@@ -1,14 +1,11 @@
 # Caelis Engine
 
-> **Engine v4.0.7 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.6 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 
-[![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
-[![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
-[![GitHub stars](https://img.shields.io/github/stars/HermeticaLabs/caelis-engine?style=flat-square)](https://github.com/HermeticaLabs/caelis-engine/stargazers)
-[![license](https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square)](./LICENSE)
-[![demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)](https://hermeticalabs.github.io/caelis-engine/)
-[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
+[![npm version](https://img.shields.io/npm/v/caelis-engine.svg)](https://www.npmjs.com/package/caelis-engine)
+[![license](https://img.shields.io/npm/l/caelis-engine.svg)](./LICENSE)
+[![validation](https://img.shields.io/badge/validation-28%2F28-brightgreen)](./validation/run.js)
 
 **Every number this engine produces can be traced back to a known astronomical model, with declared precision and zero hidden assumptions.**
 
@@ -123,7 +120,7 @@ A disabled plugin does not exist in the JSON.
 | Lunar parallax | Full topocentric · WGS-84 | max ~57′ |
 | Atmospheric refraction | Bennett (1982) · ISA atmosphere | ±0.1′ > 15° |
 | ΔT | IERS table 500–2150 AD + Morrison-Stephenson | — |
-| Sidereal time | GAST IAU 2006 | < 0.1″ |
+| Sidereal time | GAST IAU 2006 | ~15″ RMS (JD_TT simplification, see SCIENTIFIC_VALIDATION.md) |
 | Lunar nodes | Meeus Ch.47 | — |
 
 Every snapshot contains both geometric and apparent altitude.
@@ -331,7 +328,7 @@ The R1-R5 Digital Signature is a cryptographic certification that the output was
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
 
-**Early access:** `hermeticalabs.dev@proton.me`
+**Early access:** `hermeticalabs@[domain]`
 
 ---
 
@@ -342,7 +339,7 @@ Caelis Engine is released under **AGPL-3.0**.
 Free to use in open source software under AGPL-3.0 terms.
 **If you are building a commercial or proprietary product, you need a commercial license.**
 
-Commercial licensing: `hermeticalabs.dev@proton.me`
+Commercial licensing: `hermeticalabs@[domain]`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 
 ---
@@ -365,7 +362,4 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.7 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
-
-
-
+*Caelis Engine v4.0.1 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

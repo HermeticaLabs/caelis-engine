@@ -114,6 +114,8 @@ for (const epoch of EPOCHS) {
     for (const sys of SYSTEMS) {
       let result = '?';
       try {
+        // Configure house system before computing snapshot
+        houseSystem = sys;
         const snap = getSnapshotAt(epoch.jd, { lat_deg: lat, lon_deg: 0 });
         const issues = checkFinite(snap);
         nanIssues = issues;
@@ -142,6 +144,8 @@ for (const epoch of EPOCHS) {
       }
       rowResults.push(result === '✓' ? G('✓') : result === '✗' ? R('✗') : R('E'));
     }
+    // Restore default after each latitude row
+    houseSystem = 'placidus';
 
     const nanStr = nanIssues.length > 0 ? R(`${nanIssues.length} issues`) : G('none');
     const latStr = `${lat >= 0 ? '+' : ''}${lat.toFixed(3)}° ${label}`.padEnd(32);

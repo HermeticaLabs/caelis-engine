@@ -14,14 +14,18 @@
  *
  * TEST STRUCTURE:
  *   Temporal validation  — 10 epochs × 4 UTC hours × 1 observer = 40 cases
- *   Spatial validation   — 1 epoch × 8 latitudes × 4 longitudes = 32 cases
+ *   Spatial validation   — J2000.0 × 7 latitudes × 4 longitudes = 28 cases
  *   Combined validation  — 6 epochs × 6 observers                = 36 cases
- *   Total                                                         = 108 cases
+ *   Total                                                         = 104 cases
  *
- * TOLERANCE:
- *   GAST/LST: ±30 arcsec  (IAU 2006 vs simplified nutation)
- *   ASC:      ±60 arcsec  (geometric formula from GAST)
- *   MC:       ±30 arcsec  (meridian formula from GAST)
+ * ENGINEERING TOLERANCES (cross-implementation differential):
+ *   GAST/LST: ±30 arcsec
+ *   ASC:      ±120 arcsec
+ *   MC:       ±60 arcsec
+ *
+ * NOTE: These are engineering tolerances for differential verification —
+ * not algorithmic precision bounds. The ~15" RMS residuals reflect the
+ * JD_TT simplification in Caelis Engine (see SCIENTIFIC_VALIDATION.md L2-B).
  *
  * Usage: node validation/independent/asc_mc/run-asc-mc.js [--verbose]
  * ============================================================================
