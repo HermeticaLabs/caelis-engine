@@ -1,11 +1,16 @@
 # Caelis Engine
 
-> **Engine v4.0.6 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.8 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
+>
+> **v4.0.8** fixes an arcminute→degree unit error in atmospheric refraction that inflated `alt_apparent_deg`. Versions ≤ 4.0.7 are affected — upgrade. See [`CHANGELOG.md`](CHANGELOG.md).
 
-[![npm version](https://img.shields.io/npm/v/caelis-engine.svg)](https://www.npmjs.com/package/caelis-engine)
-[![license](https://img.shields.io/npm/l/caelis-engine.svg)](./LICENSE)
-[![validation](https://img.shields.io/badge/validation-28%2F28-brightgreen)](./validation/run.js)
+[![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
+[![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
+[![GitHub stars](https://img.shields.io/github/stars/HermeticaLabs/caelis-engine?style=flat-square)](https://github.com/HermeticaLabs/caelis-engine/stargazers)
+[![license](https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square)](./LICENSE)
+[![demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)](https://hermeticalabs.github.io/caelis-engine/)
+[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
 
 **Every number this engine produces can be traced back to a known astronomical model, with declared precision and zero hidden assumptions.**
 
@@ -118,7 +123,7 @@ A disabled plugin does not exist in the JSON.
 | Light-time correction | Iterative · C = 173.14 AU/day | — |
 | Annual aberration | κ = 9.9365×10⁻⁵ rad | — |
 | Lunar parallax | Full topocentric · WGS-84 | max ~57′ |
-| Atmospheric refraction | Bennett (1982) · ISA atmosphere | ±0.1′ > 15° |
+| Atmospheric refraction | Sæmundsson (1986) · inverse of Bennett (1982), agrees within ~0.1′ · ISA atmosphere | ±0.1′ > 15° |
 | ΔT | IERS table 500–2150 AD + Morrison-Stephenson | — |
 | Sidereal time | GAST IAU 2006 | ~15″ RMS (JD_TT simplification, see SCIENTIFIC_VALIDATION.md) |
 | Lunar nodes | Meeus Ch.47 | — |
@@ -126,8 +131,6 @@ A disabled plugin does not exist in the JSON.
 Every snapshot contains both geometric and apparent altitude.
 Every field names its own coordinate frame.
 Every algorithm is declared in `meta.frame`.
-
----
 
 ---
 
@@ -245,7 +248,7 @@ The schema is the contract. Stable, versioned, and guaranteed not to break betwe
       "lon_ecl_geocentric_deg":  269.330,
       "lon_ecl_topocentric_deg": 270.082,
       "alt_geometric_deg":       14.381,
-      "alt_apparent_deg":        18.212,
+      "alt_apparent_deg":        14.445,
       "dist_km":                 388954
     }
   },
@@ -286,7 +289,7 @@ Caelis Engine runs where neither can: directly in the browser, in edge functions
 
 ```bash
 node validation/run.js
-# 28 assertions · 5 epochs · 0 failures
+# 31 assertions · 6 groups · 0 failures
 ```
 
 | Epoch | Source | Assertions |
@@ -296,6 +299,7 @@ node validation/run.js
 | 1992-Apr-12 (Meeus Ch.33 Venus) | VSOP87 verification table | 1 |
 | 2026-Jun-01 regression baseline | Caelis v4.0 canonical output | 8 |
 | Schema v3.1 invariants | Architecture contract | 9 |
+| Atmospheric refraction regression (v4.0.8) | Sæmundsson formula, arcmin→deg | 3 |
 
 ---
 
@@ -328,7 +332,7 @@ The R1-R5 Digital Signature is a cryptographic certification that the output was
 The computation logic is proprietary and server-side.
 The client is open source: [`client/AtacirClient.js`](client/AtacirClient.js)
 
-**Early access:** `hermeticalabs@[domain]`
+**Early access:** `hermeticalabs.dev@proton.me`
 
 ---
 
@@ -339,7 +343,7 @@ Caelis Engine is released under **AGPL-3.0**.
 Free to use in open source software under AGPL-3.0 terms.
 **If you are building a commercial or proprietary product, you need a commercial license.**
 
-Commercial licensing: `hermeticalabs@[domain]`
+Commercial licensing: `hermeticalabs.dev@proton.me`
 Details: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
 
 ---
@@ -362,4 +366,7 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.1 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.8 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+
+
+

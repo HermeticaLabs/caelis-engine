@@ -119,7 +119,7 @@ Mathematical details: `MATEMATICA.md`
       "moon":                      "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+60R",
       "delta_t":                   "Morrison & Stephenson (2004) + IERS table 500-2150 AD",
       "aberration":                "Annual (κ=9.9365e-5, Meeus Ch.23)",
-      "refraction":                "Bennett (1982), ISA standard atmosphere",
+      "refraction":                "Saemundsson (1986), ISA standard atmosphere",
       "above_horizon_criterion":   "geometric (unrefracted)"
     },
 
@@ -150,7 +150,7 @@ Mathematical details: `MATEMATICA.md`
       "lon_ecl_topocentric_deg":  "<number> [Moon only] Ecliptic longitude, topocentric",
       "lat_ecl_topocentric_deg":  "<number> [Moon only] Ecliptic latitude, topocentric",
       "alt_geometric_deg":        "<number> Altitude before refraction",
-      "alt_apparent_deg":         "<number> Altitude after Bennett refraction",
+      "alt_apparent_deg":         "<number> Altitude after Saæmundsson refraction (arcmin converted to degrees)",
       "az_deg":                   "<number> Azimuth, N=0 clockwise",
       "above_horizon":            "<boolean> alt_geometric_deg > 0",
       "dist_au":                  "<number> [planets] Distance from Earth in AU",
@@ -251,7 +251,7 @@ truncation error. The schema makes this asymmetry explicit.
 | Flag | Condition | Impact |
 |---|---|---|
 | `delta_t_extrapolated: true` | Date outside [500 AD, 2150 AD] | ΔT error up to ±20s |
-| `low_altitude_refraction_risk: [...]` | Body alt_geometric < 5° | Bennett error up to ±5′ |
+| `low_altitude_refraction_risk: [...]` | Body alt_geometric < 5° | Refraction error up to ±5′ |
 
 ---
 

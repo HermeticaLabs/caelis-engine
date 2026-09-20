@@ -36,7 +36,7 @@
  * Obliquity            IAU 2006   Capitaine et al. (2006)
  * Delta-T              IERS table 500-2150 AD + Morrison & Stephenson (2004)
  * Aberration           Meeus, Astronomical Algorithms 2nd ed. Ch.23
- * Refraction           Bennett (1982), Journal of Navigation
+ * Refraction           Saemundsson (1986), Sky & Telescope 72, 70 (inverse of Bennett 1982)
  * Lunar nodes          Meeus Ch.47
  * Geocentric radius    WGS-84
  * ----------------------------------------------------------------------------
@@ -761,11 +761,13 @@ function planetLonEcl(name){
 }
 
 
-function applyRefraction(alt){
-  let a=alt*rad2deg;
-  if(a<-1)return alt;
-  let R=1.02/Math.tan((a+10.3/(a+5.11))*deg2rad);
-  return Math.min(90,a+R)*deg2rad;
+function applyRefraction(alt) {
+  // Saemundsson (1986): geometric -> apparent altitude.
+  // The formula returns R in ARCMINUTES; R_arcmin / 60 converts to degrees.
+  const a = alt * rad2deg;
+  if (a < -1) return alt;
+  const R_arcmin = 1.02 / Math.tan((a + 10.3 / (a + 5.11)) * deg2rad);
+  return Math.min(90, a + R_arcmin / 60) * deg2rad;
 }
 
 
@@ -988,7 +990,7 @@ function _bodyData(ra, dec){
   let HA     = LST - ra;                // Hour Angle (radians)
   let sinAlt = Math.sin(dec)*Math.sin(lat) + Math.cos(dec)*Math.cos(lat)*Math.cos(HA);
   let altRad = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
-  let altRef = applyRefraction(altRad); // Bennett (1982) — apparent altitude
+  let altRef = applyRefraction(altRad); // Saæmundsson (1986) — apparent altitude
   let azRad  = Math.atan2(
     -Math.sin(HA),
     Math.tan(dec)*Math.cos(lat) - Math.sin(lat)*Math.cos(HA)
@@ -1193,7 +1195,7 @@ function getSnapshot(config){
         moon:        'ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+60R',
         delta_t:     'Morrison & Stephenson (2004) + IERS table 500-2150 AD',
         aberration:  'Annual (κ=9.9365e-5, Meeus Ch.23)',
-        refraction:  'Bennett (1982), ISA standard atmosphere',
+        refraction:  'Saemundsson (1986), ISA standard atmosphere',
         above_horizon_criterion: 'geometric (unrefracted)'
       },
       sidereal: {

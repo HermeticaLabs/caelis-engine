@@ -234,7 +234,7 @@ Ascending node Ω (Meeus Ch.47):
 
 ## `applyRefraction(alt_rad)` → `number` (radians)
 
-Bennett (1982) formula. No correction when alt < −1° (returns input unchanged).
+Sæmundsson (1986) formula (R in arcminutes; apparent = geometric + R/60). No correction when alt < −1° (returns input unchanged).
 
 ```
 R = 1.02 / tan((a + 10.3/(a + 5.11)) · deg2rad)   [arcminutes]
@@ -274,7 +274,7 @@ Internal function. Computes all output fields for a single body given equatorial
 **Executes:**
 1. Hour angle: H = LST − RA
 2. Geometric altitude (arcsin formula)
-3. Apparent altitude (Bennett refraction)
+3. Apparent altitude (Sæmundsson refraction)
 4. Azimuth (atan2, N=0 clockwise)
 
 **Returns:**

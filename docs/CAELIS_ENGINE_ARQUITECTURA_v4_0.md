@@ -166,7 +166,7 @@ snapshot {
       lon_ecl_topocentric_deg   — [Moon only] topocentric λ
       lat_ecl_topocentric_deg   — [Moon only] topocentric β
       alt_geometric_deg         — Altitude before refraction
-      alt_apparent_deg          — Altitude after Bennett refraction
+      alt_apparent_deg          — Altitude after Saæmundsson refraction (arcmin converted to degrees)
       az_deg                    — Azimuth (N=0, clockwise)
       above_horizon             — alt_geometric_deg > 0
       dist_au                   — [planets] Distance from Earth

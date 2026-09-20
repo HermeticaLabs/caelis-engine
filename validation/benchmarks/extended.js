@@ -252,7 +252,7 @@ const BENCHMARK_EPOCHS = [
       { field: '__nutation_within_bounds',     expect: true,   tol: null,  label: 'Nutation ΔΨ < 20″, Δε < 10″ (IAU 2000B bounds)', src: '[S] IAU 2000B vs 2000A diff < 1 mas; test verifies values are in expected range' },
       { field: '__dt_within_05s',             expect: true,   tol: null,  label: 'ΔT within ±0.5s of IERS table in [500,2150]',   src: '[I] IERS linear interpolation in table range' },
       { field: '__luna_geo_topo_differ',       expect: true,   tol: null,  label: 'Luna geocentric ≠ topocentric (parallax active)', src: 'Invariant I-6: WGS-84 topocentric correction applied' },
-      { field: '__refraction_applied',         expect: true,   tol: null,  label: 'Apparent alt > geometric alt for visible bodies', src: 'Bennett refraction applied when alt > -1°' },
+      { field: '__refraction_applied',         expect: true,   tol: null,  label: 'Apparent alt > geometric alt for visible bodies', src: 'Saemundsson refraction applied when alt > -1°' },
     ]
   },
 
@@ -359,7 +359,13 @@ function resolve(snap, field) {
     const visible = Object.values(s.bodies || {})
       .filter(b => b && b.alt_geometric_deg > 5);
     if (visible.length === 0) return true; // no visible bodies to test
-    return visible.every(b => b.alt_apparent_deg > b.alt_geometric_deg);
+    // v4.0.8: also bound the magnitude. The v4.0.7 bug (arcmin added as degrees)
+    // still satisfied 'apparent > geometric' while being off by 1 degree or more.
+    return visible.every(b => {
+      const corrArcmin = (b.alt_apparent_deg - b.alt_geometric_deg) * 60;
+      if (!(corrArcmin > 0)) return false;
+      return b.alt_geometric_deg >= 15 ? corrArcmin < 4 : corrArcmin < 10.5;
+    });
   }
 
   // Normal dot-path

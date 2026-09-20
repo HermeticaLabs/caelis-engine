@@ -307,7 +307,7 @@ JSON.stringify()   ✓  _nodes not present in raw output
 | VSOP87B truncated series (outer planets) | < 1′ algorithmic bound | by design |
 | ELP/MPP02-LLR truncated (164+105+60 terms) | < 10″ algorithmic bound | by design |
 | IAU 2000B vs 2000A nutation | < 1 mas — negligible | by design |
-| Bennett (1982) refraction, ISA atmosphere | ±0.1′ above 15°, 1-5′ near horizon | by design |
+| Sæmundsson (1986) refraction, ISA atmosphere | ±0.1′ above 15°, 1-5′ near horizon | by design |
 | ΔT extrapolation outside 500–2150 AD | Parabolic — grows with distance | by design |
 | `phase_ratio` uses topocentric Moon RA | < 0.5° phase angle error | v4.2 |
 | ESM named imports without bundler | Not supported — bundler required | v4.1 |

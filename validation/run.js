@@ -149,6 +149,18 @@ const EPOCHS = [
     ]
   },
   {
+    id:    'refraction',
+    label: 'Atmospheric Refraction (v4.0.8 regression)',
+    jd_tt: 2461193.499437,
+    lat:   -33.45,
+    lon:   -70.66,
+    tests: [
+      { field: '__refraction_39_88', expect: 39.90018, tol: 0.0001, label: 'Refraction 39.88 deg geometric -> apparent (R in arcmin, R/60)', src: 'Saemundsson (1986): R = 1.02 cot(h + 10.3/(h+5.11)) = 1.2109 arcmin' },
+      { field: 'bodies.Luna.alt_apparent_deg', expect: 14.445, tol: 0.002, label: 'Luna alt apparent (14.381 geometric + ~3.8 arcmin)', src: '[C] v4.0.8 regression baseline' },
+      { field: '__refraction_bounded', expect: true, tol: null, label: 'Refraction bounded: <4 arcmin above 15 deg, <=40 arcmin above 0 deg', src: 'Saemundsson (1986)' },
+    ]
+  },
+  {
     id:    'schema',
     label: 'Schema v3.1 Invariants',
     jd_tt: null, // current time
@@ -170,6 +182,31 @@ const EPOCHS = [
 
 // ── Field resolver ────────────────────────────────────────────────────
 function resolve(snap, field) {
+  // -- Refraction regression (v4.0.8) --------------------------------
+  // applyRefraction is a global declared by CaelisEngine.js (vm.runInThisContext)
+  if (field === '__refraction_39_88')
+    return applyRefraction(39.88 * Math.PI / 180) * 180 / Math.PI;
+
+  if (field === '__refraction_bounded') {
+    const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+    const corr = h => (applyRefraction(h * D2R) * R2D - h) * 60;   // arcmin
+    for (let h = 0; h <= 89; h++) {
+      const c = corr(h);
+      if (!(c >= 0 && c <= 40)) return false;
+      if (h >= 15 && !(c < 4)) return false;
+    }
+    // below -1 deg the altitude must be returned unchanged
+    if (Math.abs(applyRefraction(-5 * D2R) * R2D + 5) > 1e-9) return false;
+    for (const [k, b] of Object.entries(snap.bodies || {})) {
+      if (k.startsWith('_') || !b || typeof b.alt_geometric_deg !== 'number') continue;
+      if (b.alt_geometric_deg < -1) continue;
+      const c = (b.alt_apparent_deg - b.alt_geometric_deg) * 60;
+      if (!(c >= 0 && c <= 40)) return false;
+      if (b.alt_geometric_deg >= 15 && !(c < 4)) return false;
+    }
+    return true;
+  }
+
   if (field === '__schema_version')
     return snap.schema_version;
 

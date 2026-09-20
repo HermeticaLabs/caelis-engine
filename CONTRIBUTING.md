@@ -41,7 +41,7 @@ Open an issue before submitting a PR for:
 
 ### R-ALGO: Never modify algorithm or mathematical logic without explicit direction
 
-The algorithms in `CaelisEngine.js` (VSOP87B, ELP/MPP02-LLR, IAU 2000B nutation, IAU 2006 obliquity, Bennett refraction, Morrison-Stephenson ΔT) are treated as **inviolable**. They encode primary sources, not approximations of approximations.
+The algorithms in `CaelisEngine.js` (VSOP87B, ELP/MPP02-LLR, IAU 2000B nutation, IAU 2006 obliquity, Sæmundsson refraction, Morrison-Stephenson ΔT) are treated as **inviolable**. They encode primary sources, not approximations of approximations.
 
 A PR that changes `nutation()`, `meanObliquity()`, `sunPosition()`, `moonPosition()`, or any VSOP87B series must:
 1. Cite the primary source for the change
