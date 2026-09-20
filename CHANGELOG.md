@@ -6,6 +6,105 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.9] — 2026-09
+
+### Fixed — `getSnapshotAt()` was not deterministic
+
+**Output depended on the wall clock**
+`getSnapshotAt(jd_tt, observer)` is documented as deterministic, but `_getSnapshotFromJD`
+read `Date.now()` once and `getSnapshot()` then read it again on every `currentTime()`
+call, so the effective instant was the requested time plus the milliseconds elapsed in
+between. Identical calls returned slightly different snapshots (92% of 3000 identical
+pairs differed): up to ~4e-5 deg in altitude/azimuth of the outer planets, ~1e-6 deg in
+GAST and ~6e-9 deg in ecliptic longitudes. All of this is far below the declared
+precision (1′), but it violated the determinism guarantee. The clock is now frozen at
+the requested instant for the duration of the call; the live path (`getSnapshot()`) is
+unchanged. Closes #4.
+
+The intermittent failure of the interop test "getSnapshotAt(jd, observer) is
+deterministic" (about 3 in 100 runs) had the same cause: 0 failures in 200 runs now.
+
+### Added
+- Two determinism regression tests in `validation/run.js` (ticking and jumping clock).
+
+### Synchronization with 4.0.8
+The 4.0.8 npm package was published before its documentation was finalized, and an npm
+version cannot be republished. 4.0.9 aligns the package with the repository.
+
+**Corrected in the npm package**
+- `CHANGELOG.md`: the 4.0.8 entry was missing from the 4.0.8 tarball.
+- `client/AtacirClient.js`: `CLIENT_VERSION` was still `4.0.7` in the 4.0.8 package.
+- `docs/CAELIS_ENGINE_MATEMATICA_v4_0.md`: section 2.6 names the Sæmundsson (1986) formula
+  (R in arcminutes) instead of Bennett (1982) and cites both papers.
+- `docs/SCIENTIFIC_VALIDATION.md`: integrity hash updated and totals updated to 478.
+- Version banners and headers aligned to 4.0.9. Schema remains v3.1.
+
+**Repository only**
+- `README.es.md` rewritten to match `README.md`.
+- `validation/benchmarks/extended.js`: comment corrected (the refraction bug affected
+  versions before 4.0.8).
+
+### Validation
+- Core suite: 33/33 · Extended benchmarks: 67/67
+- Polar safety: 256/256 · ASC/MC: 104/104 · CJS interop: 18/18 (0 failures in 200 runs)
+- Total: 478/478 assertions
+---
+
+## [4.0.8] — 2026-09
+
+### Fixed — atmospheric refraction unit error (`alt_apparent_deg`)
+
+**`applyRefraction()` added arcminutes to an altitude in degrees**
+The refraction formula `R = 1.02 / tan((a + 10.3/(a + 5.11)) * pi/180)` returns R in
+**arcminutes**, but the engine added it to the altitude in degrees (`a + R` instead of
+`a + R/60`). The error has been present since the v4.0 rewrite and affects every
+published version up to and including 4.0.7.
+
+| Geometric altitude | Correct refraction | Refraction actually added |
+|---|---|---|
+| 0° | 0.483° | 28.98° |
+| 10° | 0.090° | 5.41° |
+| 14.381° | 0.064° | 3.83° |
+| 39.88° | 0.0202° | 1.2109° |
+| 45° | 0.0169° | 1.01° |
+
+Affected: `alt_apparent_deg` of every body with geometric altitude above -1°.
+Not affected: `alt_geometric_deg`, RA/Dec, ecliptic longitude/latitude, azimuth and
+`above_horizon` (geometric criterion). Fixed in `core/CaelisEngine.js`,
+`caelis-minimal.html`, `index.html`, `dist/caelis-minimal.html` and
+`demos/skyview/index.html`. The previous test only asserted
+`alt_apparent > alt_geometric`, which the buggy output also satisfied.
+
+**Refraction correctly attributed to Sæmundsson (1986)**
+The formula is Sæmundsson's (geometric → apparent altitude), the inverse counterpart of
+Bennett (1982). Code comments, docs and UI labels updated. The string value of
+`meta.frame.refraction` changed accordingly; the structure of schema v3.1 is unchanged.
+
+**README sidereal-time precision claim corrected**
+Declared GAST precision changed from "< 0.1 arcsec" to "~15 arcsec RMS (JD_TT
+simplification)". Documentation only; no code change.
+
+### Added
+- Refraction regression tests in `validation/run.js` (3 assertions), including a
+  fixed-epoch check (Moon 2026-Jun-01: 14.381° geometric → 14.445° apparent).
+- `validation/benchmarks/extended.js`: the refraction check now bounds the magnitude
+  of the correction, not only its sign.
+- Scientific validation suite (repository only, except the doc):
+  `docs/SCIENTIFIC_VALIDATION.md`, `validation/scientific/polar-safety.js`,
+  `validation/independent/asc_mc/`, `validation/interop/test-cjs.js`.
+
+### Fixed — validation tooling
+- `polar-safety.js`: `houseSystem` is now set before each snapshot; previously the four
+  house systems ran identical tests.
+- `run-asc-mc.js`: header corrected to 104 cases (not 108); tolerances aligned with
+  actual values.
+
+### Validation
+- Core suite: 31/31 passing
+- Extended benchmarks: 67/67 passing
+- Total: 98/98 assertions · 0 failures
+---
+
 ## [4.0.7] — 2026-09
 
 ### Fixed — UI consistency and test naming

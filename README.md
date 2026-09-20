@@ -1,9 +1,11 @@
 # Caelis Engine
 
-> **Engine v4.0.8 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.9 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 >
 > **v4.0.8** fixes an arcminute→degree unit error in atmospheric refraction that inflated `alt_apparent_deg`. Versions ≤ 4.0.7 are affected — upgrade. See [`CHANGELOG.md`](CHANGELOG.md).
+>
+> **v4.0.9** makes `getSnapshotAt()` fully independent of the wall clock (identical calls used to differ by sub-arcsecond amounts) and syncs the npm package with the repository.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -145,7 +147,7 @@ Or download the single-file reference implementation:
 
 > **API modes:**
 > - `setObserver()` + `getSnapshot()` — stateful convenience API. Observer configured once, called repeatedly. Not pure in the functional sense — depends on global state.
-> - `getSnapshotAt(jd_tt, observer)` — explicit deterministic API. No global state. Same arguments always produce the same output.
+> - `getSnapshotAt(jd_tt, observer)` — explicit deterministic API. Independent of the configured observer and of the wall clock. Same arguments always produce the same output.
 
 ## Quick start
 
@@ -289,7 +291,7 @@ Caelis Engine runs where neither can: directly in the browser, in edge functions
 
 ```bash
 node validation/run.js
-# 31 assertions · 6 groups · 0 failures
+# 33 assertions · 7 groups · 0 failures
 ```
 
 | Epoch | Source | Assertions |
@@ -300,6 +302,7 @@ node validation/run.js
 | 2026-Jun-01 regression baseline | Caelis v4.0 canonical output | 8 |
 | Schema v3.1 invariants | Architecture contract | 9 |
 | Atmospheric refraction regression (v4.0.8) | Sæmundsson formula, arcmin→deg | 3 |
+| getSnapshotAt wall-clock independence (v4.0.9) | Invariant: same jd_tt + observer = same snapshot | 2 |
 
 ---
 
@@ -366,7 +369,4 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.8 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
-
-
-
+*Caelis Engine v4.0.9 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

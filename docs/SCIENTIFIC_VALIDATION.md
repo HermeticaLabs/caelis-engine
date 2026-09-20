@@ -1,6 +1,6 @@
 # Caelis Engine — Scientific Validation Report
 
-**Engine:** v4.0.7
+**Engine:** v4.0.9
 **Schema:** v3.1
 **Date:** 2026-09
 **Author:** Cristian Valeria Bravo · Hermetica Labs
@@ -30,12 +30,12 @@ while tight enough to catch implementation errors.
 
 | Level | What is tested | Cases | Result |
 |---|---|---|---|
-| L1 — Core mathematical pipeline | VSOP87B, ELP/MPP02, IAU 2000B, ΔT | 95 | **95/95** |
+| L1 — Core mathematical pipeline | VSOP87B, ELP/MPP02, IAU 2000B, ΔT | 100 | **100/100** |
 | L2-A — Differential clean-room verification | GAST, LST, ASC, MC cross-implementation | 104 | **104/104** |
 | L2-B — Strict SOFA/ERFA divergence | Quantified JD_TT simplification effect | 6 | documented |
 | L3 — Polar Safety matrix | Engine behavior at extreme latitudes | 256 | **256/256** |
 | L4 — Node.js CJS runtime integration | API surface and functional behavior | 18 | **18/18** |
-| **Total (pass/fail)** | | **473** | **473/473** |
+| **Total (pass/fail)** | | **478** | **478/478** |
 
 All tests are reproducible. All reference sources are cited. No network access,
 no external dependencies, no ephemeris files required.
@@ -100,7 +100,7 @@ bit-level identity may vary due to runtime and floating-point implementation det
 ### Performance
 
 ```
-473 total assertions: ~550ms wall time
+478 total assertions: ~550ms wall time
 Single snapshot (getSnapshotAt): ~2.8ms average
 Throughput: ~357 snapshots/second
 ```
@@ -325,13 +325,13 @@ node validation/scientific/polar-safety.js
 node validation/interop/test-cjs.js
 ```
 
-Expected output: 473/473 passed, 0 failed.
+Expected output: 478/478 passed, 0 failed.
 
 ---
 
 ## Integrity
 
-SHA-256 of `core/CaelisEngine.js` v4.0.7 (the engine validated by this report):
+SHA-256 of `core/CaelisEngine.js` v4.0.9 (the engine validated by this report):
 
 ```
 6279f5f336a382e09940345981348749bfdc65eb5c2ffde1c9acc66b403d3884
@@ -349,4 +349,4 @@ Get-FileHash core\CaelisEngine.js -Algorithm SHA256
 
 ---
 
-*Caelis Engine v4.0.7 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.9 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

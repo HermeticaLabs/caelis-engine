@@ -293,7 +293,7 @@ A = (A · 180/π + 360) mod 360   [degrees]
 
 ---
 
-## 2.6 Atmospheric Refraction — Bennett (1982)
+## 2.6 Atmospheric Refraction — Sæmundsson (1986)
 
 Applied only when a_geometric > −1°. Input and output in degrees.
 
@@ -301,6 +301,8 @@ Applied only when a_geometric > −1°. Input and output in degrees.
 R = 1.02 / tan((a + 10.3/(a + 5.11)) · π/180)   [arcminutes]
 a_apparent = a + R/60   [degrees]
 ```
+
+Formula: Sæmundsson (1986), which gives the apparent altitude from the geometric (true) altitude. It is the inverse counterpart of Bennett (1982) and agrees with it within ~0.1′. R is expressed in arcminutes, hence the R/60 conversion to degrees.
 
 Standard ISA atmosphere (1013.25 hPa, 10°C). No pressure/temperature/elevation correction.  
 Error near horizon: 1–5′. Error above 15°: ±0.1′.
@@ -558,7 +560,8 @@ deterministic, auditable, and self-contained.
 | Mathews, Herring & Buffett (2002) | IAU 2000B nutation |
 | Morrison & Stephenson (2004) | ΔT historical model |
 | IERS Conventions (2003) §5.4 | ΔT table 500–2150 AD |
-| Bennett (1982) *Journal of Navigation* | Atmospheric refraction |
+| Sæmundsson (1986) *Sky & Telescope* 72, 70 | Atmospheric refraction (geometric → apparent altitude) |
+| Bennett (1982) *Journal of Navigation* | Atmospheric refraction (inverse relation, cross-check) |
 | WGS-84 | Geocentric radius for lunar parallax |
 
 ---

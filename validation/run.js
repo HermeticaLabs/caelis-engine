@@ -161,6 +161,17 @@ const EPOCHS = [
     ]
   },
   {
+    id:    'determinism',
+    label: 'getSnapshotAt wall-clock independence (v4.0.9 regression)',
+    jd_tt: 2451545.0,
+    lat:   51.5,
+    lon:   -0.1,
+    tests: [
+      { field: '__snapshotAt_clock_ticking', expect: true, tol: null, label: 'getSnapshotAt: identical output while the wall clock ticks 1 ms per read', src: 'Invariant: same jd_tt + same observer = same snapshot' },
+      { field: '__snapshotAt_clock_jump',    expect: true, tol: null, label: 'getSnapshotAt: identical output when the wall clock jumps 1 day between calls', src: 'Invariant: same jd_tt + same observer = same snapshot' },
+    ]
+  },
+  {
     id:    'schema',
     label: 'Schema v3.1 Invariants',
     jd_tt: null, // current time
@@ -182,6 +193,19 @@ const EPOCHS = [
 
 // ── Field resolver ────────────────────────────────────────────────────
 function resolve(snap, field) {
+  // -- Determinism regression (v4.0.9) --------------------------------
+  if (field === '__snapshotAt_clock_ticking' || field === '__snapshotAt_clock_jump') {
+    const step = field === '__snapshotAt_clock_ticking' ? 1 : 86400000;
+    const realNow = Date.now; let t = 1.78e12;
+    try {
+      Date.now = () => (t += step);
+      const obs = { lat_deg: 51.5, lon_deg: -0.1 };
+      const a = JSON.stringify(getSnapshotAt(2451545.0, obs));
+      const b = JSON.stringify(getSnapshotAt(2451545.0, obs));
+      return a === b;
+    } finally { Date.now = realNow; }
+  }
+
   // -- Refraction regression (v4.0.8) --------------------------------
   // applyRefraction is a global declared by CaelisEngine.js (vm.runInThisContext)
   if (field === '__refraction_39_88')

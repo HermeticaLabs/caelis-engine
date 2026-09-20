@@ -53,7 +53,9 @@ const C_LIGHT  = 173.1446326;
 let lat        = -33.45 * deg2rad;
 let lon        = -70.66 * deg2rad;
 let timeOffset = 0;
-function currentTime(){ return Date.now()/1000 + timeOffset; }
+let _frozenNow = null;   // Unix seconds; null = live wall clock. Set only inside getSnapshotAt().
+function _nowSec(){ return _frozenNow !== null ? _frozenNow : Date.now()/1000; }
+function currentTime(){ return _nowSec() + timeOffset; }
 function _invalidateAstroCache(){
   // Declared here for UI access; AstroCore also has internal cache vars
   if(typeof _nutCache  !== "undefined") { _nutCache  = null; _nutCacheT  = null; }
@@ -825,7 +827,7 @@ const _SEQ_DATA = [
 
 // Inyectar un JDE en el engine y obtener la longitud solar
 function _sunLonAtJDE(jde){
-  const nowJD  = Date.now()/86400000 + 2440587.5;
+  const nowJD  = _nowSec()/86400 + 2440587.5;
   const saved  = timeOffset;
   let lon;
   try {
@@ -1373,11 +1375,11 @@ function _getSnapshotFromJD(jd_tt_explicit){
   // Las funciones de posición usan T interno de nutation(), obliquity(), etc.
   // Necesitamos que el engine use este T — lo hacemos via timeOffset temporal
   // pero calculado de forma atómica (una sola lectura de Date.now())
-  const dateNowOnce = Date.now() / 1000;                 // una sola lectura
-  const jdNow = dateNowOnce / 86400 + 2440587.5;
-  const savedOffset = timeOffset;
-  timeOffset = (jd_utc - (dateNowOnce / 86400 + 2440587.5)) * 86400;
-  // Ahora currentTime() = dateNowOnce + timeOffset = jd_utc_unix exacto
+  const savedOffset = timeOffset, savedFrozen = _frozenNow;
+  // Freeze the clock at the requested instant: every currentTime() call inside
+  // getSnapshot() returns exactly this Unix time, independent of the wall clock.
+  _frozenNow = (jd_utc - 2440587.5) * 86400;
+  timeOffset = 0;
 
   let snap;
   try {
@@ -1385,7 +1387,7 @@ function _getSnapshotFromJD(jd_tt_explicit){
     // Nodos lunares ya calculados por getSnapshot() con timeOffset correcto.
     // No se recalculan aquí — evita doble cómputo y garantiza consistencia.
   } finally {
-    timeOffset = savedOffset; // restored after nodes computed
+    timeOffset = savedOffset; _frozenNow = savedFrozen; // restored after snapshot
   }
 
   // Asegurar que meta.jd_tt refleja el valor exacto solicitado
