@@ -47,7 +47,7 @@
 const ATACIR_API_VERSION = 'v1';
 const ATACIR_API_BASE    = 'https://api.hermeticalabs.com';
 const SCHEMA_VERSION     = '3.1';
-const CLIENT_VERSION     = '4.0.7'; // keep in sync with package.json
+const CLIENT_VERSION     = '4.0.9'; // keep in sync with package.json
 
 // ── Available plugins in the A.T.A.C.I.R. Cloud API ──────────────────────────
 const AVAILABLE_PLUGINS = [

@@ -1,9 +1,11 @@
 # Caelis Engine
 
-> **Engine v4.0.8 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.9 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 >
 > **v4.0.8** fixes an arcminute→degree unit error in atmospheric refraction that inflated `alt_apparent_deg`. Versions ≤ 4.0.7 are affected — upgrade. See [`CHANGELOG.md`](CHANGELOG.md).
+>
+> **v4.0.9** synchronizes the npm package with the repository (CHANGELOG, client version, documentation) - no changes to the astronomical calculations.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -301,6 +303,7 @@ node validation/run.js
 | Schema v3.1 invariants | Architecture contract | 9 |
 | Atmospheric refraction regression (v4.0.8) | Sæmundsson formula, arcmin→deg | 3 |
 
+
 ---
 
 ## Precision and limitations
@@ -366,7 +369,4 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.8 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
-
-
-
+*Caelis Engine v4.0.9 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
