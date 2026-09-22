@@ -359,7 +359,7 @@ function resolve(snap, field) {
     const visible = Object.values(s.bodies || {})
       .filter(b => b && b.alt_geometric_deg > 5);
     if (visible.length === 0) return true; // no visible bodies to test
-    // v4.0.8: also bound the magnitude. The v4.0.7 bug (arcmin added as degrees)
+    // v4.0.8: also bound the magnitude. The pre-4.0.8 bug (arcmin added as degrees)
     // still satisfied 'apparent > geometric' while being off by 1 degree or more.
     return visible.every(b => {
       const corrArcmin = (b.alt_apparent_deg - b.alt_geometric_deg) * 60;
