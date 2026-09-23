@@ -78,7 +78,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 </head>
 <body>
 <div id="topbar">
-  <div class="tl"><div class="sig">⊕</div><div><div class="ttl">Caelis Engine</div><div class="tsub">v3.0 · Reference Implementation · Hermetica Labs</div></div></div>
+  <div class="tl"><div class="sig">⊕</div><div><div class="ttl">Caelis Engine</div><div class="tsub">Reference Implementation · Hermetica Labs</div></div></div>
   <div class="tr"><div class="clk" id="clkEl">—</div><div class="dot"></div></div>
 </div>
 <div id="shell">
@@ -190,7 +190,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 
 <div class="pnl" id="pnl-json">
-  <div class="st">JSON Export v3.0.1</div>
+  <div class="st">JSON Export v3.1</div>
   <div class="er"><button class="btn bp" onclick="doExport()">⬇ Download</button><button class="btn" onclick="doCopy()">⎘ Copy</button></div>
   <div class="jbox" id="jView">Run snapshot to generate output.</div>
 </div>
@@ -437,7 +437,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
   </div>
 </div>
 
-<div id="sb"><span id="sbL">Ready</span><span>Caelis Engine v3.0 · Hermetica Labs 2026</span></div>
+<div id="sb"><span id="sbL">Ready</span><span>Caelis Engine · Hermetica Labs 2026</span></div>
 </div>
 </div>
 <script>
@@ -4184,7 +4184,7 @@ function _cartaMetadata(snap, label){
     border-radius:5px;border:1px solid rgba(255,255,255,0.06);font-size:8px;
     color:rgba(255,255,255,0.28);line-height:1.7;">
     <div style="color:rgba(180,160,255,0.55);font-weight:bold;margin-bottom:3px;font-size:9px;">
-      Caelis Engine v3.0 · Hermetica Labs
+      Caelis Engine · Hermetica Labs
     </div>
     <div>${label||'Carta'} · JD ${snap.meta.jd.toFixed(6)}</div>
     <div>UTC: ${snap.meta.utc}</div>
