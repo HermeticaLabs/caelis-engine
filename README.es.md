@@ -1,11 +1,11 @@
 # Caelis Engine
 
-> **Motor v4.0.9 · Schema v3.1** — son números de versión independientes.
+> **Motor v4.0.10 · Schema v3.1** — son números de versión independientes.
 > El Schema v3.1 define el contrato de salida y es estable entre parches del motor.
 >
 > **v4.0.8** corrige un error de unidades (minutos de arco → grados) en la refracción atmosférica que inflaba `alt_apparent_deg`. Las versiones ≤ 4.0.7 están afectadas — actualiza. Ver [`CHANGELOG.md`](CHANGELOG.md).
 >
-> **v4.0.9** sincroniza el paquete de npm con el repositorio (CHANGELOG, version del cliente, documentacion) - sin cambios en los calculos astronomicos.
+> **v4.0.10** hace que `getSnapshot()` (ademas de `getSnapshotAt()`) sea totalmente independiente del reloj del sistema dentro de una misma llamada, para que todo campo derivado del tiempo en una instantanea se refiera exactamente al mismo instante. Tambien corrige el numero de terminos declarado para la distancia de la Luna (29R, no 60R) y un ejemplo de importacion que no funcionaba. Sin cambios en ningun otro calculo astronomico.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -25,7 +25,7 @@ Caelis Engine es un motor de cálculo determinista para datos celestes. Reemplaz
     "jd_tt": 2461193.499437,
     "frame": {
       "planets":  "VSOP87B (Bretagnon & Francou 1987)",
-      "moon":     "ELP/MPP02-LLR · 164L+105B+60R terms",
+      "moon":     "ELP/MPP02-LLR · 164L+105B+29R terms",
       "nutation": "IAU 2000B · 77 luni-solar terms"
     }
   },
@@ -119,7 +119,7 @@ Un plugin desactivado no existe en el JSON.
 | Cálculo | Algoritmo | Precisión declarada |
 |---|---|---|
 | Planetas Mercurio–Neptuno | VSOP87B (Bretagnon & Francou 1987) | < 1′ |
-| Posición de la Luna | ELP/MPP02-LLR · 164L+105B+60R términos | < 10″ |
+| Posición de la Luna | ELP/MPP02-LLR · 164L+105B+29R términos | < 10″ |
 | Nutación | IAU 2000B · 77 términos lunisolares | < 1 mas |
 | Oblicuidad | IAU 2006 (Capitaine et al.) | < 0.001° |
 | Corrección por tiempo luz | Iterativa · C = 173.14 UA/día | — |
@@ -194,7 +194,7 @@ const meeus = getSnapshotAt(2446895.5, { lat_deg: 48.8, lon_deg: 2.3 });
 ### Opción D — A.T.A.C.I.R. Cloud
 
 ```javascript
-import AtacirClient from 'caelis-engine/client';
+import { AtacirClient } from 'caelis-engine/client';
 
 const client   = new AtacirClient({ apiKey: 'your-key' });
 const snapshot = getSnapshot();
@@ -227,7 +227,7 @@ El schema es el contrato. Estable, versionado y con garantía de no romperse ent
       "nutation":                "IAU 2000B (77 luni-solar terms, Mathews et al. 2002)",
       "obliquity":               "IAU 2006 (Capitaine et al. 2006)",
       "planets":                 "VSOP87B (Bretagnon & Francou 1987) + Meeus App.II",
-      "moon":                    "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+60R",
+      "moon":                    "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+29R",
       "above_horizon_criterion": "geometric (unrefracted)"
     },
     "sidereal":  { "gast_deg": 250.278, "lst_deg": 179.618 },
@@ -369,4 +369,4 @@ Cada número es rastreable. Cada algoritmo está declarado. Cada salida es repro
 
 ---
 
-*Caelis Engine v4.0.9 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.10 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

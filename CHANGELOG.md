@@ -6,6 +6,138 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.10] — 2026-09
+
+### Fixed — `getSnapshot()` internal time consistency (issue #4)
+
+**`getSnapshot()` could read the wall clock more than once per call**
+Following up on the `getSnapshotAt()` determinism fix, `getSnapshot()` ("give me the sky
+now") independently read `Date.now()` up to four times within a single call (for
+`jd_tt`, `jd_utc`, the `now` object, and `meta.timestamp`). In the vast majority of
+calls this made no observable difference, but under clock pressure it could produce a
+snapshot whose time-derived fields did not agree with each other to the millisecond.
+
+Fixed by reading the wall clock exactly once at the start of each `getSnapshot()` call
+(a value local to that call, not shared or global state) and deriving every
+time-related field from that single reading. Verified with 6,000 calls under three
+clock conditions (frozen, ticking 1ms/read, jumping 5s/read): 0 inconsistencies in all
+three. No change to any astronomical calculation; core/CaelisEngine.js confirmed
+unchanged outside this mechanism. `_sunLonAtJDE()` (used for equinox/solstice search)
+was reviewed and confirmed independent of this mechanism; documented explicitly in
+code comments. Applied identically to `core/CaelisEngine.js`, `caelis-minimal.html`,
+`dist/caelis-minimal.html` and `index.html`. Closes #4.
+
+### Fixed — inaccurate public declarations
+
+**Moon distance series declared as 60 terms, actually 29**
+`meta.frame.moon` (part of every snapshot the engine returns) and both READMEs stated
+"164L+105B+60R terms" for the ELP/MPP02-LLR Moon model. The distance series
+(`_elp_rT`) has always had 29 terms — the code's own comments already said so. Corrected
+to "29R" in the engine output, both READMEs, and code comments (13 occurrences across
+6 files).
+
+**README client-library example used a broken import**
+The A.T.A.C.I.R. Cloud example (`import AtacirClient from 'caelis-engine/client'`)
+used a default import, but `client/AtacirClient.js` only exports named bindings
+(`AtacirClient`, `AVAILABLE_PLUGINS`, `ATACIR_API_VERSION`). Corrected to
+`import { AtacirClient } from 'caelis-engine/client'` in both READMEs.
+
+**`package.json` funding type was not a valid npm value**
+`funding.type` was `"commercial"`, which npm does not recognize. Changed to `"custom"`.
+
+### Added
+- Two `getSnapshot()` determinism regression tests in `validation/run.js` (verifying
+  `meta.timestamp`, `meta.jd_utc` and `meta.utc` agree with each other even when the
+  wall clock jumps between internal reads).
+
+### Documentation and package synchronization
+- Version banners and headers aligned to 4.0.10 across the repository and npm package.
+- `docs/SCIENTIFIC_VALIDATION.md`: engine version and integrity hash updated to match
+  the changed `core/CaelisEngine.js`.
+
+### Validation
+- Core suite: 33/33 · Extended benchmarks: 67/67
+- Total: 100/100 assertions
+
+---
+## [4.0.10] — 2026-09
+
+### Fixed — wall-clock determinism in both `getSnapshot()` and `getSnapshotAt()` (issue #4)
+
+**The root cause: `currentTime()` always read the real wall clock**
+Both `getSnapshot()` ("give me the sky now") and `getSnapshotAt()` ("give me the sky at
+this instant") ultimately derive their time-related fields through `currentTime()`, the
+engine's single internal clock source. That function unconditionally read `Date.now()`,
+with no way to fix it to a single instant for the duration of a call.
+
+In `getSnapshot()`, this meant a single call could read the clock up to four times (for
+`jd_tt`, `jd_utc`, `now`, and `meta.timestamp`), each reading a slightly different
+instant. In `getSnapshotAt()`, the previous mitigation (a one-time clock reading
+combined with a manual `timeOffset` adjustment) reduced the problem but did not fully
+close it, because `jd_tt` is computed through `julianDate()` → `julianDateUTC()` →
+`currentTime()`, a path the previous mitigation did not cover. Measured before this fix:
+92% of 3,000 identical `getSnapshotAt()` calls produced different output under clock
+pressure.
+
+**The fix: a single shared "frozen clock" switch, respected at the source**
+`currentTime()` now checks a shared, module-level flag: if a specific instant has been
+frozen for the current call, it returns that instant; otherwise it behaves exactly as
+before. `getSnapshot()` freezes the clock to "now" at entry and unfreezes it in a
+`finally` block on exit — but only if it wasn't already frozen by a caller (so
+`getSnapshotAt()`, which calls `getSnapshot()` internally, is never overridden by the
+nested call). `getSnapshotAt()` freezes the clock to the exact requested instant instead
+of manipulating `timeOffset` directly.
+
+Because every time-derived field in both functions now flows through this single,
+frozen source — including `jd_tt`, closing the gap the earlier attempt missed — no
+future addition to the engine can reintroduce this class of bug by accident.
+
+**Verified with 12,000+ measurements, 0 failures**
+Both functions were tested under a frozen clock, a clock ticking 1ms per internal read,
+and a clock jumping 5 real seconds per internal read: 0/2000 inconsistencies in each of
+6 scenarios for the core engine, and 0/1500 for `getSnapshotAt()`/`getSnapshot()`
+re-verified directly inside the HTML monolith. `_sunLonAtJDE()` (used for
+equinox/solstice search) was confirmed independent of this mechanism and documented as
+such in code comments. No astronomical calculation changed;
+`validation/benchmarks/extended.js` (67/67) confirms this.
+
+Applied identically to `core/CaelisEngine.js`, `caelis-minimal.html`,
+`dist/caelis-minimal.html` and `index.html`. **Closes #4.**
+
+### Fixed — inaccurate public declarations
+
+**Moon distance series declared as 60 terms, actually 29**
+`meta.frame.moon` (part of every snapshot the engine returns) and both READMEs stated
+"164L+105B+60R terms" for the ELP/MPP02-LLR Moon model. The distance series
+(`_elp_rT`) has always had 29 terms — the code's own comments already said so.
+Corrected to "29R" in the engine output, both READMEs, and code comments (13
+occurrences across 6 files).
+
+**README client-library example used a broken import**
+The A.T.A.C.I.R. Cloud example (`import AtacirClient from 'caelis-engine/client'`)
+used a default import, but `client/AtacirClient.js` only exports named bindings
+(`AtacirClient`, `AVAILABLE_PLUGINS`, `ATACIR_API_VERSION`). Corrected to
+`import { AtacirClient } from 'caelis-engine/client'` in both READMEs.
+
+**`package.json` funding type was not a valid npm value**
+`funding.type` was `"commercial"`, which npm does not recognize. Changed to `"custom"`.
+
+### Added
+- Three determinism regression tests in `validation/run.js`: `getSnapshot()` internal
+  time consistency, `getSnapshotAt()` wall-clock independence (ticking and jumping
+  clock), and `getSnapshot()` `jd_tt`/`jd_utc` cross-consistency.
+
+### Documentation and package synchronization
+- Version banners and headers aligned to 4.0.10 across the repository and npm package.
+- `docs/SCIENTIFIC_VALIDATION.md`: engine version and integrity hash updated to match
+  the changed `core/CaelisEngine.js`.
+
+### Validation
+- Core suite: 36/36 · Extended benchmarks: 67/67
+- Polar safety: 256/256 · ASC/MC: 104/104 · CJS interop: 18/18
+- Total: 481/481 assertions
+---
+
 ## [4.0.9] — 2026-09
 
 ### Documentation and package synchronization

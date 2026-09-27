@@ -1,6 +1,6 @@
 # Caelis Engine — Scientific Validation Report
 
-**Engine:** v4.0.9
+**Engine:** v4.0.10
 **Schema:** v3.1
 **Date:** 2026-09
 **Author:** Cristian Valeria Bravo · Hermetica Labs
@@ -30,12 +30,12 @@ while tight enough to catch implementation errors.
 
 | Level | What is tested | Cases | Result |
 |---|---|---|---|
-| L1 — Core mathematical pipeline | VSOP87B, ELP/MPP02, IAU 2000B, ΔT | 100 | **100/100** |
+| L1 — Core mathematical pipeline | VSOP87B, ELP/MPP02, IAU 2000B, ΔT | 103 | **103/103** |
 | L2-A — Differential clean-room verification | GAST, LST, ASC, MC cross-implementation | 104 | **104/104** |
 | L2-B — Strict SOFA/ERFA divergence | Quantified JD_TT simplification effect | 6 | documented |
 | L3 — Polar Safety matrix | Engine behavior at extreme latitudes | 256 | **256/256** |
 | L4 — Node.js CJS runtime integration | API surface and functional behavior | 18 | **18/18** |
-| **Total (pass/fail)** | | **476** | **476/476** |
+| **Total (pass/fail)** | | **481** | **481/481** |
 
 All tests are reproducible. All reference sources are cited. No network access,
 no external dependencies, no ephemeris files required.
@@ -100,7 +100,7 @@ bit-level identity may vary due to runtime and floating-point implementation det
 ### Performance
 
 ```
-476 total assertions: ~550ms wall time
+481 total assertions: ~550ms wall time
 Single snapshot (getSnapshotAt): ~2.8ms average
 Throughput: ~357 snapshots/second
 ```
@@ -325,16 +325,16 @@ node validation/scientific/polar-safety.js
 node validation/interop/test-cjs.js
 ```
 
-Expected output: 476/476 passed, 0 failed.
+Expected output: 481/481 passed, 0 failed.
 
 ---
 
 ## Integrity
 
-SHA-256 of `core/CaelisEngine.js` v4.0.9 (the engine validated by this report):
+SHA-256 of `core/CaelisEngine.js` v4.0.10 (the engine validated by this report):
 
 ```
-57ae4389327ba00001dd252df8788d38368452f817f8ac5b1b4b4d978f79a76c
+c6893f8af92da596835aec1d36ca58b275256faa692067823f1518c501d56e55
 ```
 
 Verify on your local copy:
@@ -349,4 +349,4 @@ Get-FileHash core\CaelisEngine.js -Algorithm SHA256
 
 ---
 
-*Caelis Engine v4.0.9 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.10 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

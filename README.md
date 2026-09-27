@@ -1,11 +1,11 @@
 # Caelis Engine
 
-> **Engine v4.0.9 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.10 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 >
 > **v4.0.8** fixes an arcminute→degree unit error in atmospheric refraction that inflated `alt_apparent_deg`. Versions ≤ 4.0.7 are affected — upgrade. See [`CHANGELOG.md`](CHANGELOG.md).
 >
-> **v4.0.9** synchronizes the npm package with the repository (CHANGELOG, client version, documentation) - no changes to the astronomical calculations.
+> **v4.0.10** makes `getSnapshot()` (in addition to `getSnapshotAt()`) fully independent of the wall clock within a single call, so every time-derived field in one snapshot refers to the exact same instant. Also corrects the declared Moon distance term count (29R, not 60R) and a broken import example. No changes to any other astronomical calculation.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -25,7 +25,7 @@ Caelis Engine is a deterministic computation engine for celestial data. It repla
     "jd_tt": 2461193.499437,
     "frame": {
       "planets":  "VSOP87B (Bretagnon & Francou 1987)",
-      "moon":     "ELP/MPP02-LLR · 164L+105B+60R terms",
+      "moon":     "ELP/MPP02-LLR · 164L+105B+29R terms",
       "nutation": "IAU 2000B · 77 luni-solar terms"
     }
   },
@@ -119,7 +119,7 @@ A disabled plugin does not exist in the JSON.
 | Computation | Algorithm | Declared precision |
 |---|---|---|
 | Planets Mercury–Neptune | VSOP87B (Bretagnon & Francou 1987) | < 1′ |
-| Moon position | ELP/MPP02-LLR · 164L+105B+60R terms | < 10″ |
+| Moon position | ELP/MPP02-LLR · 164L+105B+29R terms | < 10″ |
 | Nutation | IAU 2000B · 77 luni-solar terms | < 1 mas |
 | Obliquity | IAU 2006 (Capitaine et al.) | < 0.001° |
 | Light-time correction | Iterative · C = 173.14 AU/day | — |
@@ -194,7 +194,7 @@ const meeus = getSnapshotAt(2446895.5, { lat_deg: 48.8, lon_deg: 2.3 });
 ### Option D — A.T.A.C.I.R. Cloud
 
 ```javascript
-import AtacirClient from 'caelis-engine/client';
+import { AtacirClient } from 'caelis-engine/client';
 
 const client   = new AtacirClient({ apiKey: 'your-key' });
 const snapshot = getSnapshot();
@@ -227,7 +227,7 @@ The schema is the contract. Stable, versioned, and guaranteed not to break betwe
       "nutation":                "IAU 2000B (77 luni-solar terms, Mathews et al. 2002)",
       "obliquity":               "IAU 2006 (Capitaine et al. 2006)",
       "planets":                 "VSOP87B (Bretagnon & Francou 1987) + Meeus App.II",
-      "moon":                    "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+60R",
+      "moon":                    "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+29R",
       "above_horizon_criterion": "geometric (unrefracted)"
     },
     "sidereal":  { "gast_deg": 250.278, "lst_deg": 179.618 },
@@ -369,4 +369,4 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.9 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.10 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

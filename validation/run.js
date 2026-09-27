@@ -161,6 +161,38 @@ const EPOCHS = [
     ]
   },
   {
+    id:    'getsnapshot_consistency',
+    label: 'getSnapshot() internal time consistency (v4.0.10 regression)',
+    jd_tt: null,
+    lat:   -33.45,
+    lon:   -70.66,
+    tests: [
+      { field: '__getSnapshot_timestamp_matches_jdutc', expect: true, tol: null, label: 'timestamp and jd_utc agree even if the wall clock jumps between internal reads', src: 'Invariant: a single getSnapshot() call must represent one instant' },
+      { field: '__getSnapshot_utc_matches_timestamp',   expect: true, tol: null, label: 'utc (ISO string) and timestamp agree even if the wall clock jumps between internal reads', src: 'Invariant: a single getSnapshot() call must represent one instant' },
+    ]
+  },
+  {
+    id:    'getsnapshotat_determinism',
+    label: 'getSnapshotAt() wall-clock independence (v4.0.10 regression)',
+    jd_tt: 2451545.0,
+    lat:   51.5,
+    lon:   -0.1,
+    tests: [
+      { field: '__snapshotAt_clock_ticking', expect: true, tol: null, label: 'getSnapshotAt: identical output while the wall clock ticks 1ms per read', src: 'Invariant: same jd_tt + same observer = same snapshot' },
+      { field: '__snapshotAt_clock_jump',    expect: true, tol: null, label: 'getSnapshotAt: identical output when the wall clock jumps 1 day between calls', src: 'Invariant: same jd_tt + same observer = same snapshot' },
+    ]
+  },
+  {
+    id:    'getsnapshot_jdtt_consistency',
+    label: 'getSnapshot() jd_tt consistency (v4.0.10 regression)',
+    jd_tt: null,
+    lat:   -33.45,
+    lon:   -70.66,
+    tests: [
+      { field: '__getSnapshot_jdtt_matches_jdutc', expect: true, tol: null, label: 'jd_tt and jd_utc derive from the same instant even if the wall clock jumps between internal reads', src: 'Invariant: a single getSnapshot() call must represent one instant' },
+    ]
+  },
+  {
     id:    'schema',
     label: 'Schema v3.1 Invariants',
     jd_tt: null, // current time
@@ -182,6 +214,48 @@ const EPOCHS = [
 
 // ── Field resolver ────────────────────────────────────────────────────
 function resolve(snap, field) {
+  if (field === '__getSnapshot_jdtt_matches_jdutc') {
+    const realNow = Date.now; let t = 1.78e12;
+    try {
+      Date.now = () => (t += 5000);
+      setObserver(-33.45, -70.66);
+      const s = getSnapshot();
+      const dT = deltaT(s.meta.jd_tt);
+      const derivedJdUtc = s.meta.jd_tt - dT/86400;
+      return Math.abs(derivedJdUtc - s.meta.jd_utc) < 1e-9;
+    } finally { Date.now = realNow; }
+  }
+
+  // -- getSnapshotAt determinism regression (v4.0.10) --------------------
+  if (field === '__snapshotAt_clock_ticking' || field === '__snapshotAt_clock_jump') {
+    const step = field === '__snapshotAt_clock_ticking' ? 1 : 86400000;
+    const realNow = Date.now; let t = 1.78e12;
+    try {
+      Date.now = () => (t += step);
+      const obs = { lat_deg: 51.5, lon_deg: -0.1 };
+      const a = JSON.stringify(getSnapshotAt(2451545.0, obs));
+      const b = JSON.stringify(getSnapshotAt(2451545.0, obs));
+      return a === b;
+    } finally { Date.now = realNow; }
+  }
+
+  // -- getSnapshot() internal consistency regression (v4.0.10) ------------
+  if (field === '__getSnapshot_timestamp_matches_jdutc' || field === '__getSnapshot_utc_matches_timestamp') {
+    const realNow = Date.now; let t = 1.78e12;
+    try {
+      Date.now = () => (t += 5000);   // jump 5 real seconds on every internal read
+      setObserver(-33.45, -70.66);
+      const s = getSnapshot();
+      if (field === '__getSnapshot_timestamp_matches_jdutc') {
+        const derivedJdUtc = s.meta.timestamp / 86400 + 2440587.5;
+        return Math.abs(s.meta.jd_utc - derivedJdUtc) < 1e-9;
+      } else {
+        const derivedFromUtcString = Date.parse(s.meta.utc) / 1000;
+        return Math.abs(derivedFromUtcString - s.meta.timestamp) < 0.001;
+      }
+    } finally { Date.now = realNow; }
+  }
+
   // -- Refraction regression (v4.0.8) --------------------------------
   // applyRefraction is a global declared by CaelisEngine.js (vm.runInThisContext)
   if (field === '__refraction_39_88')

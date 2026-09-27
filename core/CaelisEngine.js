@@ -53,7 +53,8 @@ const C_LIGHT  = 173.1446326;
 let lat        = -33.45 * deg2rad;
 let lon        = -70.66 * deg2rad;
 let timeOffset = 0;
-function currentTime(){ return Date.now()/1000 + timeOffset; }
+let _frozenClockSec = null;
+function currentTime(){ return (_frozenClockSec !== null ? _frozenClockSec : Date.now()/1000) + timeOffset; }
 function _invalidateAstroCache(){
   // Declared here for UI access; AstroCore also has internal cache vars
   if(typeof _nutCache  !== "undefined") { _nutCache  = null; _nutCacheT  = null; }
@@ -691,7 +692,7 @@ function _elp_args(T){
     W1r:W1*deg2rad,Dr:D*deg2rad,Mr:M*deg2rad,Mpr:Mp*deg2rad,Fr:F*deg2rad};
 }
 
-// ── Tablas ELP/MPP02: 164L + 105B + 60R términos ────────────────────────────
+// ── Tablas ELP/MPP02: 164L + 105B + 29R términos ────────────────────────────
 // Fuente: Chapront & Francou (2002) Tabla 6 (series principales ELP_MAIN.S1/S2/S3)
 // Formato: [i_D, i_M, i_M', i_F, coeficiente × 0.001 arcsec (L/B) o × 0.001 km (R)]
 // Serie L: suma de senos → longitud eclíptica (sumada a W1)
@@ -824,6 +825,11 @@ const _SEQ_DATA = [
 ];
 
 // Inyectar un JDE en el engine y obtener la longitud solar
+// v4.0.10 note: this function temporarily overrides timeOffset (restored in its
+// own finally block below) to probe the solar longitude at a specific JDE. It does
+// not read or depend on the wall clock, and does not interact with the per-call
+// clock snapshot used by getSnapshot()/getSnapshotAt() - both mechanisms are
+// independent and safe to run nested or sequentially.
 function _sunLonAtJDE(jde){
   const nowJD  = Date.now()/86400000 + 2440587.5;
   const saved  = timeOffset;
@@ -1045,6 +1051,10 @@ function _attachHousesProxy(snap){
 
 
 function getSnapshot(config){
+  const _ownsFreeze = (_frozenClockSec === null);
+  if (_ownsFreeze) _frozenClockSec = Date.now()/1000;
+  try {
+
   // config es opcional — si no se pasa, el motor usa el estado global de UI
   // Cuando Atacir llame a getSnapshot internamente, pasará config explícito
   // Este es el punto de frontera: AstroCore no conoce houseSystem como concepto,
@@ -1192,7 +1202,7 @@ function getSnapshot(config){
         nutation:    'IAU 2000B (77 luni-solar terms, Mathews et al. 2002)',
         obliquity:   'IAU 2006 (Capitaine et al. 2006)',
         planets:     'VSOP87B (Bretagnon & Francou 1987) + Meeus App.II',
-        moon:        'ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+60R',
+        moon:        'ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+29R',
         delta_t:     'Morrison & Stephenson (2004) + IERS table 500-2150 AD',
         aberration:  'Annual (κ=9.9365e-5, Meeus Ch.23)',
         refraction:  'Saemundsson (1986), ISA standard atmosphere',
@@ -1267,6 +1277,9 @@ function getSnapshot(config){
   });
   if(typeof _attachHousesProxy === 'function') _attachHousesProxy(_snapResult);
   return _snapResult;
+  } finally {
+    if (_ownsFreeze) _frozenClockSec = null;
+  }
 }
 
 // ======= NODOS LUNARES (Caput / Cauda Draconis) =======
@@ -1373,10 +1386,8 @@ function _getSnapshotFromJD(jd_tt_explicit){
   // Las funciones de posición usan T interno de nutation(), obliquity(), etc.
   // Necesitamos que el engine use este T — lo hacemos via timeOffset temporal
   // pero calculado de forma atómica (una sola lectura de Date.now())
-  const dateNowOnce = Date.now() / 1000;                 // una sola lectura
-  const jdNow = dateNowOnce / 86400 + 2440587.5;
-  const savedOffset = timeOffset;
-  timeOffset = (jd_utc - (dateNowOnce / 86400 + 2440587.5)) * 86400;
+  const savedFrozen = _frozenClockSec;
+  _frozenClockSec = (jd_utc - 2440587.5) * 86400;
   // Ahora currentTime() = dateNowOnce + timeOffset = jd_utc_unix exacto
 
   let snap;
@@ -1385,7 +1396,7 @@ function _getSnapshotFromJD(jd_tt_explicit){
     // Nodos lunares ya calculados por getSnapshot() con timeOffset correcto.
     // No se recalculan aquí — evita doble cómputo y garantiza consistencia.
   } finally {
-    timeOffset = savedOffset; // restored after nodes computed
+    _frozenClockSec = savedFrozen;
   }
 
   // Asegurar que meta.jd_tt refleja el valor exacto solicitado
