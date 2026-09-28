@@ -7,7 +7,7 @@
 >
 > **v4.0.10** hace que `getSnapshot()` (ademas de `getSnapshotAt()`) sea totalmente independiente del reloj del sistema dentro de una misma llamada, para que todo campo derivado del tiempo en una instantanea se refiera exactamente al mismo instante. Tambien corrige el numero de terminos declarado para la distancia de la Luna (29R, no 60R) y un ejemplo de importacion que no funcionaba. Sin cambios en ningun otro calculo astronomico.
 >
-> **v4.0.11** es una version solo de documentacion: fusiona una entrada duplicada del CHANGELOG, corrige un numero de terminos desactualizado y una inconsistencia ΔT/UT1/UTC en la especificacion tecnica, y aclara que las cifras de precision son limites algoritmicos de los modelos subyacentes, no la precision medida de la implementacion. Sin cambios en `core/CaelisEngine.js` ni en ningun calculo.
+> **v4.0.11** es una version de documentacion y metadatos: fusiona una entrada duplicada del CHANGELOG, corrige un numero de terminos desactualizado y una inconsistencia ΔT/UT1/UTC en la especificacion tecnica, y aclara que las cifras de precision son limites algoritmicos de los modelos subyacentes, no la precision medida de la implementacion. En `core/CaelisEngine.js` solo cambio un comentario de cabecera (correo de contacto); ningun calculo cambio.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)

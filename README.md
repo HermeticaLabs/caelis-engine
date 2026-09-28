@@ -7,7 +7,7 @@
 >
 > **v4.0.10** makes `getSnapshot()` (in addition to `getSnapshotAt()`) fully independent of the wall clock within a single call, so every time-derived field in one snapshot refers to the exact same instant. Also corrects the declared Moon distance term count (29R, not 60R) and a broken import example. No changes to any other astronomical calculation.
 >
-> **v4.0.11** is a documentation-only release: merges a duplicated CHANGELOG entry, fixes a stale Moon term count and a Delta-T/UT1/UTC inconsistency in the technical spec, and clarifies that precision figures are algorithmic bounds of the underlying models, not measured implementation accuracy. No changes to `core/CaelisEngine.js` or any calculation.
+> **v4.0.11** is a documentation and metadata release: merges a duplicated CHANGELOG entry, fixes a stale Moon term count and a Delta-T/UT1/UTC inconsistency in the technical spec, and clarifies that precision figures are algorithmic bounds of the underlying models, not measured implementation accuracy. Only a header comment (contact email) changed in `core/CaelisEngine.js`; no calculation was modified.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)

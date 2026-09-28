@@ -38,7 +38,7 @@
  *
  * API docs:   https://api.hermeticalabs.com/docs
  * Pricing:    https://hermeticalabs.com/pricing
- * Licensing:  hermeticalabs@[domain]
+ * Licensing:  hermeticalabs.dev@proton.me
  * ============================================================================
  */
 

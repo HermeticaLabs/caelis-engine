@@ -331,10 +331,10 @@ Expected output: 481/481 passed, 0 failed.
 
 ## Integrity
 
-SHA-256 of `core/CaelisEngine.js` v4.0.11 (unchanged since v4.0.10; the engine validated by this report):
+SHA-256 of `core/CaelisEngine.js` v4.0.11 (only a header comment changed since v4.0.10; the engine validated by this report):
 
 ```
-c6893f8af92da596835aec1d36ca58b275256faa692067823f1518c501d56e55
+ae4c053a0814c190b518093fb439caafcf56480748e2407c657ae9d6e3c299fd
 ```
 
 Verify on your local copy:

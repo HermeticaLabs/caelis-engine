@@ -35,8 +35,13 @@ measured accuracy rather than the published algorithmic bound of the underlying 
 to `docs/SCIENTIFIC_VALIDATION.md` for Caelis Engine's own validated implementation
 accuracy. Applied to both READMEs.
 
-No changes to `core/CaelisEngine.js` or any other engine file. No changes to any
-astronomical calculation.
+**Placeholder contact email corrected**
+Header comments in `core/CaelisEngine.js`, `client/AtacirClient.js` and the three HTML
+files still showed `hermeticalabs@[domain]`; corrected to `hermeticalabs.dev@proton.me`.
+
+Only a header comment changed in `core/CaelisEngine.js` (the contact email); no
+calculation was modified. Its SHA-256 changed accordingly; the new value is recorded
+in `docs/SCIENTIFIC_VALIDATION.md`.
 
 ### Validation
 - Core suite: 36/36 · Extended benchmarks: 67/67
