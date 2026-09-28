@@ -158,7 +158,7 @@ JD_TT, T
   │    → atmospheric refraction
   │
   ├─ Moon (ELP/MPP02-LLR):
-  │    164L + 105B + 60R terms
+  │    164L + 105B + 29R terms
   │    → ΔΨ applied
   │    → ecliptic → equatorial
   │    → topocentric parallax (WGS-84)

@@ -6,60 +6,42 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
-## [4.0.10] — 2026-09
+## [4.0.11] — 2026-09
 
-### Fixed — `getSnapshot()` internal time consistency (issue #4)
+### Fixed — documentation coherence audit
 
-**`getSnapshot()` could read the wall clock more than once per call**
-Following up on the `getSnapshotAt()` determinism fix, `getSnapshot()` ("give me the sky
-now") independently read `Date.now()` up to four times within a single call (for
-`jd_tt`, `jd_utc`, the `now` object, and `meta.timestamp`). In the vast majority of
-calls this made no observable difference, but under clock pressure it could produce a
-snapshot whose time-derived fields did not agree with each other to the millisecond.
+**CHANGELOG had two separate [4.0.10] entries**
+A leftover draft entry (written mid-fix, before the `getSnapshotAt()` wall-clock gap
+was fully diagnosed) was never removed after the complete entry was added. Merged into
+a single, complete [4.0.10] entry.
 
-Fixed by reading the wall clock exactly once at the start of each `getSnapshot()` call
-(a value local to that call, not shared or global state) and deriving every
-time-related field from that single reading. Verified with 6,000 calls under three
-clock conditions (frozen, ticking 1ms/read, jumping 5s/read): 0 inconsistencies in all
-three. No change to any astronomical calculation; core/CaelisEngine.js confirmed
-unchanged outside this mechanism. `_sunLonAtJDE()` (used for equinox/solstice search)
-was reviewed and confirmed independent of this mechanism; documented explicitly in
-code comments. Applied identically to `core/CaelisEngine.js`, `caelis-minimal.html`,
-`dist/caelis-minimal.html` and `index.html`. Closes #4.
+**`docs/CAELIS_ENGINE_SPEC_v4_0.md` still declared the Moon distance series as 60 terms**
+The 4.0.10 correction (29R, not 60R) covered the engine output, both READMEs, and code
+comments, but missed this specification document. Corrected in 2 occurrences.
 
-### Fixed — inaccurate public declarations
+**`docs/CAELIS_ENGINE_MATEMATICA_v4_0.md` had the same stale term count**
+Corrected 1 occurrence (60R → 29R).
 
-**Moon distance series declared as 60 terms, actually 29**
-`meta.frame.moon` (part of every snapshot the engine returns) and both READMEs stated
-"164L+105B+60R terms" for the ELP/MPP02-LLR Moon model. The distance series
-(`_elp_rT`) has always had 29 terms — the code's own comments already said so. Corrected
-to "29R" in the engine output, both READMEs, and code comments (13 occurrences across
-6 files).
+**ΔT definition was internally inconsistent**
+`docs/CAELIS_ENGINE_SPEC_v4_0.md` defined `delta_t_sec` as "ΔT = TT − UTC", while
+the engine's own code comments and `docs/SCIENTIFIC_VALIDATION.md` correctly define it
+as ΔT = TT − UT1 (a related but distinct quantity, differing by DUT1). Corrected to
+match the engine's actual definition.
 
-**README client-library example used a broken import**
-The A.T.A.C.I.R. Cloud example (`import AtacirClient from 'caelis-engine/client'`)
-used a default import, but `client/AtacirClient.js` only exports named bindings
-(`AtacirClient`, `AVAILABLE_PLUGINS`, `ATACIR_API_VERSION`). Corrected to
-`import { AtacirClient } from 'caelis-engine/client'` in both READMEs.
+**README precision table could be misread as implementation accuracy**
+"Declared precision" was ambiguous: readers could interpret it as Caelis Engine's
+measured accuracy rather than the published algorithmic bound of the underlying model
+(e.g. VSOP87B). Column renamed to "Algorithmic precision bound", with a note pointing
+to `docs/SCIENTIFIC_VALIDATION.md` for Caelis Engine's own validated implementation
+accuracy. Applied to both READMEs.
 
-**`package.json` funding type was not a valid npm value**
-`funding.type` was `"commercial"`, which npm does not recognize. Changed to `"custom"`.
-
-### Added
-- Two `getSnapshot()` determinism regression tests in `validation/run.js` (verifying
-  `meta.timestamp`, `meta.jd_utc` and `meta.utc` agree with each other even when the
-  wall clock jumps between internal reads).
-
-### Documentation and package synchronization
-- Version banners and headers aligned to 4.0.10 across the repository and npm package.
-- `docs/SCIENTIFIC_VALIDATION.md`: engine version and integrity hash updated to match
-  the changed `core/CaelisEngine.js`.
+No changes to `core/CaelisEngine.js` or any other engine file. No changes to any
+astronomical calculation.
 
 ### Validation
-- Core suite: 33/33 · Extended benchmarks: 67/67
-- Total: 100/100 assertions
-
+- Core suite: 36/36 · Extended benchmarks: 67/67
 ---
+
 ## [4.0.10] — 2026-09
 
 ### Fixed — wall-clock determinism in both `getSnapshot()` and `getSnapshotAt()` (issue #4)

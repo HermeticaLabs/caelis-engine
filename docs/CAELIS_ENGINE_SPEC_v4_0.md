@@ -63,7 +63,7 @@ True Obliquity [IAU 2006]                             │
   │                                                   │
   ▼                                                   ▼
 VSOP87B (planets Mercury–Neptune)        ELP/MPP02-LLR (Moon)
-  → heliocentric                           164L + 105B + 60R
+  → heliocentric                           164L + 105B + 29R
   → geocentric                           → geocentric ecliptic
   → light-time (1 iteration)             → ΔΨ applied
   → annual aberration                    → ecliptic → equatorial
@@ -105,7 +105,7 @@ Mathematical details: `MATEMATICA.md`
     "jd_utc":      "<number> Julian Date UTC",
     "utc":         "<string> ISO 8601 UTC timestamp",
     "timestamp":   "<number> Unix timestamp (seconds)",
-    "delta_t_sec": "<number> ΔT = TT − UTC in seconds",
+    "delta_t_sec": "<number> ΔT = TT − UT1 in seconds",
 
     "observer": {
       "lat_deg": "<number> Geodetic latitude, degrees (+N)",
@@ -116,7 +116,7 @@ Mathematical details: `MATEMATICA.md`
       "nutation":                  "IAU 2000B (77 luni-solar terms, Mathews et al. 2002)",
       "obliquity":                 "IAU 2006 (Capitaine et al. 2006)",
       "planets":                   "VSOP87B (Bretagnon & Francou 1987) + Meeus App.II",
-      "moon":                      "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+60R",
+      "moon":                      "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+29R",
       "delta_t":                   "Morrison & Stephenson (2004) + IERS table 500-2150 AD",
       "aberration":                "Annual (κ=9.9365e-5, Meeus Ch.23)",
       "refraction":                "Saemundsson (1986), ISA standard atmosphere",

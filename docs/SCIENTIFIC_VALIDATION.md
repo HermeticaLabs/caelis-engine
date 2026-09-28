@@ -1,6 +1,6 @@
 # Caelis Engine — Scientific Validation Report
 
-**Engine:** v4.0.10
+**Engine:** v4.0.11
 **Schema:** v3.1
 **Date:** 2026-09
 **Author:** Cristian Valeria Bravo · Hermetica Labs
@@ -331,7 +331,7 @@ Expected output: 481/481 passed, 0 failed.
 
 ## Integrity
 
-SHA-256 of `core/CaelisEngine.js` v4.0.10 (the engine validated by this report):
+SHA-256 of `core/CaelisEngine.js` v4.0.11 (unchanged since v4.0.10; the engine validated by this report):
 
 ```
 c6893f8af92da596835aec1d36ca58b275256faa692067823f1518c501d56e55
@@ -349,4 +349,4 @@ Get-FileHash core\CaelisEngine.js -Algorithm SHA256
 
 ---
 
-*Caelis Engine v4.0.10 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.11 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

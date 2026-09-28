@@ -1,11 +1,13 @@
 # Caelis Engine
 
-> **Motor v4.0.10 · Schema v3.1** — son números de versión independientes.
+> **Motor v4.0.11 · Schema v3.1** — son números de versión independientes.
 > El Schema v3.1 define el contrato de salida y es estable entre parches del motor.
 >
 > **v4.0.8** corrige un error de unidades (minutos de arco → grados) en la refracción atmosférica que inflaba `alt_apparent_deg`. Las versiones ≤ 4.0.7 están afectadas — actualiza. Ver [`CHANGELOG.md`](CHANGELOG.md).
 >
 > **v4.0.10** hace que `getSnapshot()` (ademas de `getSnapshotAt()`) sea totalmente independiente del reloj del sistema dentro de una misma llamada, para que todo campo derivado del tiempo en una instantanea se refiera exactamente al mismo instante. Tambien corrige el numero de terminos declarado para la distancia de la Luna (29R, no 60R) y un ejemplo de importacion que no funcionaba. Sin cambios en ningun otro calculo astronomico.
+>
+> **v4.0.11** es una version solo de documentacion: fusiona una entrada duplicada del CHANGELOG, corrige un numero de terminos desactualizado y una inconsistencia ΔT/UT1/UTC en la especificacion tecnica, y aclara que las cifras de precision son limites algoritmicos de los modelos subyacentes, no la precision medida de la implementacion. Sin cambios en `core/CaelisEngine.js` ni en ningun calculo.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -116,7 +118,13 @@ Un plugin desactivado no existe en el JSON.
 
 ## Qué calcula
 
-| Cálculo | Algoritmo | Precisión declarada |
+Las cifras de precision a continuacion son los limites algoritmicos publicados para
+cada modelo astronomico subyacente (VSOP87B, ELP/MPP02-LLR, etc.) - no una medicion
+de la precision de esta implementacion. La precision real y validada de la
+implementacion de Caelis Engine esta documentada, con metodologia y resultados,
+en `docs/SCIENTIFIC_VALIDATION.md`.
+
+| Cálculo | Algoritmo | Límite algorítmico de precisión |
 |---|---|---|
 | Planetas Mercurio–Neptuno | VSOP87B (Bretagnon & Francou 1987) | < 1′ |
 | Posición de la Luna | ELP/MPP02-LLR · 164L+105B+29R términos | < 10″ |
@@ -369,4 +377,4 @@ Cada número es rastreable. Cada algoritmo está declarado. Cada salida es repro
 
 ---
 
-*Caelis Engine v4.0.10 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.11 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

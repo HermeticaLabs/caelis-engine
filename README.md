@@ -1,11 +1,13 @@
 # Caelis Engine
 
-> **Engine v4.0.10 · Schema v3.1** — these are independent version numbers.
+> **Engine v4.0.11 · Schema v3.1** — these are independent version numbers.
 > Schema v3.1 defines the output contract and is stable across engine patches.
 >
 > **v4.0.8** fixes an arcminute→degree unit error in atmospheric refraction that inflated `alt_apparent_deg`. Versions ≤ 4.0.7 are affected — upgrade. See [`CHANGELOG.md`](CHANGELOG.md).
 >
 > **v4.0.10** makes `getSnapshot()` (in addition to `getSnapshotAt()`) fully independent of the wall clock within a single call, so every time-derived field in one snapshot refers to the exact same instant. Also corrects the declared Moon distance term count (29R, not 60R) and a broken import example. No changes to any other astronomical calculation.
+>
+> **v4.0.11** is a documentation-only release: merges a duplicated CHANGELOG entry, fixes a stale Moon term count and a Delta-T/UT1/UTC inconsistency in the technical spec, and clarifies that precision figures are algorithmic bounds of the underlying models, not measured implementation accuracy. No changes to `core/CaelisEngine.js` or any calculation.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -116,7 +118,12 @@ A disabled plugin does not exist in the JSON.
 
 ## What it computes
 
-| Computation | Algorithm | Declared precision |
+Precision figures below are the algorithmic bounds published for each underlying
+astronomical model (VSOP87B, ELP/MPP02-LLR, etc.) - not a measurement of this
+implementation's accuracy. Caelis Engine's own validated implementation accuracy
+is documented, with methodology and results, in `docs/SCIENTIFIC_VALIDATION.md`.
+
+| Computation | Algorithm | Algorithmic precision bound |
 |---|---|---|
 | Planets Mercury–Neptune | VSOP87B (Bretagnon & Francou 1987) | < 1′ |
 | Moon position | ELP/MPP02-LLR · 164L+105B+29R terms | < 10″ |
@@ -369,4 +376,4 @@ Every number is traceable. Every algorithm is declared. Every output is reproduc
 
 ---
 
-*Caelis Engine v4.0.10 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.11 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
