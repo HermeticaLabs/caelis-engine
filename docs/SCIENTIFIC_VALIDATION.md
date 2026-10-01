@@ -1,6 +1,6 @@
 # Caelis Engine — Scientific Validation Report
 
-**Engine:** v4.0.11
+**Engine:** v4.0.12
 **Schema:** v3.1
 **Date:** 2026-09
 **Author:** Cristian Valeria Bravo · Hermetica Labs
@@ -305,7 +305,7 @@ JSON.stringify()   ✓  _nodes not present in raw output
 |---|---|---|
 | JD_TT passed to GAST (vs strict JD_UT1) | ~0.3° GAST · ~0.4° ASC/MC (L2-B) | v4.1 refactor |
 | VSOP87B truncated series (outer planets) | < 1′ algorithmic bound | by design |
-| ELP/MPP02-LLR truncated (164+105+60 terms) | < 10″ algorithmic bound | by design |
+| ELP/MPP02-LLR truncated (164+105+29 terms) | < 10″ algorithmic bound | by design |
 | IAU 2000B vs 2000A nutation | < 1 mas — negligible | by design |
 | Sæmundsson (1986) refraction, ISA atmosphere | ±0.1′ above 15°, 1-5′ near horizon | by design |
 | ΔT extrapolation outside 500–2150 AD | Parabolic — grows with distance | by design |
@@ -331,10 +331,10 @@ Expected output: 481/481 passed, 0 failed.
 
 ## Integrity
 
-SHA-256 of `core/CaelisEngine.js` v4.0.11 (only a header comment changed since v4.0.10; the engine validated by this report):
+SHA-256 of `core/CaelisEngine.js` v4.0.12 (changed since v4.0.11: _sunLonAtJDE() wall-clock fix; see CHANGELOG [4.0.12]):
 
 ```
-ae4c053a0814c190b518093fb439caafcf56480748e2407c657ae9d6e3c299fd
+b0ff0c591dc09eca603e268ea45aeec29773666fe86af8807caea55909d08cc5
 ```
 
 Verify on your local copy:
@@ -349,4 +349,4 @@ Get-FileHash core\CaelisEngine.js -Algorithm SHA256
 
 ---
 
-*Caelis Engine v4.0.11 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.12 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

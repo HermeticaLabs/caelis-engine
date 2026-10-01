@@ -8,7 +8,7 @@
  * Hermetica Labs - Santiago, Chile
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * 100+ assertions across 10 reference epochs.
+ * Assertion count varies by run; see the summary line printed at the end.
  * All reference values sourced from published primary literature —
  * no API calls, no external dependencies, fully offline and reproducible.
  *
@@ -76,7 +76,7 @@ const B = s => `\x1b[35m${s}\x1b[0m`;
 const D = s => `\x1b[2m${s}\x1b[0m`;
 
 // ── Reference data ────────────────────────────────────────────────────────────
-// 10 epochs × 9–11 assertions = 100+ total
+// Assertion count varies by run; totalPass/totalFail computed at runtime.
 // Organized as: { id, label, jd_tt, lat, lon, tests[] }
 // Each test: { field, expect, tol, label, src }
 
@@ -398,7 +398,7 @@ function runEpoch(epoch) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 console.log(`\n${B('⬡ CAELIS ENGINE — EXTENDED BENCHMARK SUITE')}`);
-console.log(D('  Hermetica Labs · 100+ assertions · 10 epochs · 5 reference sources\n'));
+console.log(D('  Hermetica Labs · 10 epochs · 5 reference sources\n'));
 
 const SOURCES = {
   '[M]': 'Meeus, Astronomical Algorithms 2nd ed. (1998)',

@@ -57,7 +57,7 @@ Precision: IEEE 754 double · Resolution: ~1 millisecond at current epoch.
 
 ## 1.2 ΔT Correction
 
-ΔT = TT − UTC in seconds. Accounts for Earth's irregular rotation.
+ΔT = TT − UT1 in seconds. Accounts for Earth's irregular rotation.
 
 ```
 JD_TT = JD_UTC + ΔT / 86400
@@ -315,7 +315,7 @@ Error near horizon: 1–5′. Error above 15°: ±0.1′.
 
 Source: Chapront & Francou (2002), A&A 412. LLR-calibrated.
 
-**Terms used:** 164 longitude (L) + 105 latitude (B) + 60 distance (R).
+**Terms used:** 164 longitude (L) + 105 latitude (B) + 29 distance (R).
 
 **Fundamental arguments:**
 ```

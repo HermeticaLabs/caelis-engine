@@ -85,7 +85,7 @@ config = {
 13. `quality_flags`
 
 **Key properties:**
-- Pure function — same inputs always produce same outputs
+- Deterministic — same inputs always produce identical outputs (see I-2 for the state-restoration guarantee)
 - No side effects — does not modify any global state
 - Internal fields (`_houseConfig`, `_nodes`) filtered from public JSON
 
@@ -102,7 +102,7 @@ Computes a snapshot for any arbitrary epoch without affecting the engine's curre
 | `jd_tt` | number | Target Julian Date Terrestrial Time |
 | `observer` | `{lat_deg, lon_deg}` or `(lat, lon)` | Observer coordinates |
 
-**Implementation:** reads `Date.now()` once atomically, sets `timeOffset = jd_utc_target - Date.now_snapshot`, calls `getSnapshot()`, restores state in `finally`. Meta fields (`jd_tt`, `jd_utc`, `delta_t_sec`) patched to exact target values post-computation.
+**Implementation (v4.0.10+):** freezes the shared clock (`_frozenClockSec`) at the exact target instant - not read from `Date.now()` - calls `getSnapshot()`, restores `_frozenClockSec` and `timeOffset` in `finally`. Nested-safe: if `getSnapshot()` finds the clock already frozen, it respects it instead of re-freezing.
 
 **Used by:** Atacir internally for eclipse prediction, synastry, `_eclVerSnapshot`.
 
@@ -110,7 +110,7 @@ Computes a snapshot for any arbitrary epoch without affecting the engine's curre
 
 ## `_getSnapshotFromJD(jd_tt_explicit)` → `snapshot v3.1`
 
-Internal deterministic computation from explicit JD_TT. Uses `Date.now()` exactly once to avoid race conditions. Not part of the public API — called by `getSnapshotAt`.
+Internal deterministic computation from explicit JD_TT. Does not read `Date.now()`; freezes the shared clock (`_frozenClockSec`) to the target instant for the duration of the call. Not part of the public API - called by `getSnapshotAt`.
 
 ---
 
@@ -118,9 +118,12 @@ Internal deterministic computation from explicit JD_TT. Uses `Date.now()` exactl
 
 ### `currentTime()` → `number` (Unix seconds)
 ```
-currentTime() = Date.now() / 1000 + timeOffset
+currentTime() = (frozen ? _frozenClockSec : Date.now() / 1000) + timeOffset
 ```
-**The only place in the entire engine where `Date.now()` is called.**
+**Respects a frozen clock instant when one is set** (`_frozenClockSec !== null`),
+otherwise reads `Date.now()`. `Date.now()` is also called directly, once, at
+the entry of `getSnapshot()` to establish that frozen instant when none is
+already set (see I-1).
 
 ### `julianDateUTC()` → `number` (JD_UTC)
 ```
@@ -317,6 +320,7 @@ Resolves house configuration from any snapshot:
 | `lat` | −33.45·deg2rad | `setObserver()` | all horizontal calculations, parallax |
 | `lon` | −70.66·deg2rad | `setObserver()` | LST computation |
 | `timeOffset` | 0 | `setOffset()`, UI | `currentTime()` |
+| `_frozenClockSec` | `null` | `getSnapshot()`, `getSnapshotAt()`, `_sunLonAtJDE()` | `currentTime()` |
 | `timeSpeed` | 0 | UI | `getSnapshotAt()` guard |
 | `houseSystem` | `'placidus'` | `_syncHouseSystem()` | `_houseConfig` resolution |
 | `R_TIERRA` | geocentricRadius() | `setObserver()` | Moon topocentric parallax |

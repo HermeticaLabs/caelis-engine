@@ -1,6 +1,6 @@
 # Caelis Engine
 
-> **Motor v4.0.11 · Schema v3.1** — son números de versión independientes.
+> **Motor v4.0.12 · Schema v3.1** — son números de versión independientes.
 > El Schema v3.1 define el contrato de salida y es estable entre parches del motor.
 >
 > **v4.0.8** corrige un error de unidades (minutos de arco → grados) en la refracción atmosférica que inflaba `alt_apparent_deg`. Las versiones ≤ 4.0.7 están afectadas — actualiza. Ver [`CHANGELOG.md`](CHANGELOG.md).
@@ -8,6 +8,8 @@
 > **v4.0.10** hace que `getSnapshot()` (ademas de `getSnapshotAt()`) sea totalmente independiente del reloj del sistema dentro de una misma llamada, para que todo campo derivado del tiempo en una instantanea se refiera exactamente al mismo instante. Tambien corrige el numero de terminos declarado para la distancia de la Luna (29R, no 60R) y un ejemplo de importacion que no funcionaba. Sin cambios en ningun otro calculo astronomico.
 >
 > **v4.0.11** es una version de documentacion y metadatos: fusiona una entrada duplicada del CHANGELOG, corrige un numero de terminos desactualizado y una inconsistencia ΔT/UT1/UTC en la especificacion tecnica, y aclara que las cifras de precision son limites algoritmicos de los modelos subyacentes, no la precision medida de la implementacion. En `core/CaelisEngine.js` solo cambio un comentario de cabecera (correo de contacto); ningun calculo cambio.
+>
+> **v4.0.12** corrige `_sunLonAtJDE()` (usada para buscar equinoccios y solsticios), la ultima funcion que todavia leia el reloj real en vez del mecanismo compartido de congelacion introducido en 4.0.10. Verificado con mas de 18.000 mediciones de independencia del reloj (`validation/scientific/clock-stress.js`). Tambien corrige cinco inconsistencias de documentacion sobre ΔT/UT1 y los terminos de la Luna encontradas durante este arreglo. Sin cambios en ningun otro calculo astronomico.
 
 [![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
 [![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
@@ -377,4 +379,4 @@ Cada número es rastreable. Cada algoritmo está declarado. Cada salida es repro
 
 ---
 
-*Caelis Engine v4.0.11 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.12 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*

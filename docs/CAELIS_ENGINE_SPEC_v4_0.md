@@ -279,7 +279,7 @@ Every snapshot must contain:
 |---|---|---|
 | `meta.obliquity.true_deg` | 23.4383 | ± 0.0001° |
 | `meta.sidereal.lst_deg` | 179.618 | ± 0.05° |
-| `meta.delta_t_sec` | 71.35 | ± 0.5s |
+| `meta.delta_t_sec` | 69.19 | ± 0.5s |
 | `Sol.lon_ecl_geocentric_deg` | 71.498 | ± 0.005° |
 | `Sol.alt_geometric_deg` | −27.896 | ± 0.1° |
 | `Luna.lon_ecl_geocentric_deg` | 269.330 | ± 0.02° |
