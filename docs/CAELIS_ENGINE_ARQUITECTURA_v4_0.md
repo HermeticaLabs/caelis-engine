@@ -70,14 +70,24 @@ These are non-negotiable. Any modification that violates them is a regression.
 
 ### 3.1 AstroCore invariants
 
-**I-1. No Date.now() in AstroCore.**
-AstroCore never calls `Date.now()`, `currentTime()`, or any function that
-reads the system clock. Time enters AstroCore only as a parameter.
+**I-1. No astronomical calculation reads the wall clock directly.**
+Every angle, position, and time-derived field within a single `getSnapshot()`,
+`getSnapshotAt()`, or `_sunLonAtJDE()` evaluation is computed from a clock
+instant frozen once, at the start of that call (`_frozenClockSec`).
+`Date.now()` itself is called only to establish that frozen instant - in
+`getSnapshot()` at entry, and never inside `getSnapshotAt()` or
+`_sunLonAtJDE()`, whose instants are given explicitly. No calculation path
+re-reads the real-time clock mid-evaluation. Verified with 12,000+
+measurements under frozen, ticking, and jumping clocks (see
+`docs/SCIENTIFIC_VALIDATION.md`).
 
-**I-2. No mutable global state in AstroCore computations.**
-`getSnapshot()` and `getSnapshotAt()` are pure functions: same inputs produce
-identical outputs. They do not modify `timeOffset`, `lat`, `lon`, or any
-other global state.
+**I-2. Deterministic output; temporary state is always restored.**
+`getSnapshot()` and `getSnapshotAt()` are deterministic: same inputs produce
+identical outputs, independent of the wall clock (verified in
+`docs/SCIENTIFIC_VALIDATION.md`). They do temporarily modify shared state
+(`lat`, `lon`, `timeOffset`, `_frozenClockSec`) for the duration of a call,
+but always restore it - via `finally` blocks - before returning, even if an
+error occurs. No caller ever observes partially-modified state.
 
 **I-3. The snapshot contains no interpretive concepts.**
 `houses`, `house` (per body), aspects, antiscia, ayanamsa, or any
@@ -131,7 +141,7 @@ snapshot {
     jd_utc           — Julian Date UTC
     utc              — ISO 8601 UTC string
     timestamp        — Unix seconds
-    delta_t_sec      — TT − UTC in seconds
+    delta_t_sec      — TT − UT1 in seconds
     observer {
       lat_deg        — Geodetic latitude (+N)
       lon_deg        — Geodetic longitude (+E)

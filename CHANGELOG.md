@@ -6,6 +6,90 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [4.0.12] — 2026-09
+Type: Determinism · Documentation
+
+### What changed / Why
+`_sunLonAtJDE()` (used by `nextSolEquinox()` for equinox/solstice search) read
+`Date.now()` directly, ignoring the shared frozen-clock mechanism introduced in
+4.0.10. Under a ticking or jumping wall clock, two calls with the same `jde`
+argument could return different solar longitudes — up to 1° apart for a
+24-hour clock jump. A 4.0.10 code comment incorrectly claimed this function
+"does not read or depend on the wall clock"; it did.
+
+Fixed identically to the 4.0.10 mechanism: freezes the shared clock
+(`_frozenClockSec`) at the instant corresponding to the requested `jde`,
+restored in `finally`. Applied to `core/CaelisEngine.js`,
+`caelis-minimal.html`, `dist/caelis-minimal.html` and `index.html`.
+
+Also corrects five documentation inconsistencies discovered while auditing
+this fix: a stale ΔT definition (`TT − UTC` instead of `TT − UT1`) and a
+stale Moon term count (60R instead of 29R) in `MATEMATICA` and
+`ARQUITECTURA`, a stale ΔT baseline (71.35s instead of 69.19s) in `SPEC`, a
+stale Moon term count in `SCIENTIFIC_VALIDATION`, and two architectural
+invariants (I-1, I-2) in `ARQUITECTURA` that overstated what the engine
+guarantees (see Impact).
+
+### Impact
+**Affects:** `nextSolEquinox()` / equinox and solstice date-finding — was
+non-deterministic under a moving wall clock, now deterministic. No other
+calculation path changed.
+**Does not affect:** planetary positions, Moon position, nutation,
+obliquity, refraction, `getSnapshot()`, `getSnapshotAt()` — none of their
+underlying formulas or code paths were touched.
+
+### Mathematical output
+- Astronomical values: **unchanged** for all snapshot fields; equinox/solstice
+  date-finding output is now deterministic (previously could vary by up to
+  1° of solar longitude under wall-clock pressure — see evidence).
+- Contract strings (`meta.frame.*`): unchanged.
+- Determinism: **improved** — closes the last wall-clock dependency
+  identified across `getSnapshot()`, `getSnapshotAt()`, and
+  `_sunLonAtJDE()`.
+
+### Documentation corrected (no engine behavior implied)
+- `docs/CAELIS_ENGINE_MATEMATICA_v4_0.md`: ΔT definition, Moon term count
+- `docs/CAELIS_ENGINE_ARQUITECTURA_v4_0.md`: ΔT definition, invariants I-1
+  and I-2 rewritten to accurately describe the frozen-clock mechanism and
+  the fact that state is temporarily modified and always restored (not
+  "never modified")
+- `docs/CAELIS_ENGINE_SPEC_v4_0.md`: stale `delta_t_sec` regression baseline
+  (71.35s → 69.19s)
+- `docs/SCIENTIFIC_VALIDATION.md`: Moon term count
+- `docs/CAELIS_ENGINE_CATALOGO_v4_0.md`: `getSnapshotAt()`,
+  `_getSnapshotFromJD()` and `currentTime()` descriptions updated to
+  describe the 4.0.10+ frozen-clock mechanism instead of the pre-4.0.10
+  `timeOffset` mechanism; added `_frozenClockSec` to the global-state table
+- See `docs/audits/AUDIT_4.0.12.md` for the full list of verified findings,
+  including three confirmed but intentionally deferred to a future release
+  (historical ΔT table accuracy pre-1900, `delta_t_sec` precision mismatch
+  between `getSnapshot()`/`getSnapshotAt()`, and a validation-suite
+  tolerance gap on GAST).
+
+### Packaging
+- Added `.gitattributes` pinning `core/CaelisEngine.js` to LF line endings,
+  so its SHA-256 is identical regardless of the cloning platform's
+  `autocrlf` setting.
+
+### Added
+- `validation/scientific/clock-stress.js`: reproducible stress test for
+  wall-clock independence across `getSnapshot()`, `getSnapshotAt()`, and
+  `_sunLonAtJDE()` under frozen, ticking, and jumping clock conditions.
+  Configurable repeat count (`--n=`). Confirmed 0/18,000 inconsistencies
+  (2000 repeats × 3 subjects × 3 scenarios) — see
+  `docs/audits/AUDIT_4.0.12.md`.
+- Regression test in `validation/run.js`: `_sunLonAtJDE()` wall-clock
+  independence (ticking and jumping clock).
+
+### Verification
+- Core suite: 38/38 · Extended benchmarks: 67/67
+- Polar safety: 256/256 · ASC/MC: 104/104 · CJS interop: 18/18
+- Total: 483/483 assertions
+- Clock-stress test: 18,000/18,000 consistent (0 mismatches)
+- Reproducible evidence: `docs/audits/AUDIT_4.0.12.md`
+
+---
+
 ## [4.0.11] — 2026-09
 
 ### Fixed — documentation coherence audit
@@ -45,6 +129,13 @@ in `docs/SCIENTIFIC_VALIDATION.md`.
 
 ### Validation
 - Core suite: 36/36 · Extended benchmarks: 67/67
+
+### Errata (added in 4.0.12)
+This entry originally implied the ΔT and Moon-term corrections were complete.
+They were only applied to `docs/CAELIS_ENGINE_SPEC_v4_0.md`;
+`docs/CAELIS_ENGINE_MATEMATICA_v4_0.md` and `docs/CAELIS_ENGINE_ARQUITECTURA_v4_0.md`
+still had the stale `TT − UTC` definition and the 60-term Moon distance series.
+Corrected in [4.0.12].
 ---
 
 ## [4.0.10] — 2026-09

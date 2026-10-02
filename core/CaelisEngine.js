@@ -825,20 +825,20 @@ const _SEQ_DATA = [
 ];
 
 // Inyectar un JDE en el engine y obtener la longitud solar
-// v4.0.10 note: this function temporarily overrides timeOffset (restored in its
-// own finally block below) to probe the solar longitude at a specific JDE. It does
-// not read or depend on the wall clock, and does not interact with the per-call
-// clock snapshot used by getSnapshot()/getSnapshotAt() - both mechanisms are
-// independent and safe to run nested or sequentially.
+// v4.0.12 note: freezes the shared clock at the exact instant corresponding to jde,
+// so sunLonEcl() (via currentTime()) never reads the real wall clock. Prior to 4.0.12
+// this function read Date.now() directly and was NOT wall-clock independent; a v4.0.10
+// comment incorrectly claimed otherwise. Restored in the finally block below.
 function _sunLonAtJDE(jde){
-  const nowJD  = Date.now()/86400000 + 2440587.5;
-  const saved  = timeOffset;
+  const savedFrozen = _frozenClockSec;
+  const savedOffset = timeOffset;
   let lon;
   try {
-    timeOffset = (jde - nowJD)*86400 - deltaT(jde);
+    _frozenClockSec = (jde - 2440587.5) * 86400 - deltaT(jde);
+    timeOffset = 0;
     lon = sunLonEcl();
   } finally {
-    timeOffset = saved; // always restore — even if sunLonEcl() throws
+    _frozenClockSec = savedFrozen; timeOffset = savedOffset; // always restore — even if sunLonEcl() throws
   }
   return lon;
 }

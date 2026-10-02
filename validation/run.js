@@ -193,6 +193,17 @@ const EPOCHS = [
     ]
   },
   {
+    id:    'sunlonatjde_determinism',
+    label: '_sunLonAtJDE wall-clock independence (v4.0.12 regression)',
+    jd_tt: null,
+    lat:   -33.45,
+    lon:   -70.66,
+    tests: [
+      { field: '__sunlon_clock_ticking', expect: true, tol: null, label: '_sunLonAtJDE: identical output while the wall clock ticks 1ms per read', src: 'Invariant: same jde argument = same solar longitude, independent of wall clock' },
+      { field: '__sunlon_clock_jump',    expect: true, tol: null, label: '_sunLonAtJDE: identical output when the wall clock jumps 1 day between calls', src: 'Invariant: same jde argument = same solar longitude, independent of wall clock' },
+    ]
+  },
+  {
     id:    'schema',
     label: 'Schema v3.1 Invariants',
     jd_tt: null, // current time
@@ -214,6 +225,19 @@ const EPOCHS = [
 
 // ── Field resolver ────────────────────────────────────────────────────
 function resolve(snap, field) {
+  // -- _sunLonAtJDE determinism regression (v4.0.12) ----------------------
+  if (field === '__sunlon_clock_ticking' || field === '__sunlon_clock_jump') {
+    const step = field === '__sunlon_clock_ticking' ? 1 : 86400000;
+    const realNow = Date.now; let t = 1.78e12;
+    try {
+      Date.now = () => t;
+      const ref = _sunLonAtJDE(2451545.0);
+      Date.now = () => (t += step);
+      const probe = _sunLonAtJDE(2451545.0);
+      return ref === probe;
+    } finally { Date.now = realNow; }
+  }
+
   if (field === '__getSnapshot_jdtt_matches_jdutc') {
     const realNow = Date.now; let t = 1.78e12;
     try {

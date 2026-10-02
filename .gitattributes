@@ -1,0 +1,2 @@
+# Pin the engine to LF so its SHA-256 is identical on every platform (see docs/SCIENTIFIC_VALIDATION.md)
+core/CaelisEngine.js text eol=lf
