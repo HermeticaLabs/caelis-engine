@@ -1,6 +1,6 @@
 {
   "name": "caelis-engine",
-  "version": "4.0.12",
+  "version": "4.0.13",
   "description": "Deterministic astronomical computation engine. VSOP87B + ELP/MPP02-LLR. No server. No API key. No dependencies.",
   "author": {
     "name": "Cristian Valeria Bravo",
@@ -25,7 +25,6 @@
     "elp",
     "moon",
     "eclipse",
-    "astrology",
     "javascript",
     "browser",
     "offline",
@@ -41,18 +40,12 @@
       "import": "./core/CaelisEngine.js",
       "require": "./core/CaelisEngine.js",
       "default": "./core/CaelisEngine.js"
-    },
-    "./client": {
-      "import": "./client/AtacirClient.js",
-      "default": "./client/AtacirClient.js"
     }
   },
   "files": [
     "core/CaelisEngine.js",
-    "client/AtacirClient.js",
     "validation/run.js",
     "validation/caelis-validation.html",
-    "docs/",
     "README.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",

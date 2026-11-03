@@ -5,6 +5,23 @@ All notable changes to Caelis Engine are documented in this file.
 Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
+## 4.0.13 2026-11
+- Fixed - Improved ΔT model.
+- Documentation under audit; will be republished without a version change.
+
+### What changed
+ΔT model. Dynamic ΔT mathematics improved. ΔT is now evaluated from the decimal year with three regimes: Espenak & Meeus (2006) piecewise polynomials before 1973; a 75-node piecewise-linear table for 1973–2150 built from USNO observed values (to 2026.75), USNO predictions (to 2033.75) and the previous engine projection (2040–2150); and, after 2150, the Espenak & Meeus parabola shifted so ΔT is continuous at the last table node.
+Sidereal time. gast() now takes JD_UT1 for the Earth-rotation term and JD_TT for the polynomial, nutation and obliquity. Earlier versions passed a JD_TT value to the UT1-based term, producing an offset equal to ΔT multiplied by the sidereal rate (0.28898° at 2026-06-01 23:58 UTC). meta.sidereal.gast_deg, lst_deg and quantities derived from them change accordingly.
+
+### Added
+Internal deltaTUncertainty(year) (not exported, not included in the snapshot).
+
+### Notes
+Declared limitation: no DUT1 or leap-second tables; UT1 is treated as UTC (|UT1 − UTC| < 0.9 s neglected).
+The snapshot carries no ΔT-extrapolation flag; getSnapshotAt() accepts any non-NaN jdTarget.
+Documentation under audit; it will be republished without a version change.
+
+---
 
 ## [4.0.12] — 2026-09
 Type: Determinism · Documentation

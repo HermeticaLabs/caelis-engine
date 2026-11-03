@@ -34,7 +34,8 @@
  * Moon position        ELP/MPP02  Chapront & Francou (2002) A&A 412
  * Nutation             IAU 2000B  Mathews, Herring & Buffett (2002)
  * Obliquity            IAU 2006   Capitaine et al. (2006)
- * Delta-T              IERS table 500-2150 AD + Morrison & Stephenson (2004)
+ * Delta-T              Espenak & Meeus (NASA TP-2006-214141) polynomials before 1973 AD;
+ *                      USNO observed/predicted table 1973-2150 AD; anchored parabola after 2150 AD
  * Aberration           Meeus, Astronomical Algorithms 2nd ed. Ch.23
  * Refraction           Saemundsson (1986), Sky & Telescope 72, 70 (inverse of Bennett 1982)
  * Lunar nodes          Meeus Ch.47
@@ -71,146 +72,281 @@ function _invalidateAstroCache(){
 function julianDateUTC(){ return currentTime()/86400 + 2440587.5; }
 
 // ── ΔT = TT − UT1 ─────────────────────────────────────────────────────────────
-// Tabla extendida: Morrison & Stephenson (2004) + IERS + USNO predictions
-// Rango tabla: 500–2150 AD (interpolación lineal entre puntos)
-// Fuera del rango: polinomio parabólico MS2004 — -20 + 32·((y-1820)/100)²
+// Modelo por tramos (v4.0.13), con el año decimal y = 2000 + (JD − 2451545)/365.25:
+//   y < 1973         Espenak & Meeus (2006), NASA TP-2006-214141: polinomios por tramo
+//                    (−500…1973) y, antes del año −500, la parábola −20 + 32·u²,
+//                    u = (y − 1820)/100. https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html
+//   1973 ≤ y < 2150  tabla con interpolación lineal: nodos anuales del USNO (deltat.data, valor
+//                    del 1 de enero) hasta 2026.75, predicciones del USNO (deltat.preds)
+//                    2027-2033.75 y, después, la proyección previa del motor
+//   y ≥ 2150         parábola de Espenak & Meeus desplazada para empalmar con el último nodo
+//                    de la tabla en 2150 (continuidad): ver _DT_TAIL_OFFSET
+// Las uniones entre polinomios son discontinuidades menores (ver docs/audits/AUDIT_4.0.13.md).
+// Los polinomios de NASA suponen una aceleración secular lunar de −26″/cy²; no se aplica
+// la corrección c = −0.000012932·(y − 1955)² que NASA define para otras efemérides.
 // Referencias:
+//   Espenak & Meeus (2006), NASA TP-2006-214141
 //   Morrison & Stephenson (2004) JHA 35, 327
 //   Stephenson, Morrison & Hohenkerk (2016) Proc. R. Soc. A 472
-//   IERS Bulletins (valores históricos y observados)
-//   USNO Circular 179 (predicciones 2025-2150)
+//   USNO / IERS Rapid Service: maia.usno.navy.mil/ser7 (deltat.data, deltat.preds)
+//   USNO Circular 179 (proyección 2035-2150)
 const deltaTTable=[
-  // ── Antigüedad y Edad Media (MS2004 / Stephenson 2016) ──────────
-  [ 500, 1570], [ 600, 1160], [ 700,  820], [ 800,  620], [ 900,  480],
-  [1000,  380], [1100,  280], [1200,  200], [1300,  140], [1400,  100],
-  [1500,   80], [1550,   55], [1600,   25],
-  // ── Siglos XVII-XIX (IERS / Stephenson 2004) ────────────────────
-  [1620,  87], [1630,  79], [1640,  71], [1650,  65], [1660,  59],
-  [1670,  54], [1680,  49], [1690,  45], [1700,  42], [1710,  38],
-  [1720,  35], [1730,  32], [1740,  30], [1750,  28], [1760,  26],
-  [1770,  24], [1780,  23], [1790,  22], [1800,  14], [1810,  13],
-  [1820,  12], [1830,   9], [1840,   7], [1850,   7], [1860,   8],
-  [1870,   9], [1880,  -3], [1890,  -6], [1900,  -3], [1910,  10],
-  [1920,  21], [1930,  24], [1940,  24], [1950,  29], [1960,  33],
-  [1970,  40], [1975,  45], [1980,  50], [1985,  54], [1990,  57],
-  [1995,  60], [2000,63.8], [2005,64.7], [2010,66.1], [2015,67.6],
-  // ── Presente y futuro próximo (IERS observed + USNO predictions) ──────────
-  // Observed values from IERS EOP data (TAI-UTC=37s baseline from 2017):
-  // ΔT = TT - UT1 = (TAI + 32.184s) - (UTC + DUT1)
-  // Sources: IERS Bulletin A + IERS EOP C01/C04 series
-  // Last update: 2026-09 (Bulletin A, 10 Sep 2026: ΔT ≈ 69.186s at 2026.7)
-  [2020,69.36],[2021,69.28],[2022,69.18],[2023,69.22],[2024,69.30],
-  [2025,69.35],[2026,69.19],
-  // Predictions post-2026 (USNO Circular 179 linear model ~+0.5s/yr):
-  [2028,70.0],[2030,71.0],[2035,73.5],[2040,76.0],
+  // ── 1973-2026.75: ΔT observado, USNO deltat.data, valor del 1 de enero de cada año ──
+  // (ΔT = TT − UT1). Antes de 1973 se usa Espenak & Meeus: el nodo 1973 es el valor de ese
+  // polinomio en 1973.0 (continuidad). Fuente: https://maia.usno.navy.mil/ser7/deltat.data
+  [1973,43.31],
+  [1974,44.48],[1975,45.48],[1976,46.46],[1977,47.52],[1978,48.53],
+  [1979,49.59],[1980,50.54],[1981,51.38],[1982,52.17],[1983,52.96],
+  [1984,53.79],[1985,54.34],[1986,54.87],[1987,55.32],[1988,55.82],
+  [1989,56.30],[1990,56.86],[1991,57.57],[1992,58.31],[1993,59.12],
+  [1994,59.98],[1995,60.79],[1996,61.63],[1997,62.30],[1998,62.97],
+  [1999,63.47],[2000,63.83],[2001,64.09],[2002,64.30],[2003,64.47],
+  [2004,64.57],[2005,64.69],[2006,64.85],[2007,65.15],[2008,65.46],
+  [2009,65.78],[2010,66.07],[2011,66.32],[2012,66.60],[2013,66.91],
+  [2014,67.28],[2015,67.64],[2016,68.10],[2017,68.59],[2018,68.97],
+  [2019,69.22],[2020,69.36],[2021,69.36],[2022,69.29],[2023,69.20],
+  [2024,69.18],[2025,69.14],[2026,69.11],
+  // Última observación incluida: 2026-10-01 (año decimal 2026.75), 69.2065 s.
+  [2026.75,69.21],
+  // ── Predicciones del USNO (deltat.preds), valores en x.00 ───────────────────
+  [2027,69.14],[2028,69.34],[2029,69.63],[2030,69.97],[2031,70.32],[2032,70.62],[2033,70.98],
+  [2033.75,71.25],
+  // ── 2040-2150: proyección previa del motor (USNO Circular 179, modelo lineal); entre
+  // 2033.75 (última predicción del USNO) y 2040 se interpola ──────────────────────────
+  [2040,76.0],
   [2050,87.0], [2060,96.0], [2070,107.], [2080,118.], [2090,131.],
   [2100,146.], [2110,162.], [2120,179.], [2130,197.], [2140,217.],
   [2150,238.],
 ];
 
+// Desplazamiento de la parábola posterior a 2150 para que empalme con el último nodo de la
+// tabla (continuidad en y = 2150): ΔT(y ≥ 2150) = −20 + 32·((y−1820)/100)² − _DT_TAIL_OFFSET.
+const _DT_TAIL_OFFSET = (function(){
+  const u = (2150 - 1820) / 100;
+  return (-20 + 32 * u * u) - deltaTTable[deltaTTable.length - 1][1];
+})();
+
+// Espenak & Meeus (2006): ΔT en segundos para y < 1973 (el último tramo, 1961-1986, es válido
+// hasta 1986; la tabla del USNO toma el relevo en 1973). No usar para y ≥ 1986: la rama final
+// se extrapolaría fuera de su intervalo. deltaT() enruta por año.
+// Coeficientes: https://eclipse.gsfc.nasa.gov/SEcat5/deltatpoly.html (NASA).
+function _deltaTEspenakMeeus(year){
+  if(year < -500){
+    const u = (year - 1820) / 100;
+    return -20 + 32*u*u;
+  }
+  if(year < 500){
+    const u = year / 100;
+    return 10583.6 - 1014.41*u + 33.78311*u*u - 5.952053*u*u*u
+         - 0.1798452*u*u*u*u + 0.022174192*u*u*u*u*u + 0.0090316521*u*u*u*u*u*u;
+  }
+  if(year < 1600){
+    const u = (year - 1000) / 100;
+    return 1574.2 - 556.01*u + 71.23472*u*u + 0.319781*u*u*u
+         - 0.8503463*u*u*u*u - 0.005050998*u*u*u*u*u + 0.0083572073*u*u*u*u*u*u;
+  }
+  if(year < 1700){
+    const t = year - 1600;
+    return 120 - 0.9808*t - 0.01532*t*t + t*t*t/7129;
+  }
+  if(year < 1800){
+    const t = year - 1700;
+    return 8.83 + 0.1603*t - 0.0059285*t*t + 0.00013336*t*t*t - t*t*t*t/1174000;
+  }
+  if(year < 1860){
+    const t = year - 1800;
+    return 13.72 - 0.332447*t + 0.0068612*t*t + 0.0041116*t*t*t - 0.00037436*t*t*t*t
+         + 0.0000121272*t*t*t*t*t - 0.0000001699*t*t*t*t*t*t + 0.000000000875*t*t*t*t*t*t*t;
+  }
+  if(year < 1900){
+    const t = year - 1860;
+    return 7.62 + 0.5737*t - 0.251754*t*t + 0.01680668*t*t*t
+         - 0.0004473624*t*t*t*t + t*t*t*t*t/233174;
+  }
+  if(year < 1920){
+    const t = year - 1900;
+    return -2.79 + 1.494119*t - 0.0598939*t*t + 0.0061966*t*t*t - 0.000197*t*t*t*t;
+  }
+  if(year < 1941){
+    const t = year - 1920;
+    return 21.20 + 0.84493*t - 0.076100*t*t + 0.0020936*t*t*t;
+  }
+  if(year < 1961){
+    const t = year - 1950;
+    return 29.07 + 0.407*t - t*t/233 + t*t*t/2547;
+  }
+  const t = year - 1975;
+  return 45.45 + 1.067*t - t*t/260 - t*t*t/718;
+}
+
+// ── Incertidumbre de ΔT (σ, segundos) ───────────────────────────────────────────
+// Función interna (no se exporta). Devuelve { sigma, model }. Tramos:
+//   y < −1000        Huber (2000), calibrado en −500 (ver _huberSigma)
+//   −1000 … 1200     Morrison & Stephenson (2004): σ = 0.8·t², t = (y − 1820)/100
+//                    (NASA, "Uncertainty in ΔT", Tabla 1)
+//   1200 … 1300      puente lineal propio (aprox.) hasta ~20 s
+//   1300 … 1600      ≈20 s: fluctuación decadal (NASA, "Uncertainty in ΔT")
+//   1600 … 1700      puente lineal propio (aprox.) 20 → 5 s
+//   1700 … 1900      Stephenson & Houlden (1986): 5 s (1700), 1 s (1800), 0.1 s (1900);
+//                    interpolación lineal propia entre esos puntos (NASA, Tabla 2)
+//   1900 … 1973      0.1 s: valor de Stephenson & Houlden (1986) en 1900, mantenido (NASA, Tabla 2);
+//                    no hay σ publicada para el ajuste de Espenak & Meeus en este tramo
+//   1973 … último año observado   0.09 s: máximo error medido de la tabla frente a los valores
+//                    mensuales del USNO (1973-2026, 645 meses): 0.083 s. NO es una σ publicada
+//   posterior        Huber (2000), calibrado en 2005
+// El salto en el límite del último año observado es intencional: hasta allí el valor
+// central procede de mediciones; después es una predicción y la incertidumbre pasa al
+// modelo estadístico.
+// Último año con observaciones en la tabla: 2026.75 (2026-10-01, USNO deltat.data: ΔT =
+// 69.2065 s); desde ahí la tabla sigue las predicciones del USNO. Actualizar con cada
+// actualización de los datos.
+const _DT_LAST_OBSERVED_YEAR = 2026.75;
+function deltaTUncertainty(year){
+  if(year < -1000) return { sigma: _huberSigma(year), model: "huber-2000" };
+  if(year <= 1200){
+    const t = (year - 1820) / 100;
+    return { sigma: 0.8*t*t, model: "morrison-stephenson-2004" };
+  }
+  if(year <= 1300){
+    const s1200 = 0.8*((1200-1820)/100)*((1200-1820)/100);
+    const frac = (year - 1200) / 100;
+    return { sigma: s1200 + frac*(20 - s1200), model: "decade-fluctuation-bridge (approx.)" };
+  }
+  if(year <= 1600) return { sigma: 20, model: "decade-fluctuation-estimate" };
+  if(year <= 1700){
+    const frac = (year - 1600) / 100;
+    return { sigma: 20 + frac*(5 - 20), model: "stephenson-houlden-bridge (approx.)" };
+  }
+  if(year <= 1900){
+    const pts = [[1700,5],[1800,1],[1900,0.1]];
+    for(let i=0;i<pts.length-1;i++){
+      const y0=pts[i][0], s0=pts[i][1], y1=pts[i+1][0], s1=pts[i+1][1];
+      if(year>=y0 && year<=y1) return { sigma: s0 + (year-y0)/(y1-y0)*(s1-s0), model: "stephenson-houlden-1986" };
+    }
+  }
+  if(year <= 1973) return { sigma: 0.1, model: "espenak-meeus-fit (Stephenson-Houlden 1900 value held; not a published sigma)" };
+  if(year <= _DT_LAST_OBSERVED_YEAR) return { sigma: 0.09, model: "usno-observed (measured max error vs monthly data; not a published sigma)" };
+  return { sigma: _huberSigma(year), model: "huber-2000" };
+}
+// Huber (2000), según NASA ("Uncertainty in ΔT"):
+//   σ = 365.25·N·√[(N·Q/3)·(1 + N/M)] / 1000   [s]
+//   N = |año − año de calibración| (calibración: −500 si y < −500; 2005 en el futuro)
+//   M = 2500 años, Q = 0.058 ms²/año
+function _huberSigma(year){
+  const M = 2500, Q = 0.058;
+  const N = Math.abs(year < -500 ? -500 - year : year - 2005);
+  return 365.25 * N * Math.sqrt((N*Q/3)*(1+N/M)) / 1000;
+}
+
+// ΔT = TT − UT1 en segundos para el instante jd; el modelo se evalúa en el año decimal
+// derivado de jd (ver modelo por tramos arriba).
 function deltaT(jd){
   const year = 2000 + (jd - 2451545) / 365.25;
-  // ── Interpolación dentro de la tabla ─────────────────────────────
+  if(year < 1973) return _deltaTEspenakMeeus(year);
+  // ── Interpolación dentro de la tabla (1973-2150) ──────────────────
   for(let i = 0; i < deltaTTable.length - 1; i++){
     const [y0,dt0] = deltaTTable[i], [y1,dt1] = deltaTTable[i+1];
     if(year >= y0 && year < y1)
       return dt0 + (year - y0) / (y1 - y0) * (dt1 - dt0);
   }
-  // ── Extrapolación fuera de la tabla ──────────────────────────────
-  // Morrison & Stephenson (2004): ΔT ≈ −20 + 32·((y−1820)/100)²
-  // Válido para cualquier época — error estimado ±20% fuera de [500,2150]
+  // ── Después de la tabla (y ≥ 2150) ────────────────────────────────
+  // Parábola de Espenak & Meeus desplazada para empalmar con el último nodo (continuidad):
+  //   ΔT = −20 + 32·((y−1820)/100)² − _DT_TAIL_OFFSET
+  // La incertidumbre crece con la distancia: ver deltaTUncertainty().
   const u = (year - 1820) / 100;
-  return -20 + 32 * u * u;
+  return -20 + 32 * u * u - _DT_TAIL_OFFSET;
 }
 function julianDate(){ let j=julianDateUTC(); return j+deltaT(j)/86400; }
 function getJulianCenturies(jd){ return (jd-2451545)/36525; }
 
 
 // ══════════════════════════════════════════════════════════════════
-// IAU 2000B — Nutation (77 lunisolares + términos planetarios folded)
-// Mathews, Herring & Buffett 2002 · IERS Conventions 2003 §5.4
-// Precisión: ΔΨ < 1 mas, Δε < 0.5 mas  (vs IAU 1980: ~10 mas)
-// Columnas: l l' F D Om  ΔΨ_s  ΔΨ_t  Δε_c  Δε_t  (0.1 μas)
+// IAU 2000B — Nutation (77 términos lunisolares + offsets planetarios fijos)
+// Mathews, Herring & Buffett (2002) JGR 107(B4) · IERS Conventions 2003 §5.4
+// McCarthy & Luzum (2003) Celest. Mech. Dyn. Astron. 85, 37 (modelo IAU 2000B)
+// Tabla verificada fila a fila contra ERFA/SOFA eraNut00b en v4.0.13
+// (ver docs/audits/AUDIT_4.0.13.md). Precisión: ver docs/SCIENTIFIC_VALIDATION.md.
+// Columnas: l l' F D Om  ΔΨ_sin  ΔΨ_sin·T  ΔΨ_cos  Δε_cos  Δε_cos·T  Δε_sin  (0.1 μas)
 // ══════════════════════════════════════════════════════════════════
 const _IAU2000B = [
-  // l   l'  F   D   Om      S_i      S_t     C_i    C_t
-  [ 0,  0,  0,  0,  1,-172064161,-174666, 92052331, 9086],
-  [-2,  0,  0,  2,  2, -13170906,  -1675,  5730336,-3015],
-  [ 0,  0,  0,  2,  2,  -2276413,   -234,   978459, -485],
-  [ 0,  0,  0,  0,  2,   2074554,    207,  -897492,  470],
-  [ 0,  1,  0,  0,  0,   1475877,  -3633,    73871, -184],
-  [ 0,  1,  2, -2,  2,   -516821,   1226,   224386, -677],
-  [ 1,  0,  0,  0,  0,    711159,     73,    -6750,    0],
-  [ 0, -1,  2, -2,  2,   -387298,   -367,   200728,   18],
-  [ 0,  0,  2, -2,  1,   -301461,    -36,   129025,  -63],
-  [-2,  1,  0,  2,  0,    215829,   -494,   -95929,  299],
-  [ 0,  0,  2, -2,  0,    128227,    137,    -68982,    0],
-  [-2,  0,  2,  0,  1,    123457,     11,    -53311,   32],
-  [-2,  0,  0,  2,  1,    156994,     10,    -1235,    0],
-  [ 1,  0,  0,  0,  1,     63110,     63,   -33228,    0],
-  [-1,  0,  0,  0,  1,    -57976,    -63,    31429,    0],
-  [-2,  0, -2,  0,  1,    -59641,    -11,    25543,    0],
-  [ 0,  0,  0,  2,  0,    -51613,    -42,     0,       0],
-  [ 2,  0,  0, -2,  0,     45893,     50,     0,       0],
-  [ 0,  0,  2,  0,  2,     63384,     11,   -27605,    0],
-  [ 0,  0,  0,  0,  0,   -38571,    -10,     0,       0],
-  [ 0, -2,  2, -2,  1,    -39180,    -37,    20072,    0],
-  [ 2,  0,  0,  0,  0,     27816,    -18,     0,       0],
-  [ 0,  1,  0,  0,  1,    -29433,    -10,    14492,    0],
-  [ 0, -1,  0,  0,  1,    -25831,     12,    13384,    0],
-  [-2,  0,  2,  0,  2,     24386,    -13,   -10524,    0],
-  [ 0,  0, -2,  2,  0,    -16729,    -37,     0,       0],
-  [ 2,  0, -2,  0,  1,     -8547,    -10,     4609,    0],
-  [ 0,  1,  2, -2,  1,      8734,     -4,    -4214,    0],
-  [ 0, -1, -2,  2,  1,     -6766,     14,     3258,    0],
-  [-1,  0,  0,  1,  0,     -5773,    -11,      0,      0],
-  [ 0, -1,  2,  0,  2,     -6176,    -13,     2748,    0],
-  [ 0,  0,  2, -2, -1,      5765,      0,       0,     0],
-  [ 2,  0,  2,  0,  2,    -13831,     -5,     5953,    0],
-  [-2, -1,  0,  2,  2,      5766,      3,    -2535,    0],
-  [ 2,  0,  0, -2,  1,     -5536,     -3,     2680,    0],
-  [-2,  0,  2,  2,  2,     -5142,     -3,     2241,    0],
-  [-2, -1,  2,  0,  1,     -4516,      0,     1988,    0],
-  [ 0,  1, -2,  2,  1,      4843,      0,    -2358,    0],
-  [ 0,  1,  0,  0,  2,     -4130,      0,     1806,    0],
-  [-1,  0,  0,  1,  1,      3745,      0,    -1578,    0],
-  [ 0,  0,  0,  2,  1,     -3621,      0,     1579,    0],
-  [-1,  0,  2,  0,  1,     -3613,      0,     1578,    0],
-  [ 0,  0,  2,  2,  2,     -3573,      0,     1550,    0],
-  [ 0, -1,  2,  2,  2,     -4485,      0,     1965,    0],
-  [-1, -1,  0,  2,  1,      3413,      0,    -1449,    0],
-  [-2,  0,  0,  0,  1,     -4174,      0,     1753,    0],
-  [ 0, -1, -2,  2,  0,     -3284,      0,        0,    0],
-  [ 1,  0,  2,  0,  1,      3023,      0,    -1309,    0],
-  [ 0, -1,  0,  2,  0,      3023,      0,        0,    0],
-  [-1, -1,  2,  0,  2,      2884,      0,    -1251,    0],
-  [ 1, -1,  0,  0,  0,     -2842,      0,        0,    0],
-  [ 0,  1,  0, -2,  0,     -2653,      0,        0,    0],
-  [ 2,  0,  0,  0,  1,     -2418,      0,     1029,    0],
-  [-2, -1,  0,  2,  0,     -2329,      0,        0,    0],
-  [ 0,  1,  2,  0,  2,      2359,      0,    -1062,    0],
-  [ 2, -1,  0,  0,  0,      2202,      0,        0,    0],
-  [ 0,  0, -2,  2,  1,      2129,      0,      -952,   0],
-  [-1, -1,  2,  2,  2,     -1779,      0,       811,   0],
-  [-1,  0,  2, -2,  1,     -1666,      0,       747,   0],
-  [ 2,  0,  0,  2,  0,     -1673,      0,        0,    0],
-  [ 0,  1,  0,  2,  0,     -1478,      0,        0,    0],
-  [ 0,  1, -2,  0,  0,      1259,      0,        0,    0],
-  [ 0,  0,  2,  0,  1,      1181,      0,      -519,   0],
-  [ 2,  0, -2,  0,  0,     -1149,      0,        0,    0],
-  [-1,  0,  0,  2,  2,     -1060,      0,       461,   0],
-  [ 0,  0, -2,  0,  1,     -1018,      0,       448,   0],
-  [ 0,  1,  2,  2,  2,      -963,      0,       421,   0],
-  [ 1,  1,  0,  0,  0,       997,      0,        0,    0],
-  [-2,  1,  0,  0,  0,       949,      0,        0,    0],
-  [ 2,  0,  2, -2,  2,      -938,      0,       407,   0],
-  [ 0,  0,  0, -2,  0,       945,      0,        0,    0],
-  [-1,  0,  2,  2,  1,      -896,      0,       390,   0],
-  [ 0,  0,  2, -4,  2,       862,      0,      -376,   0],
-  [-2,  1,  2,  0,  2,       856,      0,      -373,   0],
-  [-1,  0,  0,  0,  2,       813,      0,      -353,   0],
-  [ 0,  0,  2,  0,  0,       807,      0,        0,    0],
-  [ 0,  1, -2,  2,  0,      -820,      0,        0,    0],
+  // l   l'  F   D   Om     ΔΨ_sin  ΔΨ_sin·T  ΔΨ_cos   Δε_cos  Δε_cos·T  Δε_sin
+  [ 0,  0,  0,  0,  1, -172064161, -174666,   33386,  92052331,   9086,  15377],
+  [ 0,  0,  2, -2,  2,  -13170906,   -1675,  -13696,   5730336,  -3015,  -4587],
+  [ 0,  0,  2,  0,  2,   -2276413,    -234,    2796,    978459,   -485,   1374],
+  [ 0,  0,  0,  0,  2,    2074554,     207,    -698,   -897492,    470,   -291],
+  [ 0,  1,  0,  0,  0,    1475877,   -3633,   11817,     73871,   -184,  -1924],
+  [ 0,  1,  2, -2,  2,    -516821,    1226,    -524,    224386,   -677,   -174],
+  [ 1,  0,  0,  0,  0,     711159,      73,    -872,     -6750,      0,    358],
+  [ 0,  0,  2,  0,  1,    -387298,    -367,     380,    200728,     18,    318],
+  [ 1,  0,  2,  0,  2,    -301461,     -36,     816,    129025,    -63,    367],
+  [ 0, -1,  2, -2,  2,     215829,    -494,     111,    -95929,    299,    132],
+  [ 0,  0,  2, -2,  1,     128227,     137,     181,    -68982,     -9,     39],
+  [-1,  0,  2,  0,  2,     123457,      11,      19,    -53311,     32,     -4],
+  [-1,  0,  0,  2,  0,     156994,      10,    -168,     -1235,      0,     82],
+  [ 1,  0,  0,  0,  1,      63110,      63,      27,    -33228,      0,     -9],
+  [-1,  0,  0,  0,  1,     -57976,     -63,    -189,     31429,      0,    -75],
+  [-1,  0,  2,  2,  2,     -59641,     -11,     149,     25543,    -11,     66],
+  [ 1,  0,  2,  0,  1,     -51613,     -42,     129,     26366,      0,     78],
+  [-2,  0,  2,  0,  1,      45893,      50,      31,    -24236,    -10,     20],
+  [ 0,  0,  0,  2,  0,      63384,      11,    -150,     -1220,      0,     29],
+  [ 0,  0,  2,  2,  2,     -38571,      -1,     158,     16452,    -11,     68],
+  [ 0, -2,  2, -2,  2,      32481,       0,       0,    -13870,      0,      0],
+  [-2,  0,  0,  2,  0,     -47722,       0,     -18,       477,      0,    -25],
+  [ 2,  0,  2,  0,  2,     -31046,      -1,     131,     13238,    -11,     59],
+  [ 1,  0,  2, -2,  2,      28593,       0,      -1,    -12338,     10,     -3],
+  [-1,  0,  2,  0,  1,      20441,      21,      10,    -10758,      0,     -3],
+  [ 2,  0,  0,  0,  0,      29243,       0,     -74,      -609,      0,     13],
+  [ 0,  0,  2,  0,  0,      25887,       0,     -66,      -550,      0,     11],
+  [ 0,  1,  0,  0,  1,     -14053,     -25,      79,      8551,     -2,    -45],
+  [-1,  0,  0,  2,  1,      15164,      10,      11,     -8001,      0,     -1],
+  [ 0,  2,  2, -2,  2,     -15794,      72,     -16,      6850,    -42,     -5],
+  [ 0,  0, -2,  2,  0,      21783,       0,      13,      -167,      0,     13],
+  [ 1,  0,  0, -2,  1,     -12873,     -10,     -37,      6953,      0,    -14],
+  [ 0, -1,  0,  0,  1,     -12654,      11,      63,      6415,      0,     26],
+  [-1,  0,  2,  2,  1,     -10204,       0,      25,      5222,      0,     15],
+  [ 0,  2,  0,  0,  0,      16707,     -85,     -10,       168,     -1,     10],
+  [ 1,  0,  2,  2,  2,      -7691,       0,      44,      3268,      0,     19],
+  [-2,  0,  2,  0,  0,     -11024,       0,     -14,       104,      0,      2],
+  [ 0,  1,  2,  0,  2,       7566,     -21,     -11,     -3250,      0,     -5],
+  [ 0,  0,  2,  2,  1,      -6637,     -11,      25,      3353,      0,     14],
+  [ 0, -1,  2,  0,  2,      -7141,      21,       8,      3070,      0,      4],
+  [ 0,  0,  0,  2,  1,      -6302,     -11,       2,      3272,      0,      4],
+  [ 1,  0,  2, -2,  1,       5800,      10,       2,     -3045,      0,     -1],
+  [ 2,  0,  2, -2,  2,       6443,       0,      -7,     -2768,      0,     -4],
+  [-2,  0,  0,  2,  1,      -5774,     -11,     -15,      3041,      0,     -5],
+  [ 2,  0,  2,  0,  1,      -5350,       0,      21,      2695,      0,     12],
+  [ 0, -1,  2, -2,  1,      -4752,     -11,      -3,      2719,      0,     -3],
+  [ 0,  0,  0, -2,  1,      -4940,     -11,     -21,      2720,      0,     -9],
+  [-1, -1,  0,  2,  0,       7350,       0,      -8,       -51,      0,      4],
+  [ 2,  0,  0, -2,  1,       4065,       0,       6,     -2206,      0,      1],
+  [ 1,  0,  0,  2,  0,       6579,       0,     -24,      -199,      0,      2],
+  [ 0,  1,  2, -2,  1,       3579,       0,       5,     -1900,      0,      1],
+  [ 1, -1,  0,  0,  0,       4725,       0,      -6,       -41,      0,      3],
+  [-2,  0,  2,  0,  2,      -3075,       0,      -2,      1313,      0,     -1],
+  [ 3,  0,  2,  0,  2,      -2904,       0,      15,      1233,      0,      7],
+  [ 0, -1,  0,  2,  0,       4348,       0,     -10,       -81,      0,      2],
+  [ 1, -1,  2,  0,  2,      -2878,       0,       8,      1232,      0,      4],
+  [ 0,  0,  0,  1,  0,      -4230,       0,       5,       -20,      0,     -2],
+  [-1, -1,  2,  2,  2,      -2819,       0,       7,      1207,      0,      3],
+  [-1,  0,  2,  0,  0,      -4056,       0,       5,        40,      0,     -2],
+  [ 0, -1,  2,  2,  2,      -2647,       0,      11,      1129,      0,      5],
+  [-2,  0,  0,  0,  1,      -2294,       0,     -10,      1266,      0,     -4],
+  [ 1,  1,  2,  0,  2,       2481,       0,      -7,     -1062,      0,     -3],
+  [ 2,  0,  0,  0,  1,       2179,       0,      -2,     -1129,      0,     -2],
+  [-1,  1,  0,  1,  0,       3276,       0,       1,        -9,      0,      0],
+  [ 1,  1,  0,  0,  0,      -3389,       0,       5,        35,      0,     -2],
+  [ 1,  0,  2,  0,  0,       3339,       0,     -13,      -107,      0,      1],
+  [-1,  0,  2, -2,  1,      -1987,       0,      -6,      1073,      0,     -2],
+  [ 1,  0,  0,  0,  2,      -1981,       0,       0,       854,      0,      0],
+  [-1,  0,  0,  1,  0,       4026,       0,    -353,      -553,      0,   -139],
+  [ 0,  0,  2,  1,  2,       1660,       0,      -5,      -710,      0,     -2],
+  [-1,  0,  2,  4,  2,      -1521,       0,       9,       647,      0,      4],
+  [-1,  1,  0,  1,  1,       1314,       0,       0,      -700,      0,      0],
+  [ 0, -2,  2, -2,  1,      -1283,       0,       0,       672,      0,      0],
+  [ 1,  0,  2,  2,  1,      -1331,       0,       8,       663,      0,      4],
+  [-2,  0,  2,  2,  2,       1383,       0,      -2,      -594,      0,     -2],
+  [-1,  0,  0,  0,  2,       1405,       0,       4,      -610,      0,      2],
+  [ 1,  1,  2, -2,  2,       1290,       0,       0,      -556,      0,      0],
 ];
 
 // Cache de nutación IAU 2000B
@@ -236,17 +372,23 @@ function nutation(T){
   const Om = (450160.398036 + T*(-6962890.5431 + T*(7.4722
               + T*(0.007702 - T*0.00005939)))) % 1296000 * deg2rad / 3600;
 
+  // Suma de la serie lunisolar IAU 2000B (términos pequeños primero, como ERFA eraNut00b).
+  // Cada término: (ΔΨ_sin + ΔΨ_sin·T)·sin(arg) + ΔΨ_cos·cos(arg)
+  //               (Δε_cos + Δε_cos·T)·cos(arg) + Δε_sin·sin(arg)
   let dPsi = 0, dEps = 0;
-  for(const r of _IAU2000B){
+  for(let i = _IAU2000B.length - 1; i >= 0; i--){
+    const r = _IAU2000B[i];
     const arg = r[0]*l + r[1]*lp + r[2]*F + r[3]*D + r[4]*Om;
-    dPsi += (r[5] + r[6]*T) * Math.sin(arg);
-    dEps += (r[7] + r[8]*T) * Math.cos(arg);
+    const sa = Math.sin(arg), ca = Math.cos(arg);
+    dPsi += (r[5] + r[6]*T) * sa + r[7] * ca;
+    dEps += (r[8] + r[9]*T) * ca + r[10] * sa;
   }
 
-  // Convertir de 0.1 μas → radianes
-  // 0.1 μas × (1/10) × (1/1e6) × (π/648000) rad/arcsec
+  // Convertir de 0.1 μas → radianes, y sumar los offsets fijos de IAU 2000B en lugar de
+  // los términos planetarios: ΔΨ −0.135 mas, Δε +0.388 mas (ERFA eraNut00b).
   const factor = 0.1e-6 * deg2rad / 3600;
-  _nutCache  = { deltaPsi: dPsi * factor, deltaEps: dEps * factor };
+  const mas    = 1e-3 * deg2rad / 3600;
+  _nutCache  = { deltaPsi: dPsi * factor - 0.135 * mas, deltaEps: dEps * factor + 0.388 * mas };
   _nutCacheT = T;
   return _nutCache;
 }
@@ -262,8 +404,13 @@ function meanObliquity(T){
 function trueObliquity(T){ return meanObliquity(T) + nutation(T).deltaEps; }
 
 
-function gast(jd){
-  let T=getJulianCenturies(jd);
+// gast(jd, jd_tt): tiempo sidéreo aparente de Greenwich, en grados. jd DEBE ser JD_UT1 (la ERA
+// se define en UT1). jd_tt (opcional) es el JD en TT para el polinomio de GMST, la nutación y la
+// oblicuidad, como en ERFA eraGst06a(uta, utb, tta, ttb). Si se omite se usa jd para todo
+// (diferencia de ≈1e-4″ en 2026 y ≈0.03″ en −500; compatibilidad con v4.0.12 y anteriores).
+// Con jd_tt en lugar de UT1 el resultado se desvía ΔT·velocidad sidérea (defecto de v4.0.12).
+function gast(jd, jd_tt){
+  let T=getJulianCenturies(jd_tt===undefined ? jd : jd_tt);
   let gmst=86400*(0.7790572732640+1.00273781191135448*(jd-2451545));
   gmst=((gmst%86400)+86400)%86400;
   let gmstDeg=gmst/86400*360;
@@ -276,7 +423,8 @@ function gast(jd){
 }
 function getLST(){
   let JD=julianDate();
-  return(((gast(JD)+lon*rad2deg)%360)+360)%360*deg2rad;
+  let JD_UT1=JD-deltaT(JD)/86400;
+  return(((gast(JD_UT1, JD)+lon*rad2deg)%360)+360)%360*deg2rad;
 }
 
 function geocentricRadius(){
@@ -1072,7 +1220,8 @@ function getSnapshot(config){
   let eps_mean = meanObliquity(T);                    // mean obliquity (radians)
 
   // ── 3. Sidereal time ────────────────────────────────────────────────────
-  let GAST   = gast(jd_tt);                           // GAST (degrees)
+  let jd_ut1 = jd_tt - dT_sec / 86400;                 // JD_UT1 (TT - deltaT)
+  let GAST   = gast(jd_ut1, jd_tt);                          // GAST (degrees), v4.0.13: was gast(jd_tt), a bug
   let LST    = getLST() * rad2deg;                    // LST (degrees)
 
   // ── 4. Planet positions (VSOP87B + light-time + aberration + nutation) ──
@@ -1191,6 +1340,7 @@ function getSnapshot(config){
     meta: {
       jd_tt,
       jd_utc,
+      jd_ut1,
       utc:           now.toISOString(),
       timestamp:     currentTime(),
       delta_t_sec:   +dT_sec.toFixed(2),
@@ -1199,11 +1349,11 @@ function getSnapshot(config){
         lon_deg:     lon * rad2deg
       },
       frame: {
-        nutation:    'IAU 2000B (77 luni-solar terms, Mathews et al. 2002)',
+        nutation:    'IAU 2000B (77 luni-solar terms + fixed planetary offsets, Mathews et al. 2002)',
         obliquity:   'IAU 2006 (Capitaine et al. 2006)',
         planets:     'VSOP87B (Bretagnon & Francou 1987) + Meeus App.II',
         moon:        'ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+29R',
-        delta_t:     'Morrison & Stephenson (2004) + IERS table 500-2150 AD',
+        delta_t:     'Espenak & Meeus (2006) polynomials before 1973 AD + USNO observed/predicted table 1973-2150 AD + parabola anchored to the table after 2150 AD',
         aberration:  'Annual (κ=9.9365e-5, Meeus Ch.23)',
         refraction:  'Saemundsson (1986), ISA standard atmosphere',
         above_horizon_criterion: 'geometric (unrefracted)'
@@ -1351,9 +1501,12 @@ function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
     throw new RangeError('getSnapshotAt: observer lat/lon must be valid numbers');
 
   // ── Cálculo determinista directo desde jd_tt ──────────────────────────────
-  // No usa timeOffset + Date.now() — elimina race condition y garantiza
-  // que jdTarget es exactamente el JD_TT usado en el pipeline.
+  // No usa Date.now(): elimina la condición de carrera con el reloj.
   // Invariante: mismo jdTarget + misma ubicación = mismo snapshot siempre.
+  // jdTarget se interpreta como JD_TT. El pipeline interno parte de jd_utc ≈ jd_ut1
+  // (= jdTarget − ΔT/86400) y re-deriva jd_tt = jd_utc + ΔT(jd_utc)/86400: coincide con
+  // jdTarget salvo si ΔT es discontinuo entre ambos instantes (uniones entre polinomios),
+  // en una ventana de ΔT segundos. meta.jd_tt siempre reporta el jdTarget pedido.
 
   const savedLat = lat, savedLon = lon;
   lat = latDeg * deg2rad;
@@ -1373,12 +1526,15 @@ function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
 }
 
 // ── Motor interno: calcula snapshot desde JD_TT explícito ────────────────────
-// Usa timeOffset internamente para alinear currentTime() con el JD objetivo.
-// try/finally garantiza que timeOffset se restaura siempre.
+// Congela el reloj compartido (_frozenClockSec) en el instante jd_utc ≈ jd_ut1 para que
+// currentTime() coincida con el JD objetivo. try/finally lo restaura siempre.
 function _getSnapshotFromJD(jd_tt_explicit){
   const jd_tt  = jd_tt_explicit;
   const dT_sec = deltaT(jd_tt);
-  const jd_utc = jd_tt - dT_sec / 86400;
+  const jd_ut1 = jd_tt - dT_sec / 86400;
+  // v4.0.13: jd_utc approximated as jd_ut1 (DUT1 < 0.9s, no DUT1 table in
+  // this engine; declared limitation, see docs/audits/AUDIT_4.0.13.md).
+  const jd_utc = jd_ut1;
   const T      = (jd_tt - 2451545.0) / 36525;
   const now_d  = new Date((jd_utc - 2440587.5) * 86400000);
 

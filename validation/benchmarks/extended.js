@@ -35,6 +35,8 @@
  *      Published planet positions verified independently
  *
  * [C]  Caelis Engine v4.0 canonical output — regression baseline
+  * [R]  ERFA/SOFA (pyerfa 2.0.1.5) — official IAU implementation (golden vectors in validation/run.js)
+  * [P]  NASA, Espenak & Meeus (eclipse.gsfc.nasa.gov/SEcat5) — ΔT polynomials and tables
  *      Values produced by the engine and locked for regression detection
  * ─────────────────────────────────────────────────────────────────────────
  *
@@ -90,16 +92,16 @@ const BENCHMARK_EPOCHS = [
     id: 'j2000', label: 'J2000.0', jd_tt: 2451545.0, lat: 51.5, lon: -0.1,
     tests: [
       { field: 'meta.obliquity.mean_deg',           expect: 23.43929,   tol: 0.0005,  label: 'Mean obliquity ε₀',              src: '[S] IAU 2006 polynomial T=0 → 84381.406″' },
-      { field: 'meta.obliquity.true_deg',            expect: 23.4377,    tol: 0.0005,  label: 'True obliquity ε',               src: '[S] IAU 2006 + IAU 2000B ΔεJ2000.0' },
-      { field: 'meta.sidereal.gast_deg',             expect: 280.461,    tol: 0.050,   label: 'GAST',                           src: '[M] Ch.12 p.88 ≈280.46°' },
+      { field: 'meta.obliquity.true_deg',            expect: 23.437677,  tol: 0.00001, label: 'True obliquity ε',               src: '[R] ERFA obl06 + nut00b at J2000.0 = 23.4376768°' },
+      { field: 'meta.sidereal.gast_deg',             expect: 280.19039,  tol: 0.00002, label: 'GAST',                           src: '[R] ERFA gst06a at the engine UT1 (J2000.0 - 63.83 s); Meeus Ch.12 ≈280.46° is at UT1 = J2000.0' },
       { field: 'meta.delta_t_sec',                   expect: 63.83,      tol: 0.5,     label: 'ΔT',                             src: '[I] IERS table 2000-Jan interpolated' },
       { field: 'bodies.Sol.lon_ecl_geocentric_deg',  expect: 280.378,    tol: 0.010,   label: 'Sol λ geocentric',               src: '[V] VSOP87B L_earth=100.464°+180+aberr+ΔΨ' },
       { field: 'bodies.Sol.ra_deg',                  expect: 281.278,    tol: 0.020,   label: 'Sol RA geocentric apparent',      src: '[C] Caelis v4.0 canonical — RA differs from λ due to aberration+nutation' },
       { field: 'bodies.Luna.lon_ecl_geocentric_deg', expect: 223.315,    tol: 0.500,   label: 'Luna λ geocentric',              src: '[E] ELP/MPP02-LLR W1+perturbations; W1 mean=218.316°' },
       { field: 'bodies.Jupiter.lon_ecl_geocentric_deg', expect: 25.258,  tol: 0.020,   label: 'Jupiter λ',                      src: '[V] VSOP87B full series J2000.0' },
       { field: 'bodies.Venus.lon_ecl_geocentric_deg',   expect: 241.570, tol: 0.050,   label: 'Venus λ geocentric',              src: '[C] Caelis v4.0 canonical at J2000.0' },
-      { field: 'meta.nutation.delta_psi_arcsec',     expect: -13.655,    tol: 0.100,   label: 'ΔΨ nutation',                    src: '[S] IAU 2000B 77 terms at T=0' },
-      { field: 'meta.nutation.delta_eps_arcsec',     expect: -5.816,     tol: 0.100,   label: 'Δε nutation',                    src: '[S] IAU 2000B 77 terms at T=0' },
+      { field: 'meta.nutation.delta_psi_arcsec',     expect: -13.93166,  tol: 0.0005,  label: 'ΔΨ nutation',                    src: '[R] ERFA eraNut00b (IAU 2000B) at J2000.0' },
+      { field: 'meta.nutation.delta_eps_arcsec',     expect: -5.76942,   tol: 0.0005,  label: 'Δε nutation',                    src: '[R] ERFA eraNut00b (IAU 2000B) at J2000.0' },
     ]
   },
 
@@ -113,7 +115,7 @@ const BENCHMARK_EPOCHS = [
     tests: [
       { field: 'meta.obliquity.true_deg',            expect: 23.4436,    tol: 0.001,   label: 'True obliquity ε',               src: '[M] Ch.22 p.148: ε = 23°26′36.9″ = 23.4436°' },
       { field: 'meta.obliquity.mean_deg',            expect: 23.4407,    tol: 0.001,   label: 'Mean obliquity ε₀',              src: '[M] Ch.22 p.148: ε₀ = 23°26′27.4″ = 23.4409°' },
-      { field: 'meta.nutation.delta_psi_arcsec',     expect: -2.624,     tol: 0.200,   label: 'ΔΨ (IAU 2000B)',                 src: '[M] Ch.22 uses IAU 1980 (-3.788″); IAU 2000B differs' },
+      { field: 'meta.nutation.delta_psi_arcsec',     expect: -3.78089,   tol: 0.001,   label: 'ΔΨ (IAU 2000B)',                 src: '[R] ERFA eraNut00b = -3.78089″; Meeus Ch.22 (IAU 1980) gives -3.788″' },
       { field: 'meta.delta_t_sec',                   expect: 55.36,      tol: 1.0,     label: 'ΔT',                             src: '[I] IERS historical ≈54-56s at 1987' },
       { field: 'bodies.Sol.lon_ecl_geocentric_deg',  expect: 19.606,     tol: 0.020,   label: 'Sol λ (VSOP87B)',                src: '[V] VSOP87B full; Meeus Ch.25 simplified gives 201.8°' },
       { field: 'bodies.Luna.lon_ecl_geocentric_deg', expect: 150.270,    tol: 0.100,   label: 'Luna λ (ELP/MPP02-LLR)',         src: '[E] ELP/MPP02 full; Meeus Ch.47 ELP truncated ≈133°' },
@@ -189,10 +191,10 @@ const BENCHMARK_EPOCHS = [
   {
     id: 'epoch_2050', label: 'Future 2050-Jan-01', jd_tt: 2469807.0, lat: -33.45, lon: -70.66,
     tests: [
-      { field: 'meta.delta_t_sec',                    expect: 93.0,      tol: 10.0,    label: 'ΔT at 2050 (extrapolated)',      src: '[I] IERS projected; uncertainty ±10s beyond 2025' },
+      { field: 'meta.delta_t_sec',                    expect: 93.0,      tol: 10.0,    label: 'ΔT at 2050 (table prediction)',  src: '[P] NASA Espenak-Meeus 2005-2050 polynomial gives 93 s; Caelis table gives 87 s (within the declared ±10 s beyond 2025)' },
       { field: 'meta.obliquity.mean_deg',             expect: 23.4328,   tol: 0.002,   label: 'Mean obliquity ε₀ at 2050',      src: '[S] IAU 2006 polynomial; T=+0.5 → 84382.406-23.418=23.4328°' },
       { field: 'bodies.Sol.lon_ecl_geocentric_deg',   expect: 280.239,   tol: 0.050,   label: 'Sol λ at 2050-Jan-01',           src: '[C] Caelis v4.0 at 2050-Jan-01; ΔΨ and aberration shift from raw VSOP87' },
-      { field: 'meta.nutation.delta_psi_arcsec',      expect: 15.376,    tol: 10.0,    label: 'ΔΨ at 2050 (IAU 2000B)',         src: '[C] Caelis v4.0 canonical; nutation is epoch-dependent' },
+      { field: 'meta.nutation.delta_psi_arcsec',      expect: 15.18900,    tol: 0.001,   label: 'ΔΨ at 2050 (IAU 2000B)',         src: '[R] ERFA eraNut00b at JD_TT 2469807.0' },
     ]
   },
 
@@ -204,11 +206,11 @@ const BENCHMARK_EPOCHS = [
   {
     id: 'regression_2026', label: 'Caelis v4.0 Regression (2026-Jun-01 Santiago)', jd_tt: 2461193.499437, lat: -33.45, lon: -70.66,
     tests: [
-      { field: 'meta.obliquity.true_deg',               expect: 23.4383,   tol: 0.0001, label: 'True obliquity ε',               src: '[C] Caelis v4.0 canonical output' },
-      { field: 'meta.sidereal.lst_deg',                  expect: 179.618,   tol: 0.050,  label: 'LST at Santiago',                src: '[C] Caelis v4.0 canonical output' },
+      { field: 'meta.obliquity.true_deg',               expect: 23.437975, tol: 0.00001, label: 'True obliquity ε',               src: '[R] ERFA obl06 + nut00b = 23.4379748°' },
+      { field: 'meta.sidereal.lst_deg',                  expect: 179.32872, tol: 0.00002, label: 'LST at Santiago',                src: '[R] ERFA gst06a at the engine UT1 + lon -70.66° = 179.3287198°' },
       { field: 'meta.delta_t_sec',                       expect: 69.19,     tol: 0.5,    label: 'ΔT (IERS Bulletin A Sep 2026)',   src: '[I] TAI-UTC=37s, UT1-UTC=-0.001527s → ΔT=69.186s' },
       { field: 'bodies.Sol.lon_ecl_geocentric_deg',      expect: 71.498,    tol: 0.005,  label: 'Sol λ',                          src: '[C] Caelis v4.0 canonical output' },
-      { field: 'bodies.Sol.alt_geometric_deg',           expect: -27.896,   tol: 0.100,  label: 'Sol altitude geometric',         src: '[C] Caelis v4.0 canonical output' },
+      { field: 'bodies.Sol.alt_geometric_deg',           expect: -27.65872, tol: 0.001,  label: 'Sol altitude geometric',         src: '[C] v4.0.13 regression baseline' },
       { field: 'bodies.Sol.above_horizon',               expect: false,     tol: null,   label: 'Sol below horizon (night)',       src: '[C] Santiago 23:58 UTC = night' },
       { field: 'bodies.Luna.lon_ecl_geocentric_deg',     expect: 269.330,   tol: 0.020,  label: 'Luna λ geocentric',              src: '[C] Caelis v4.0 canonical output' },
       { field: 'bodies.Luna.lon_ecl_topocentric_deg',    expect: 270.082,   tol: 0.050,  label: 'Luna λ topocentric',             src: '[C] Caelis v4.0 canonical output — parallax ~57′' },
@@ -249,8 +251,8 @@ const BENCHMARK_EPOCHS = [
     id: 'precision_bounds', label: 'Declared Precision Bounds (multi-epoch)', jd_tt: null, lat: 0.0, lon: 0.0,
     tests: [
       { field: '__obliquity_within_001deg',    expect: true,   tol: null,  label: 'Obliquity within ±0.001° of IAU 2006',           src: '[S] Declared bound: IAU 2006 5th-degree polynomial' },
-      { field: '__nutation_within_bounds',     expect: true,   tol: null,  label: 'Nutation ΔΨ < 20″, Δε < 10″ (IAU 2000B bounds)', src: '[S] IAU 2000B vs 2000A diff < 1 mas; test verifies values are in expected range' },
-      { field: '__dt_within_05s',             expect: true,   tol: null,  label: 'ΔT within ±0.5s of IERS table in [500,2150]',   src: '[I] IERS linear interpolation in table range' },
+      { field: '__nutation_within_bounds',     expect: true,   tol: null,  label: 'Nutation ΔΨ < 20″, Δε < 10″ (IAU 2000B bounds)', src: '[S] IAU 2000B bounds; accuracy vs ERFA measured in validation/run.js (erfa_golden group)' },
+      { field: '__dt_within_05s',             expect: true,   tol: null,  label: 'ΔT within ±0.5s of IERS observed values (1987, 1992, 2000)', src: '[I] IERS observed; since v4.0.13 the table covers 1900-2150 (Espenak-Meeus polynomials before 1900)' },
       { field: '__luna_geo_topo_differ',       expect: true,   tol: null,  label: 'Luna geocentric ≠ topocentric (parallax active)', src: 'Invariant I-6: WGS-84 topocentric correction applied' },
       { field: '__refraction_applied',         expect: true,   tol: null,  label: 'Apparent alt > geometric alt for visible bodies', src: 'Saemundsson refraction applied when alt > -1°' },
     ]

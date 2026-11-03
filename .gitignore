@@ -46,3 +46,6 @@ atacir/plugins/
 atacir/Atacir.compute.js
 atacir/AtacirBase.js
 atacir/AtacirToggleUI.js
+
+# TEMPORAL: docs en auditoria (v4.0.13). Quitar esta linea para volver a publicarlos.
+docs/

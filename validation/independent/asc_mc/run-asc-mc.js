@@ -18,14 +18,21 @@
  *   Combined validation  — 6 epochs × 6 observers                = 36 cases
  *   Total                                                         = 104 cases
  *
- * ENGINEERING TOLERANCES (cross-implementation differential):
- *   GAST/LST: ±30 arcsec
- *   ASC:      ±120 arcsec
- *   MC:       ±60 arcsec
+ * TOLERANCES (cross-implementation differential, tightened in v4.0.13):
+ *   GAST/LST: ±0.01 arcsec
+ *   ASC:      ±0.02 arcsec
+ *   MC:       ±0.01 arcsec
+ * Measured residuals are ~0.001-0.002 arcsec, limited by the 6-decimal (degrees)
+ * rounding of the engine output. The reference shares its algorithms and nutation
+ * coefficients with the engine (different code, same published data), so this suite
+ * checks implementation consistency; independent evidence comes from the ERFA golden
+ * vectors in validation/independent/erfa_golden_vectors.json (see validation/run.js).
  *
- * NOTE: These are engineering tolerances for differential verification —
- * not algorithmic precision bounds. The ~15" RMS residuals reflect the
- * JD_TT simplification in Caelis Engine (see SCIENTIFIC_VALIDATION.md L2-B).
+ * NOTE: Since v4.0.13 the reference is fed the engine's own UT1 (snap.meta.jd_ut1), so
+ * this suite isolates sidereal time, nutation, obliquity and houses from ΔT (ΔT is
+ * validated against NASA tables in validation/run.js). The reference nutation table
+ * was rebuilt in v4.0.13 (the previous one was mis-scaled); see
+ * docs/audits/AUDIT_4.0.13.md for the history of the former ~11-18" residuals.
  *
  * Usage: node validation/independent/asc_mc/run-asc-mc.js [--verbose]
  * ============================================================================
@@ -56,10 +63,10 @@ const B = s => `\x1b[35m${s}\x1b[0m`;
 const VERBOSE = process.argv.includes('--verbose') || process.argv.includes('-v');
 
 // ── Tolerances ────────────────────────────────────────────────────────────────
-const TOL_GAST_ARCSEC = 30;
-const TOL_LST_ARCSEC  = 30;
-const TOL_ASC_ARCSEC  = 120; // ASC is sensitive to ΔΨ differences
-const TOL_MC_ARCSEC   = 60;
+const TOL_GAST_ARCSEC = 0.01;
+const TOL_LST_ARCSEC  = 0.01;
+const TOL_ASC_ARCSEC  = 0.02;
+const TOL_MC_ARCSEC   = 0.01;
 
 // ── Angle difference (handles 0/360 wrap) ─────────────────────────────────────
 function angleDiff(a, b) {
@@ -81,10 +88,12 @@ function compare(jd_tt, lat_deg, lon_deg, label) {
 
   // ── Reference output ───────────────────────────────────────────────────────
   // All ref functions return degrees (refGAST, refLST, refASC, refMC)
-  const rGAST = ref.refGAST(jd_tt);
-  const rLST  = ref.refLST(jd_tt, lon_deg);
-  const rASC  = ref.refASC(jd_tt, lat_deg, lon_deg);
-  const rMC   = ref.refMC(jd_tt, lon_deg);
+  // The engine's own UT1 is passed so that ΔT agreement is not part of this comparison.
+  const ut1   = snap.meta.jd_ut1;
+  const rGAST = ref.refGAST(jd_tt, ut1);
+  const rLST  = ref.refLST(jd_tt, lon_deg, ut1);
+  const rASC  = ref.refASC(jd_tt, lat_deg, lon_deg, ut1);
+  const rMC   = ref.refMC(jd_tt, lon_deg, ut1);
 
   // ── Error in arcseconds ────────────────────────────────────────────────────
   const eGAST = deg2arcsec(angleDiff(cGAST, rGAST));
@@ -111,9 +120,9 @@ const EPOCHS = [
   { jd: 2458849.5, label: '2020-Jan-01' },
   { jd: 2460310.5, label: '2024-Jan-01' },
   { jd: 2461041.5, label: '2026-Jan-01' },
-  { jd: 2461193.5, label: '2026-Jun-01' },
-  { jd: 2462867.5, label: '2030-Jan-01' },
-  { jd: 2488070.5, label: '2050-Jan-01' },
+  { jd: 2461193.5, label: '2026-Jun-02' },
+  { jd: 2462867.5, label: '2031-Jan-01' },
+  { jd: 2488070.5, label: '2100-Jan-02' },
 ];
 const UTC_HOURS = [0, 6, 12, 18];
 const GREENWICH = { lat: 51.4779, lon: -0.0015 };
@@ -245,10 +254,10 @@ const sl = stats(allErrors.lst);
 const sa = stats(allErrors.asc);
 const sm = stats(allErrors.mc);
 
-console.log(`  GAST  max=${sg.max.toFixed(2)}″  RMS=${sg.rms.toFixed(2)}″  P95=${sg.p95.toFixed(2)}″  tol=±${TOL_GAST_ARCSEC}″`);
-console.log(`  LST   max=${sl.max.toFixed(2)}″  RMS=${sl.rms.toFixed(2)}″  P95=${sl.p95.toFixed(2)}″  tol=±${TOL_LST_ARCSEC}″`);
-console.log(`  ASC   max=${sa.max.toFixed(2)}″  RMS=${sa.rms.toFixed(2)}″  P95=${sa.p95.toFixed(2)}″  tol=±${TOL_ASC_ARCSEC}″`);
-console.log(`  MC    max=${sm.max.toFixed(2)}″  RMS=${sm.rms.toFixed(2)}″  P95=${sm.p95.toFixed(2)}″  tol=±${TOL_MC_ARCSEC}″`);
+console.log(`  GAST  max=${sg.max.toFixed(4)}″  RMS=${sg.rms.toFixed(4)}″  P95=${sg.p95.toFixed(4)}″  tol=±${TOL_GAST_ARCSEC}″`);
+console.log(`  LST   max=${sl.max.toFixed(4)}″  RMS=${sl.rms.toFixed(4)}″  P95=${sl.p95.toFixed(4)}″  tol=±${TOL_LST_ARCSEC}″`);
+console.log(`  ASC   max=${sa.max.toFixed(4)}″  RMS=${sa.rms.toFixed(4)}″  P95=${sa.p95.toFixed(4)}″  tol=±${TOL_ASC_ARCSEC}″`);
+console.log(`  MC    max=${sm.max.toFixed(4)}″  RMS=${sm.rms.toFixed(4)}″  P95=${sm.p95.toFixed(4)}″  tol=±${TOL_MC_ARCSEC}″`);
 console.log(`\n  Cases: ${total} · Reference: SOFA/ERFA independent implementation`);
 
 if (failures.length > 0) {

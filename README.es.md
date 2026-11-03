@@ -1,22 +1,34 @@
-# Caelis Engine
+<p align="center">
+  <img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/caelis-engine-logo.png" alt="Caelis Engine" width="640">
+</p>
 
-> **Motor v4.0.12 · Schema v3.1** — son números de versión independientes.
-> El Schema v3.1 define el contrato de salida y es estable entre parches del motor.
->
-> **v4.0.8** corrige un error de unidades (minutos de arco → grados) en la refracción atmosférica que inflaba `alt_apparent_deg`. Las versiones ≤ 4.0.7 están afectadas — actualiza. Ver [`CHANGELOG.md`](CHANGELOG.md).
->
-> **v4.0.10** hace que `getSnapshot()` (ademas de `getSnapshotAt()`) sea totalmente independiente del reloj del sistema dentro de una misma llamada, para que todo campo derivado del tiempo en una instantanea se refiera exactamente al mismo instante. Tambien corrige el numero de terminos declarado para la distancia de la Luna (29R, no 60R) y un ejemplo de importacion que no funcionaba. Sin cambios en ningun otro calculo astronomico.
->
-> **v4.0.11** es una version de documentacion y metadatos: fusiona una entrada duplicada del CHANGELOG, corrige un numero de terminos desactualizado y una inconsistencia ΔT/UT1/UTC en la especificacion tecnica, y aclara que las cifras de precision son limites algoritmicos de los modelos subyacentes, no la precision medida de la implementacion. En `core/CaelisEngine.js` solo cambio un comentario de cabecera (correo de contacto); ningun calculo cambio.
->
-> **v4.0.12** corrige `_sunLonAtJDE()` (usada para buscar equinoccios y solsticios), la ultima funcion que todavia leia el reloj real en vez del mecanismo compartido de congelacion introducido en 4.0.10. Verificado con mas de 18.000 mediciones de independencia del reloj (`validation/scientific/clock-stress.js`). Tambien corrige cinco inconsistencias de documentacion sobre ΔT/UT1 y los terminos de la Luna encontradas durante este arreglo. Sin cambios en ningun otro calculo astronomico.
+<h1 align="center">Caelis Engine</h1>
 
-[![npm version](https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
-[![npm downloads](https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square)](https://www.npmjs.com/package/caelis-engine)
-[![GitHub stars](https://img.shields.io/github/stars/HermeticaLabs/caelis-engine?style=flat-square)](https://github.com/HermeticaLabs/caelis-engine/stargazers)
-[![license](https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square)](./LICENSE)
-[![demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)](https://hermeticalabs.github.io/caelis-engine/)
-[![CI](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg)](https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml)
+<p align="center">
+  Motor de cálculo astronómico determinista para JavaScript.<br>
+  VSOP87B + ELP/MPP02-LLR · Sin servidor · Sin clave de API · Sin dependencias
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/caelis-engine"><img alt="npm version" src="https://img.shields.io/npm/v/caelis-engine.svg?style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/caelis-engine"><img alt="npm downloads" src="https://img.shields.io/npm/dm/caelis-engine.svg?style=flat-square"></a>
+  <a href="https://github.com/HermeticaLabs/caelis-engine/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/HermeticaLabs/caelis-engine?style=flat-square"></a>
+  <a href="https://github.com/HermeticaLabs/caelis-engine/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/caelis-engine.svg?style=flat-square"></a>
+  <a href="https://hermeticalabs.github.io/caelis-engine/"><img alt="demo" src="https://img.shields.io/badge/demo-live-brightgreen?style=flat-square"></a>
+  <a href="https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml"><img alt="CI" src="https://github.com/HermeticaLabs/caelis-engine/actions/workflows/validate.yml/badge.svg"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/HermeticaLabs/caelis-engine/blob/main/README.md">English</a> · <b>Español</b>
+</p>
+
+> **Motor v4.0.13 · Schema v3.1** — números de versión independientes. El Schema v3.1 define el contrato de salida y es estable entre parches del motor.
+>
+> **Qué cambió en v4.0.13:** mejora de las matemáticas dinámicas de ΔT (Delta T) y una corrección del tiempo sidéreo: `gast()` ahora usa UT1 para el término de rotación terrestre (las versiones anteriores le pasaban un valor TT, un desfase de ΔT × la tasa sidérea, unos 0.29° hoy). `meta.sidereal.gast_deg`, `lst_deg` y los valores derivados de ellos (como las coordenadas horizontales) cambian en consecuencia. Esto alteró algunas mecánicas del motor.
+>
+> **Estado de la documentación:** la carpeta `docs/` está siendo auditada y actualizada para reflejar los cambios de la v4.0.13, que aún no están documentados. La documentación se publicará una vez estabilizada la v4.0.13, sin cambio de versión. Mientras tanto, el código fuente y la suite de validación son la referencia.
+>
+> **Nota de actualización:** las versiones ≤ 4.0.7 contienen un error de unidades (minutos de arco → grados) en la refracción atmosférica que inflaba `alt_apparent_deg` (corregido en v4.0.8). Consulta [`CHANGELOG.md`](https://github.com/HermeticaLabs/caelis-engine/blob/main/CHANGELOG.md) para el historial completo de versiones.
 
 **Cada número que produce este motor puede rastrearse hasta un modelo astronómico conocido, con precisión declarada y cero supuestos ocultos.**
 
@@ -52,9 +64,7 @@ La mayoría de las plataformas que trabajan con datos celestes dependen de:
 - Costos de infraestructura que crecen con el uso
 - Una dependencia que no controlas — y que no puedes inspeccionar
 
-Cuando algo devuelve un número incorrecto, no hay forma de saber por qué.
-Cuando la API cambia, tu producto se rompe.
-Cuando el servicio cae, caes con él.
+Cuando algo devuelve un número incorrecto, no hay forma de saber por qué. Cuando la API cambia, tu producto se rompe. Cuando el servicio cae, caes con él.
 
 ---
 
@@ -76,73 +86,72 @@ Es aquello sobre lo que se construyen los productos.
 
 ## Quién construye con Caelis Engine
 
-**Aplicaciones de astrología** — cartas natales, tránsitos, sinastría, progresiones.
-Posiciones planetarias reales sin costos de suscripción ni límites de uso. Funciona 100% offline en el dispositivo del usuario. Ningún dato sale del cliente.
+**Aplicaciones de posicionamiento** — cualquier producto que necesite posiciones planetarias y lunares reales sin costos de suscripción ni límites de uso. Funciona 100% offline en el dispositivo del usuario. Ningún dato sale del cliente.
 
-**Herramientas de astronomía y educación** — planificación de observaciones, simuladores de cielo, planetarios interactivos.
-La salida determinista implica resultados reproducibles en cualquier dispositivo, en cada ejecución.
+**Herramientas de astronomía y educación** — planificación de observaciones, simuladores de cielo, planetarios interactivos. La salida determinista implica resultados reproducibles en cualquier dispositivo, en cada ejecución.
 
-**Pipelines de IA e infraestructura de datos** — cualquier sistema donde los datos celestes deban ser consistentes, trazables e inequívocos.
-Un plugin desactivado no existe en el JSON. Sin campos nulos, sin estados implícitos.
+**Infraestructura de datos y pipelines de IA** — cualquier sistema donde los datos celestes deban ser consistentes, trazables e inequívocos. Sin campos nulos, sin estados implícitos.
 
-**Juegos y experiencias interactivas** — sistemas de cielo procedural, lógica de calendario lunar, mecánica celeste.
-Distribución en un solo archivo. Funciona offline. No requiere paso de compilación.
+**Juegos y experiencias interactivas** — sistemas de cielo procedural, lógica de calendario lunar, mecánica celeste. Distribución en un solo archivo. Funciona offline. No requiere paso de compilación.
+
+---
+
+## Construido con Caelis Engine
+
+Demos en vivo y aplicaciones construidas sobre el motor, cada una en su propio repositorio.
+
+| | Proyecto | Estado |
+|---|---|---|
+| <a href="https://github.com/HermeticaLabs/Caeliscope"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/projects/caeliscope.png" alt="Caeliscope" width="280"></a> | <a href="https://github.com/HermeticaLabs/Caeliscope"><b>Caeliscope</b></a><br>Visor inmersivo del cielo: viaja desde el espacio hasta cualquier punto de la Tierra y mira hacia arriba. Primera prueba técnica construida sobre Caelis Engine. | Disponible |
+| <a href="https://github.com/HermeticaLabs/caelis-maquina-terrae"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/projects/caelis-maquina-terrae.png" alt="Caelis Maquina Terrae" width="280"></a> | <a href="https://github.com/HermeticaLabs/caelis-maquina-terrae"><b>Caelis Maquina Terrae</b></a><br>Aplicación armilar de representación por capas sincronizadas con Caelis Engine: magnético (MMW), telúrico (USGS), hídrico, hielos, vientos solares y más. | Próximamente |
+| <a href="https://github.com/HermeticaLabs/CaelisVisor"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/projects/caelisvisor.png" alt="CaelisVisor" width="280"></a> | <a href="https://github.com/HermeticaLabs/CaelisVisor"><b>CaelisVisor</b></a><br>Seguimiento celeste pensado para telescopios y monturas. | Próximamente |
+| <a href="https://github.com/HermeticaLabs/caelis-shadow-and-light"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/projects/caelis-shadow-and-light.png" alt="Caelis Shadow &amp; Light" width="280"></a> | <a href="https://github.com/HermeticaLabs/CaelisVisor"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/projects/caelisvisor.png" alt="CaelisVisor" width="280"></a> | <a href="https://github.com/HermeticaLabs/CaelisVisor"><b>CaelisVisor</b></a><br>Seguimiento celeste pensado para telescopios y monturas. | Próximamente |
+| <a href="https://github.com/HermeticaLabs/caelis-shadow-and-light"><b>Caelis Shadow &amp; Light</b></a><br>Visualizador de luz y sombra solar en terreno urbano, con herramientas de análisis de luz. | Próximamente |
+| <a href="https://github.com/HermeticaLabs/ATACIR"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/projects/atacir.png" alt="A.T.A.C.I.R." width="280"></a> | <a href="https://github.com/HermeticaLabs/ATACIR"><b>A.T.A.C.I.R.</b></a><br>Módulo de cálculos derivados (capa astrológica) construido sobre las instantáneas de Caelis Engine. Proyecto independiente. | Próximamente |
 
 ---
 
 ## Arquitectura
 
 ```
-TimeEngine → AstroCore → [ A.T.A.C.I.R. (opcional) ]
+TimeEngine → AstroCore
 ```
 
-Tres capas. Una sola dirección. Separación estricta de responsabilidades.
+Dos capas. Una sola dirección. Separación estricta de responsabilidades.
 
 ### TimeEngine
+
 El único módulo que lee `Date.now()`. Calcula JD, ΔT, GAST, LST y el estado del observador. Todos los demás módulos reciben el tiempo como parámetro explícito.
 
 ### AstroCore
+
 Recibe el tiempo de TimeEngine. Calcula el estado físico del sistema solar. Devuelve una instantánea astronómica pura — schema v3.1.
 
-Cero conceptos interpretativos. Sin casas. Sin aspectos. Sin contenido simbólico.
-El motor no interpreta el cielo. Lo mide.
+Cero conceptos interpretativos. El motor no interpreta el cielo. Lo mide.
 
-### A.T.A.C.I.R. — capa interpretativa
-**A**rc-based **T**ransformation of **A**stronomical **C**oordinates for **I**nterpretive **R**esolution.
-
-Separada arquitectónicamente del núcleo astronómico por diseño. Recibe la instantánea. Añade cálculos derivados bajo `result.atacir.*`. Nunca modifica los datos astronómicos.
-
-Plugins disponibles: `houses` · `aspects` · `symmetries` · `lunar` · `cycles` · `resonances` · `panchanga` · `synastry` · `eclipses` · `directions`
-
-Un plugin desactivado no existe en el JSON.
+La interpretación pertenece a las aplicaciones construidas sobre el motor, nunca al motor mismo.
 
 ---
 
 ## Qué calcula
 
-Las cifras de precision a continuacion son los limites algoritmicos publicados para
-cada modelo astronomico subyacente (VSOP87B, ELP/MPP02-LLR, etc.) - no una medicion
-de la precision de esta implementacion. La precision real y validada de la
-implementacion de Caelis Engine esta documentada, con metodologia y resultados,
-en `docs/SCIENTIFIC_VALIDATION.md`.
+Las cifras de precisión a continuación son los límites algorítmicos publicados para cada modelo astronómico subyacente (VSOP87B, ELP/MPP02-LLR, etc.) — no una medición de la precisión de esta implementación. La precisión validada de la implementación se documentará, con metodología y resultados, una vez completada la auditoría de la documentación (ver la nota de estado al inicio).
 
-| Cálculo | Algoritmo | Límite algorítmico de precisión |
-|---|---|---|
-| Planetas Mercurio–Neptuno | VSOP87B (Bretagnon & Francou 1987) | < 1′ |
-| Posición de la Luna | ELP/MPP02-LLR · 164L+105B+29R términos | < 10″ |
-| Nutación | IAU 2000B · 77 términos lunisolares | < 1 mas |
-| Oblicuidad | IAU 2006 (Capitaine et al.) | < 0.001° |
-| Corrección por tiempo luz | Iterativa · C = 173.14 UA/día | — |
-| Aberración anual | κ = 9.9365×10⁻⁵ rad | — |
-| Paralaje lunar | Topocéntrico completo · WGS-84 | máx ~57′ |
-| Refracción atmosférica | Sæmundsson (1986) · inversa de Bennett (1982), coincide en ~0.1′ · atmósfera ISA | ±0.1′ > 15° |
-| ΔT | Tabla IERS 500–2150 d.C. + Morrison-Stephenson | — |
-| Tiempo sidéreo | GAST IAU 2006 | ~15″ RMS (simplificación JD_TT, ver SCIENTIFIC_VALIDATION.md) |
-| Nodos lunares | Meeus Cap.47 | — |
+| Cálculo                   | Algoritmo                                                                        | Límite algorítmico de precisión |
+|---------------------------|----------------------------------------------------------------------------------|---------------------------------|
+| Planetas Mercurio–Neptuno | VSOP87B (Bretagnon & Francou 1987)                                               | < 1′                            |
+| Posición de la Luna       | ELP/MPP02-LLR · 164L+105B+29R términos                                           | < 10″                           |
+| Nutación                  | IAU 2000B · 77 términos lunisolares                                              | < 1 mas                         |
+| Oblicuidad                | IAU 2006 (Capitaine et al.)                                                      | < 0.001°                        |
+| Corrección por tiempo luz | Iterativa · C = 173.14 UA/día                                                    | —                               |
+| Aberración anual          | κ = 9.9365×10⁻⁵ rad                                                              | —                               |
+| Paralaje lunar            | Topocéntrico completo · WGS-84                                                   | máx ~57′                        |
+| Refracción atmosférica    | Sæmundsson (1986) · inversa de Bennett (1982), coincide en ~0.1′ · atmósfera ISA | ±0.1′ > 15°                     |
+| ΔT                        | Polinomios de Espenak & Meeus (2006) antes de 1973 · tabla USNO observada/predicha 1973–2150 · cola parabólica continua después de 2150 | —                               |
+| Tiempo sidéreo            | GAST IAU 2006 · UT1 para la rotación terrestre, TT para el polinomio y la nutación | —                               |
+| Nodos lunares             | Meeus Cap.47                                                                     | —                               |
 
-Cada instantánea contiene tanto la altitud geométrica como la aparente.
-Cada campo nombra su propio marco de coordenadas.
-Cada algoritmo se declara en `meta.frame`.
+Cada instantánea contiene tanto la altitud geométrica como la aparente. Cada campo nombra su propio marco de coordenadas. Cada algoritmo se declara en `meta.frame`.
 
 ---
 
@@ -152,18 +161,18 @@ Cada algoritmo se declara en `meta.frame`.
 npm install caelis-engine
 ```
 
-O descarga la implementación de referencia en un solo archivo:
-[`caelis-minimal.html`](caelis-minimal.html) — ábrelo con cualquier servidor local, sin instalación.
+O usa la implementación de referencia en un solo archivo: [`caelis-minimal.html`](https://github.com/HermeticaLabs/caelis-engine/blob/main/caelis-minimal.html) — ábrelo con cualquier servidor local, sin instalación.
 
 > **Modos de API:**
+>
 > - `setObserver()` + `getSnapshot()` — API conveniente con estado. El observador se configura una vez y se llama repetidamente. No es pura en sentido funcional — depende de estado global.
 > - `getSnapshotAt(jd_tt, observer)` — API determinista explícita. Sin estado global. Los mismos argumentos siempre producen la misma salida.
 
 ## Inicio rápido
 
-### Opción A — Archivo único (recomendada)
+### Opción A — Archivo único
 
-Descarga `dist/caelis-minimal.html`. Ábrelo con un servidor local:
+Descarga `caelis-minimal.html` desde este repositorio y ábrelo con un servidor local:
 
 ```bash
 python -m http.server 8080
@@ -174,7 +183,7 @@ Sin instalación. Sin dependencias. Sin paso de compilación.
 
 ### Opción B — Node.js o bundler
 
-```javascript
+```js
 import { getSnapshot, getSnapshotAt, setObserver }
   from 'caelis-engine';
 
@@ -193,29 +202,12 @@ console.log(snapshot.meta.frame.planets);                 // declaración del al
 
 ### Opción C — Cualquier época, cualquier lugar
 
-```javascript
+```js
 // J2000.0 desde Londres — totalmente determinista
 const j2000 = getSnapshotAt(2451545.0, { lat_deg: 51.5, lon_deg: -0.1 });
 
 // 10-abr-1987 desde París — época de referencia de Meeus Cap.25
 const meeus = getSnapshotAt(2446895.5, { lat_deg: 48.8, lon_deg: 2.3 });
-```
-
-### Opción D — A.T.A.C.I.R. Cloud
-
-```javascript
-import { AtacirClient } from 'caelis-engine/client';
-
-const client   = new AtacirClient({ apiKey: 'your-key' });
-const snapshot = getSnapshot();
-const result   = await client.compute(snapshot, {
-  plugins: ['houses', 'aspects', 'panchanga']
-});
-
-console.log(result.atacir.houses.asc);          // Ascendente
-console.log(result.atacir.aspects.natales[0]);  // aspecto natal más fuerte
-console.log(result.atacir.panchanga.tithiName); // almanaque védico
-// result.atacir.signature — certificación de integridad R1-R5
 ```
 
 ---
@@ -272,26 +264,24 @@ El schema es el contrato. Estable, versionado y con garantía de no romperse ent
 }
 ```
 
-Schema completo: [`docs/CAELIS_ENGINE_SPEC_v4_0.md`](docs/CAELIS_ENGINE_SPEC_v4_0.md)
+> El ejemplo anterior refleja el schema v3.1 tal como se publicó antes de la v4.0.13. La estructura no cambió, pero `delta_t_sec` y los campos sidéreos (`gast_deg`, `lst_deg`) toman valores distintos en la v4.0.13. La especificación completa forma parte de la documentación actualmente en auditoría.
 
 ---
 
 ## ¿Por qué no una API de terceros o Swiss Ephemeris?
 
-|  | APIs de terceros | Swiss Ephemeris | **Caelis Engine** |
-|---|:---:|:---:|:---:|
-| Corre en el navegador | ✗ | ✗ | **✓** |
-| No requiere servidor | ✗ | ✗ | **✓** |
-| Sin clave de API ni costo | ✗ | ✓ | **✓** |
-| Precisión declarada por campo | ✗ | parcial | **✓** |
-| Algoritmo nombrado en cada salida | ✗ | ✗ | **✓** |
-| Un solo archivo JS · sin instalación | ✗ | ✗ | **✓** |
-| Funciona offline | ✗ | ✓ | **✓** |
-| Salida versionada con schema estable | ✗ | ✗ | **✓** |
-| Capa interpretativa opcional | N/A | N/A | **✓** |
+|                                      | APIs de terceros | Swiss Ephemeris | **Caelis Engine** |
+|--------------------------------------|:----------------:|:---------------:|:-----------------:|
+| Corre en el navegador                | ✗                | ✗               | **✓**             |
+| No requiere servidor                 | ✗                | ✗               | **✓**             |
+| Sin clave de API ni costo            | ✗                | ✓               | **✓**             |
+| Precisión declarada por campo        | ✗                | parcial         | **✓**             |
+| Algoritmo nombrado en cada salida    | ✗                | ✗               | **✓**             |
+| Un solo archivo JS · sin instalación | ✗                | ✗               | **✓**             |
+| Funciona offline                     | ✗                | ✓               | **✓**             |
+| Salida versionada con schema estable | ✗                | ✗               | **✓**             |
 
-Las APIs de terceros añaden latencia, costo y una dependencia que no controlas.
-Swiss Ephemeris es el estándar de precisión — pero requiere un servidor, un wrapper en C y archivos de efemérides.
+Las APIs de terceros añaden latencia, costo y una dependencia que no controlas. Swiss Ephemeris es el estándar de precisión — pero requiere un servidor, un wrapper en C y archivos de efemérides.
 
 Caelis Engine corre donde ninguna de las dos puede: directamente en el navegador, en funciones edge, en React Native, en cualquier entorno JavaScript. Offline. De forma determinista.
 
@@ -301,18 +291,18 @@ Caelis Engine corre donde ninguna de las dos puede: directamente en el navegador
 
 ```bash
 node validation/run.js
-# 31 aserciones · 6 grupos · 0 fallos
 ```
 
-| Época | Fuente | Aserciones |
-|---|---|---|
-| J2000.0 — 2000-ene-01 12:00 TT | IAU SOFA + paper VSOP87 | 6 |
-| 10-abr-1987 (Meeus Cap.25) | Meeus *Astronomical Algorithms* 2ª ed. | 4 |
-| 12-abr-1992 (Meeus Cap.33 Venus) | Tabla de verificación VSOP87 | 1 |
-| 2026-jun-01 línea base de regresión | Salida canónica Caelis v4.0 | 8 |
-| Invariantes del schema v3.1 | Contrato de arquitectura | 9 |
-| Regresión de refracción atmosférica (v4.0.8) | Fórmula de Sæmundsson, arcmin→grados | 3 |
+La suite de validación contrasta el motor con épocas de referencia publicadas e invariantes del schema:
 
+| Época / grupo                                | Fuente                                 |
+|----------------------------------------------|----------------------------------------|
+| J2000.0 — 2000-ene-01 12:00 TT               | IAU SOFA + paper VSOP87                |
+| 10-abr-1987 (Meeus Cap.25)                   | Meeus *Astronomical Algorithms* 2ª ed. |
+| 12-abr-1992 (Meeus Cap.33 Venus)             | Tabla de verificación VSOP87           |
+| 2026-jun-01 línea base de regresión          | Salida canónica Caelis v4.0            |
+| Invariantes del schema v3.1                  | Contrato de arquitectura               |
+| Regresión de refracción atmosférica          | Fórmula de Sæmundsson, arcmin→grados   |
 
 ---
 
@@ -320,32 +310,38 @@ node validation/run.js
 
 Diseñado para portabilidad y auditabilidad — no para astrometría sub-arcosegundo.
 
-| Fuente | Error máximo declarado |
-|---|---|
-| VSOP87B (Urano, Neptuno) | < 1′ |
-| ELP/MPP02 (Luna) | < 10″ |
-| Nutación IAU 2000B | < 1 mas |
-| Refracción cerca del horizonte | 1–5′ |
-| ΔT fuera de 500–2150 d.C. | variable |
+| Fuente                         | Error máximo declarado |
+|--------------------------------|------------------------|
+| VSOP87B (Urano, Neptuno)       | < 1′                   |
+| ELP/MPP02 (Luna)               | < 10″                  |
+| Nutación IAU 2000B             | < 1 mas                |
+| Refracción cerca del horizonte | 1–5′                   |
+| ΔT fuera del rango observado (1973–2026.75) | crece con la distancia a los datos; no se señala en la instantánea |
 
-Para requisitos sub-arcosegundo, usa JPL Horizons o Swiss Ephemeris con VSOP87 completo.
-Para todo lo que necesite correr en un navegador, offline y de forma determinista — esto es.
+Escalas de tiempo: el motor no tiene tablas de DUT1 ni de segundos intercalares; UT1 se toma igual a UTC (se desprecia |UT1 − UTC| < 0.9 s).
+
+Para requisitos sub-arcosegundo, usa JPL Horizons o Swiss Ephemeris con VSOP87 completo. Para todo lo que necesite correr en un navegador, offline y de forma determinista — esto es.
 
 ---
 
-## A.T.A.C.I.R. Cloud
+## Documentación
 
-La capa interpretativa está disponible como API gestionada a través de Hermetica Labs.
+La documentación técnica (`docs/`) está **siendo auditada y actualizada** tras los cambios recientes del motor en la v4.0.13 (mejora de las matemáticas dinámicas de ΔT). Esos cambios modificaron algunas mecánicas y aún no están documentados.
 
-Lo que añade sobre el núcleo astronómico:
-sistemas de casas · aspectos natales y de tránsito · simetrías eclípticas · direcciones primarias · ápsides y ciclos lunares · resonancias orbitales · Panchanga védico · sinastría · predicción de eclipses · **Firma Digital R1-R5**
+Una vez estabilizada la v4.0.13, la documentación auditada se publicará en este repositorio **sin cambio de versión**.
 
-La Firma Digital R1-R5 es una certificación criptográfica de que la salida fue producida bajo el Contrato de Plugins completo y no ha sido modificada. Cada resultado es auditable, trazable y verificable de forma independiente.
+Mientras tanto:
 
-La lógica de cálculo es propietaria y corre en el servidor.
-El cliente es de código abierto: [`client/AtacirClient.js`](client/AtacirClient.js)
+- [`CHANGELOG.md`](https://github.com/HermeticaLabs/caelis-engine/blob/main/CHANGELOG.md) — historial de versiones
+- [`validation/`](https://github.com/HermeticaLabs/caelis-engine/tree/main/validation) — suite de validación ejecutable
+- [`examples/`](https://github.com/HermeticaLabs/caelis-engine/tree/main/examples) — ejemplos de uso
+- [Demo en vivo](https://hermeticalabs.github.io/caelis-engine/)
 
-**Acceso anticipado:** `hermeticalabs.dev@proton.me`
+---
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Consulta [`CONTRIBUTING.md`](https://github.com/HermeticaLabs/caelis-engine/blob/main/CONTRIBUTING.md).
 
 ---
 
@@ -353,25 +349,23 @@ El cliente es de código abierto: [`client/AtacirClient.js`](client/AtacirClient
 
 Caelis Engine se distribuye bajo **AGPL-3.0**.
 
-Libre para usar en software de código abierto bajo los términos de la AGPL-3.0.
-**Si estás construyendo un producto comercial o propietario, necesitas una licencia comercial.**
+Libre para usar en software de código abierto bajo los términos de la AGPL-3.0. **Si estás construyendo un producto comercial o propietario, necesitas una licencia comercial.**
 
-Licencias comerciales: `hermeticalabs.dev@proton.me`
-Detalles: [`COMMERCIAL_LICENSE.md`](COMMERCIAL_LICENSE.md)
+Licencias comerciales: `hermeticalabs.dev@proton.me` · Detalles: [`COMMERCIAL_LICENSE.md`](https://github.com/HermeticaLabs/caelis-engine/blob/main/COMMERCIAL_LICENSE.md)
 
 ---
 
 ## Acerca de
 
-Caelis Engine fue construido por **Cristian Valeria Bravo** bajo **Hermetica Labs**.
+<a href="https://github.com/HermeticaLabs"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/hermetica-labs.png" alt="Hermetica Labs" width="160" align="right"></a>
+
+Caelis Engine fue construido por **Cristian Valeria Bravo** bajo [**Hermetica Labs**](https://github.com/HermeticaLabs).
 
 Dos principios guiaron cada decisión:
 
-**Calcula el cielo, no lo interpretes.**
-AstroCore mide el estado físico. A.T.A.C.I.R. deriva significado geométrico — solo cuando se le pide, solo en su propio namespace, sin modificar jamás la verdad astronómica.
+**Calcula el cielo, no lo interpretes.** El motor mide el estado físico. La interpretación queda en manos de las aplicaciones construidas sobre él.
 
-**Cero supuestos ocultos.**
-Cada número es rastreable. Cada algoritmo está declarado. Cada salida es reproducible.
+**Cero supuestos ocultos.** Cada número es rastreable. Cada algoritmo está declarado. Cada salida es reproducible.
 
 ---
 
@@ -379,4 +373,4 @@ Cada número es rastreable. Cada algoritmo está declarado. Cada salida es repro
 
 ---
 
-*Caelis Engine v4.0.12 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
+*Caelis Engine v4.0.13 · Hermetica Labs · © 2024–2026 Cristian Valeria Bravo*
