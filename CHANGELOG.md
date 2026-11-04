@@ -25,7 +25,7 @@ included in the package.
 
 ---
 
-## 4.0.13 2026-11
+## [4.0.13] — 2026-11
 - Fixed - Improved ΔT model.
 - Documentation under audit; will be republished without a version change.
 
