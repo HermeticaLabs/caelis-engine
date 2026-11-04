@@ -17,6 +17,21 @@ Shadow & Light name, description and status were displaced onto a separate
 line. The duplicated block was removed and the row was merged. Every row of
 the table now renders exactly three cells.
 
+The example in "Output schema v3.1" was regenerated from the engine (v4.0.13,
+`jd_tt` 2461193.499437). The previous example mixed versions: the Moon
+`dist_km` (388954) dates from v4.0.0 and no version since 4.0.5 reproduces it
+(all give 406120), while the nutation, sidereal-time and ΔT fields were
+those of v4.0.3–4.0.12. The `frame` block now also lists `delta_t`,
+`aberration` and `refraction`. The note below the example was corrected.
+
+Omission in the 4.0.13 entry: it lists the ΔT and sidereal-time changes but
+not the nutation change. For the same `jd_tt`, Δψ goes from 8.271″
+(v4.0.3–4.0.12) to 6.634″ (v4.0.13) and Δε from 8.816″ to 7.676″,
+with altitudes and azimuths changing accordingly (Sun geometric altitude
+−27.897° to −27.659°). The engine source states that the nutation table
+was verified row by row against ERFA/SOFA in v4.0.13; the 4.0.13 entry itself
+gives no cause.
+
 ### Notes
 No engine changes. No version change; not published to npm.
 `README.md` is included in the npm package, so the corrected table will appear
