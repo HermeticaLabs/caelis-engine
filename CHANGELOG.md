@@ -5,6 +5,26 @@ All notable changes to Caelis Engine are documented in this file.
 Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
+## [Unreleased]
+Type: Documentation
+
+### What changed / Why
+The projects table in the README ("Built with Caelis Engine") had a malformed
+Caelis Shadow & Light row in both `README.md` and `README.es.md`. The
+CaelisVisor logo, name, description and status had been duplicated inside the
+Shadow & Light row, producing six cells in a three-column table, while the
+Shadow & Light name, description and status were displaced onto a separate
+line. The duplicated block was removed and the row was merged. Every row of
+the table now renders exactly three cells.
+
+### Notes
+No engine changes. No version change; not published to npm.
+`README.md` is included in the npm package, so the corrected table will appear
+on the npm page only with the next published release. `README.es.md` is not
+included in the package.
+
+---
+
 ## 4.0.13 2026-11
 - Fixed - Improved ΔT model.
 - Documentation under audit; will be republished without a version change.
