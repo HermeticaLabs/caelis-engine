@@ -24,7 +24,7 @@
 
 > **Motor v4.0.13 · Schema v3.1** — números de versión independientes. El Schema v3.1 define el contrato de salida y es estable entre parches del motor.
 >
-> **Qué cambió en v4.0.13:** mejora de las matemáticas dinámicas de ΔT (Delta T) y una corrección del tiempo sidéreo: `gast()` ahora usa UT1 para el término de rotación terrestre (las versiones anteriores le pasaban un valor TT, un desfase de ΔT × la tasa sidérea, unos 0.29° hoy). `meta.sidereal.gast_deg`, `lst_deg` y los valores derivados de ellos (como las coordenadas horizontales) cambian en consecuencia. Esto alteró algunas mecánicas del motor.
+> **Qué cambió en v4.0.13:** mejora de las matemáticas dinámicas de ΔT (Delta T) y una corrección del tiempo sidéreo: `gast()` ahora usa UT1 para el término de rotación terrestre (las versiones anteriores le pasaban un valor TT, un desfase de ΔT × la tasa sidérea, unos 0.29° hoy). `meta.sidereal.gast_deg`, `lst_deg` y los valores derivados de ellos (como las coordenadas horizontales) cambian en consecuencia. Los valores de nutación (`delta_psi_arcsec`, `delta_eps_arcsec`) también difieren de la v4.0.12. Esto alteró algunas mecánicas del motor.
 >
 > **Estado de la documentación:** la carpeta `docs/` está siendo auditada y actualizada para reflejar los cambios de la v4.0.13, que aún no están documentados. La documentación se publicará una vez estabilizada la v4.0.13, sin cambio de versión. Mientras tanto, el código fuente y la suite de validación son la referencia.
 >

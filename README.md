@@ -24,7 +24,7 @@
 
 > **Engine v4.0.13 · Schema v3.1** — independent version numbers. Schema v3.1 defines the output contract and is stable across engine patches.
 >
-> **What changed in v4.0.13:** improved dynamic ΔT (Delta T) mathematics, and a sidereal-time correction: `gast()` now uses UT1 for the Earth-rotation term (earlier versions fed it a TT value, an offset of ΔT × the sidereal rate, about 0.29° today). `meta.sidereal.gast_deg`, `lst_deg` and the values derived from them (such as horizontal coordinates) change accordingly. This altered some engine mechanics.
+> **What changed in v4.0.13:** improved dynamic ΔT (Delta T) mathematics, and a sidereal-time correction: `gast()` now uses UT1 for the Earth-rotation term (earlier versions fed it a TT value, an offset of ΔT × the sidereal rate, about 0.29° today). `meta.sidereal.gast_deg`, `lst_deg` and the values derived from them (such as horizontal coordinates) change accordingly. The nutation values (`delta_psi_arcsec`, `delta_eps_arcsec`) also differ from v4.0.12. This altered some engine mechanics.
 >
 > **Documentation status:** the `docs/` folder is being audited and updated to reflect the v4.0.13 changes, which are not yet documented. The documentation will be published once v4.0.13 is stabilized, without a version change. Until then, the source code and the validation suite are the reference.
 >
