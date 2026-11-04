@@ -220,50 +220,53 @@ El schema es el contrato. Estable, versionado y con garantía de no romperse ent
   "schema_version": "3.1",
   "meta": {
     "jd_tt":       2461193.499437,
-    "jd_utc":      2461193.498611,
-    "utc":         "2026-06-01T23:58:00Z",
-    "delta_t_sec": 69.19,
+    "jd_utc":      2461193.498636,
+    "utc":         "2026-06-01T23:58:02.191Z",
+    "delta_t_sec": 69.17,
     "observer":    { "lat_deg": -33.45, "lon_deg": -70.66 },
     "frame": {
-      "nutation":                "IAU 2000B (77 luni-solar terms, Mathews et al. 2002)",
+      "nutation":                "IAU 2000B (77 luni-solar terms + fixed planetary offsets, Mathews et al. 2002)",
       "obliquity":               "IAU 2006 (Capitaine et al. 2006)",
       "planets":                 "VSOP87B (Bretagnon & Francou 1987) + Meeus App.II",
       "moon":                    "ELP/MPP02-LLR (Chapront & Francou 2002) 164L+105B+29R",
+      "delta_t":                 "Espenak & Meeus (2006) polynomials before 1973 AD + USNO observed/predicted table 1973-2150 AD + parabola anchored to the table after 2150 AD",
+      "aberration":              "Annual (κ=9.9365e-5, Meeus Ch.23)",
+      "refraction":              "Saemundsson (1986), ISA standard atmosphere",
       "above_horizon_criterion": "geometric (unrefracted)"
     },
-    "sidereal":  { "gast_deg": 250.278, "lst_deg": 179.618 },
-    "obliquity": { "mean_deg": 23.4358, "true_deg": 23.4383 },
-    "nutation":  { "delta_psi_arcsec": 8.271, "delta_eps_arcsec": 8.816 }
+    "sidereal":  { "gast_deg": 249.98872, "lst_deg": 179.32872 },
+    "obliquity": { "mean_deg": 23.435843, "true_deg": 23.437975 },
+    "nutation":  { "delta_psi_arcsec": 6.6344, "delta_eps_arcsec": 7.6757 }
   },
   "bodies": {
     "Sol": {
-      "ra_deg":                 69.958,
+      "ra_deg":                 69.959,
       "dec_deg":                22.160,
-      "lon_ecl_geocentric_deg": 71.498,
-      "lat_ecl_geocentric_deg": -0.00011,
-      "alt_geometric_deg":      -27.896,
-      "alt_apparent_deg":       -27.896,
-      "az_deg":                 279.309,
+      "lon_ecl_geocentric_deg": 71.499,
+      "lat_ecl_geocentric_deg": -0.00012,
+      "alt_geometric_deg":      -27.659,
+      "alt_apparent_deg":       -27.659,
+      "az_deg":                 279.448,
       "above_horizon":          false,
       "dist_au":                1.01404
     },
     "Luna": {
       "lon_ecl_geocentric_deg":  269.330,
       "lon_ecl_topocentric_deg": 270.082,
-      "alt_geometric_deg":       14.381,
-      "alt_apparent_deg":        14.445,
-      "dist_km":                 388954
+      "alt_geometric_deg":       14.160,
+      "alt_apparent_deg":        14.225,
+      "dist_km":                 406120
     }
   },
   "luna": {
     "phase_ratio":  0.894,
-    "phase_deg":    160.98,
-    "illumination": 0.972
+    "phase_deg":    160.99,
+    "illumination": 0.973
   }
 }
 ```
 
-> El ejemplo anterior refleja el schema v3.1 tal como se publicó antes de la v4.0.13. La estructura no cambió, pero `delta_t_sec` y los campos sidéreos (`gast_deg`, `lst_deg`) toman valores distintos en la v4.0.13. La especificación completa forma parte de la documentación actualmente en auditoría.
+> El ejemplo anterior es salida real de Caelis Engine v4.0.13 (schema v3.1) para `jd_tt` 2461193.499437 y el observador indicado. Respecto a la v4.0.12, la v4.0.13 modifica `delta_t_sec`, la nutación (`delta_psi_arcsec`, `delta_eps_arcsec`), los campos sidéreos (`gast_deg`, `lst_deg`) y todas las cantidades derivadas de ellos, como altitud y acimut. La estructura no cambió. La especificación completa forma parte de la documentación actualmente en auditoría.
 
 ---
 
