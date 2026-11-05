@@ -6,7 +6,7 @@ Format: [Semantic Versioning](https://semver.org) — `MAJOR.MINOR.PATCH`
 
 ---
 ## [Unreleased]
-Type: Documentation
+Type: Documentation · Engine
 
 ### What changed / Why
 The projects table in the README ("Built with Caelis Engine") had a malformed
@@ -32,8 +32,32 @@ with altitudes and azimuths changing accordingly (Sun geometric altitude
 was verified row by row against ERFA/SOFA in v4.0.13; the 4.0.13 entry itself
 gives no cause.
 
+### Changed (engine, input validation)
+`getSnapshotAt()` and `setObserver()` now validate their inputs. Previously
+`Infinity` passed the check and produced snapshots with non-finite fields,
+`setObserver(undefined, …)` left the observer state as NaN until the next valid
+call, and latitudes outside [−90, 90] returned physically meaningless results
+without any error.
+
+- Latitude must be a finite number within [−90, 90]; ±90 is accepted.
+  Otherwise a `RangeError` is thrown.
+- Longitude must be a finite number. Values outside [−180, 180] are normalized
+  into that range (190 becomes −170); `meta.observer.lon_deg` reports the
+  normalized value.
+- `jdTarget` must be a finite number. If the derived UTC date is not
+  representable as a JavaScript `Date`, a `RangeError` with an explicit message
+  is thrown instead of "Invalid time value".
+- `setObserver()` validates before mutating state: a rejected call leaves the
+  observer unchanged.
+- Contract change: non-number arguments (for example `setObserver("10", 20)`)
+  that were silently coerced now throw.
+- Output for valid inputs is identical to v4.0.13 (verified against the v4.0.13
+  engine in `validation/input-validation.js`, 69 assertions).
+- Not applied to `index.html`, `caelis-minimal.html` and
+  `dist/caelis-minimal.html`, which carry their own copy of the engine.
+
 ### Notes
-No engine changes. No version change; not published to npm.
+Engine change limited to input validation (see above). No version change; not published to npm.
 `README.md` is included in the npm package, so the corrected table will appear
 on the npm page only with the next published release. `README.es.md` is not
 included in the package.
