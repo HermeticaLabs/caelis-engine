@@ -1082,8 +1082,25 @@ function _getSeqCached(){
 
 
 // ======= UBICACIÓN DEL OBSERVADOR =======
-// setObserver actualiza lat, lon y recalcula R_TIERRA
+// v4.0.14: input validation (H-03). Rejects non-finite or non-number input and
+// latitudes outside [-90, 90]. Longitudes outside [-180, 180] are normalized.
+function _normalizeLon(lonDeg){
+  if(lonDeg >= -180 && lonDeg <= 180) return lonDeg;
+  return ((((lonDeg + 180) % 360) + 360) % 360) - 180;
+}
+function _validateObserver(latDeg, lonDeg, fn){
+  if(typeof latDeg !== 'number' || !Number.isFinite(latDeg))
+    throw new RangeError(fn + ': latitude must be a finite number');
+  if(typeof lonDeg !== 'number' || !Number.isFinite(lonDeg))
+    throw new RangeError(fn + ': longitude must be a finite number');
+  if(latDeg < -90 || latDeg > 90)
+    throw new RangeError(fn + ': latitude must be within [-90, 90] degrees');
+  return { latDeg: latDeg, lonDeg: _normalizeLon(lonDeg) };
+}
+// setObserver actualiza lat, lon y recalcula R_TIERRA (valida antes de mutar el estado)
 function setObserver(latDeg, lonDeg, label){
+  const _v = _validateObserver(latDeg, lonDeg, 'setObserver');
+  latDeg = _v.latDeg; lonDeg = _v.lonDeg;
   lat      = latDeg * deg2rad;
   lon      = lonDeg * deg2rad;
   R_TIERRA = geocentricRadius();
@@ -1492,13 +1509,12 @@ function lunarNodes(){
 // momento y lugar sin modificar el estado del motor.
 function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
   // Input validation
-  if(typeof jdTarget !== 'number' || isNaN(jdTarget))
-    throw new RangeError('getSnapshotAt: jdTarget must be a valid Julian Date number');
+  if(typeof jdTarget !== 'number' || !Number.isFinite(jdTarget))
+    throw new RangeError('getSnapshotAt: jdTarget must be a finite Julian Date number');
   // Acepta (jd, lat, lon) o (jd, {lat_deg, lon_deg})
   const latDeg = (latDegOrObs && typeof latDegOrObs === 'object') ? latDegOrObs.lat_deg : latDegOrObs;
   const lonDeg = (latDegOrObs && typeof latDegOrObs === 'object') ? latDegOrObs.lon_deg : lonDegParam;
-  if(typeof latDeg !== 'number' || isNaN(latDeg) || typeof lonDeg !== 'number' || isNaN(lonDeg))
-    throw new RangeError('getSnapshotAt: observer lat/lon must be valid numbers');
+  const _obs = _validateObserver(latDeg, lonDeg, 'getSnapshotAt');
 
   // ── Cálculo determinista directo desde jd_tt ──────────────────────────────
   // No usa Date.now(): elimina la condición de carrera con el reloj.
@@ -1509,8 +1525,8 @@ function getSnapshotAt(jdTarget, latDegOrObs, lonDegParam){
   // en una ventana de ΔT segundos. meta.jd_tt siempre reporta el jdTarget pedido.
 
   const savedLat = lat, savedLon = lon;
-  lat = latDeg * deg2rad;
-  lon = lonDeg * deg2rad;
+  lat = _obs.latDeg * deg2rad;
+  lon = _obs.lonDeg * deg2rad;
   R_TIERRA = geocentricRadius();
 
   let snap;
@@ -1535,6 +1551,8 @@ function _getSnapshotFromJD(jd_tt_explicit){
   // v4.0.13: jd_utc approximated as jd_ut1 (DUT1 < 0.9s, no DUT1 table in
   // this engine; declared limitation, see docs/audits/AUDIT_4.0.13.md).
   const jd_utc = jd_ut1;
+  if(Number.isNaN(new Date((jd_utc - 2440587.5) * 86400000).getTime()))
+    throw new RangeError('getSnapshotAt: jdTarget is outside the supported range (derived UTC date is not representable)');
   const T      = (jd_tt - 2451545.0) / 36525;
   const now_d  = new Date((jd_utc - 2440587.5) * 86400000);
 
