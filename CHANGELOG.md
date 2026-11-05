@@ -32,6 +32,14 @@ with altitudes and azimuths changing accordingly (Sun geometric altitude
 was verified row by row against ERFA/SOFA in v4.0.13; the 4.0.13 entry itself
 gives no cause.
 
+The projects table in `README.md` and `README.es.md` was aligned: Caelis Machina
+Terrae (name and repository link, previously "Maquina") and the descriptions of
+Caelis Machina Terrae and A.T.A.C.I.R. now read the same in both languages. The
+image file keeps its original name (`caelis-maquina-terrae.png`).
+
+The `examples/` folder (two basic demos predating Caeliscope) was removed, and
+the links to it were dropped from both READMEs.
+
 ### Changed (engine, input validation)
 `getSnapshotAt()` and `setObserver()` now validate their inputs. Previously
 `Infinity` passed the check and produced snapshots with non-finite fields,

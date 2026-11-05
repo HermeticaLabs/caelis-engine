@@ -336,7 +336,6 @@ In the meantime:
 
 - [`CHANGELOG.md`](https://github.com/HermeticaLabs/caelis-engine/blob/main/CHANGELOG.md) — release history
 - [`validation/`](https://github.com/HermeticaLabs/caelis-engine/tree/main/validation) — executable validation suite
-- [`examples/`](https://github.com/HermeticaLabs/caelis-engine/tree/main/examples) — usage examples
 - [Live demo](https://hermeticalabs.github.io/caelis-engine/)
 
 ---
