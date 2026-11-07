@@ -56,7 +56,8 @@
     "validate": "node validation/run.js",
     "validate:v": "node validation/run.js --verbose",
     "validate:input": "node validation/input-validation.js",
-    "prepublishOnly": "node validation/run.js && node validation/input-validation.js"
+    "validate:state": "node validation/state-isolation.js",
+    "prepublishOnly": "node validation/run.js && node validation/input-validation.js && node validation/state-isolation.js"
   },
   "engines": {
     "node": ">=18.0.0"
