@@ -64,6 +64,19 @@ without any error.
 - Not applied to `index.html`, `caelis-minimal.html` and
   `dist/caelis-minimal.html`, which carry their own copy of the engine.
 
+### Added (validation, H-02 phase 1)
+`validation/state-isolation.js` (11 assertions, `npm run validate:state`)
+measures that `getSnapshotAt()` leaves the observer state and the shared clock
+untouched after valid, rejected and throwing calls, that it does not depend on
+the wall clock or on call order, and that 1080 snapshots (24 epochs x 15
+latitudes x 3 longitudes) are byte-identical to engine v4.0.13.
+
+Declared limitation: the engine still keeps module-level state (`lat`, `lon`,
+`R_TIERRA`, `_frozenClockSec`) that `getSnapshotAt()` mutates and restores in
+`finally`. It is deterministic and now regression-tested, but not stateless.
+Passing the context as an explicit parameter is planned as a separate phase.
+No engine change in this step.
+
 ### Notes
 Engine change limited to input validation (see above). No version change; not published to npm.
 `README.md` is included in the npm package, so the corrected table will appear
