@@ -2,16 +2,19 @@ name: Caelis Engine — Validation Suite
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
     paths:
-      - 'core/CaelisEngine.js'
-      - 'atacir/**'
+      - 'core/**'
       - 'validation/**'
+      - 'package.json'
+      - '.github/workflows/**'
   pull_request:
     branches: [ main ]
     paths:
-      - 'core/CaelisEngine.js'
-      - 'atacir/**'
+      - 'core/**'
+      - 'validation/**'
+      - 'package.json'
+      - '.github/workflows/**'
 
 jobs:
   validate:
@@ -65,3 +68,29 @@ jobs:
 
       - name: Run epoch ${{ matrix.epoch }}
         run: node validation/run.js --epoch=${{ matrix.epoch }} --verbose
+
+  suites:
+    name: All suites (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [ 18, 20, 22 ]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # fetches the v4.0.13 tag used as baseline by two suites
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Baseline tag available
+        run: git rev-parse --verify v4.0.13
+      - run: node validation/run.js
+      - run: node validation/scientific/polar-safety.js
+      - run: node validation/scientific/clock-stress.js
+      - run: node validation/interop/test-cjs.js
+      - run: node validation/independent/asc_mc/run-asc-mc.js
+      - run: node validation/input-validation.js
+      - run: node validation/state-isolation.js
