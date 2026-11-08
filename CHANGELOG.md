@@ -32,6 +32,12 @@ with altitudes and azimuths changing accordingly (Sun geometric altitude
 was verified row by row against ERFA/SOFA in v4.0.13; the 4.0.13 entry itself
 gives no cause.
 
+The Hermetica Labs logo in the "About" section of both READMEs was replaced by
+the new vector logo (`assets/hermetica-labs-light.svg` and
+`assets/hermetica-labs-dark.svg`), served according to the reader's GitHub theme.
+Same position and size. The previous `assets/hermetica-labs.png` is no longer
+referenced by the READMEs.
+
 The projects table in `README.md` and `README.es.md` was aligned: Caelis Machina
 Terrae (name and repository link, previously "Maquina") and the descriptions of
 Caelis Machina Terrae and A.T.A.C.I.R. now read the same in both languages. The

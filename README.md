@@ -358,7 +358,7 @@ Commercial licensing: `hermeticalabs.dev@proton.me` · Details: [`COMMERCIAL_LIC
 
 ## About
 
-<a href="https://github.com/HermeticaLabs"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/hermetica-labs.png" alt="Hermetica Labs" width="160" align="right"></a>
+<a href="https://github.com/HermeticaLabs"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/hermetica-labs-light.svg"><img src="https://raw.githubusercontent.com/HermeticaLabs/caelis-engine/main/assets/hermetica-labs-dark.svg" alt="Hermetica Labs" width="160" align="right"></picture></a>
 
 Caelis Engine was built by **Cristian Valeria Bravo** under [**Hermetica Labs**](https://github.com/HermeticaLabs).
 
