@@ -83,6 +83,14 @@ Declared limitation: the engine still keeps module-level state (`lat`, `lon`,
 Passing the context as an explicit parameter is planned as a separate phase.
 No engine change in this step.
 
+### Changed (CI)
+The validation workflow now runs all seven suites on Node 18, 20 and 22 (`suites`
+job), not only `validation/run.js`. It also triggers on pull requests that touch
+`validation/**`, `core/**`, `package.json` or the workflow itself, and the
+obsolete `atacir/**` path and `dev` branch filters were removed. The job fetches
+the full history so the v4.0.13 baseline used by `input-validation.js` and
+`state-isolation.js` is available (otherwise those comparisons are skipped).
+
 ### Notes
 Engine change limited to input validation (see above). No version change; not published to npm.
 `README.md` is included in the npm package, so the corrected table will appear
