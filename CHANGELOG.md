@@ -91,8 +91,26 @@ obsolete `atacir/**` path and `dev` branch filters were removed. The job fetches
 the full history so the v4.0.13 baseline used by `input-validation.js` and
 `state-isolation.js` is available (otherwise those comparisons are skipped).
 
+### Removed (engine core, browser-only code)
+`core/CaelisEngine.js` no longer references `document`, `navigator`, `window`
+or `localStorage`: the astronomical core carries no host-environment code.
+
+- `applyManualLocation()` and `initLocation()` (text-box parsing and browser
+  geolocation) were removed. Neither was in the CommonJS exports. Code that
+  loaded the file as a browser script and called them must provide that
+  behaviour in its own application layer.
+- `setObserver(lat, lon, label)` no longer takes `label` and no longer writes
+  the location into the page. The signature is now `setObserver(lat, lon)`;
+  an extra argument is ignored.
+- New `validation/core-purity.js` (11 assertions, `npm run validate:purity`):
+  checks that the code has no host-environment references, that the engine
+  computes a snapshot in a bare `vm` context, and the public API surface. It
+  runs in the CI `suites` job and in `prepublishOnly`.
+- Not applied to `index.html`, `caelis-minimal.html` and
+  `dist/caelis-minimal.html`, which carry their own copy of the engine.
+
 ### Notes
-Engine change limited to input validation (see above). No version change; not published to npm.
+Engine changes limited to input validation and removal of browser-only code (see above). No version change; not published to npm.
 `README.md` is included in the npm package, so the corrected table will appear
 on the npm page only with the next published release. `README.es.md` is not
 included in the package.
