@@ -1098,59 +1098,12 @@ function _validateObserver(latDeg, lonDeg, fn){
   return { latDeg: latDeg, lonDeg: _normalizeLon(lonDeg) };
 }
 // setObserver actualiza lat, lon y recalcula R_TIERRA (valida antes de mutar el estado)
-function setObserver(latDeg, lonDeg, label){
+function setObserver(latDeg, lonDeg){
   const _v = _validateObserver(latDeg, lonDeg, 'setObserver');
   latDeg = _v.latDeg; lonDeg = _v.lonDeg;
   lat      = latDeg * deg2rad;
   lon      = lonDeg * deg2rad;
   R_TIERRA = geocentricRadius();
-  if(typeof document !== 'undefined'){
-    let status = document.getElementById("locStatus");
-    if(status) status.textContent = label || `${latDeg.toFixed(3)}°, ${lonDeg.toFixed(3)}°`;
-  }
-}
-
-// Entrada manual: acepta "lat, lon" en grados decimales
-function applyManualLocation(raw){
-  let parts = raw.split(",").map(s => parseFloat(s.trim()));
-  if(parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])){
-    let latD = Math.max(-90, Math.min(90,  parts[0]));
-    let lonD = Math.max(-180,Math.min(180, parts[1]));
-    setObserver(latD, lonD);
-    if(typeof document !== 'undefined'){
-      const inp = document.getElementById("locInput");
-      if(inp) inp.blur();
-    }
-  } else {
-    if(typeof document !== 'undefined'){
-      let status = document.getElementById("locStatus");
-      if(status) status.textContent = "formato: lat, lon";
-    }
-  }
-}
-
-// Geolocalización del navegador — se llama una vez al inicio
-function initLocation(){
-  if(typeof navigator === 'undefined' || !navigator.geolocation){
-    // Sin soporte: permanece en Santiago
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      let latD = pos.coords.latitude;
-      let lonD = pos.coords.longitude;
-      setObserver(latD, lonD);
-      // Mostrar coordenadas en el input como referencia
-      let inp = document.getElementById("locInput");
-      if(inp) inp.placeholder = `${latD.toFixed(3)}, ${lonD.toFixed(3)}`;
-    },
-    err => {
-      // Denegado o no disponible: permanece en Santiago silenciosamente
-      let status = document.getElementById("locStatus");
-      if(status) status.textContent = "Santiago de Chile";
-    },
-    {timeout: 8000, maximumAge: 300000}
-  );
 }
 
 // ======= API — getSnapshot() =======
