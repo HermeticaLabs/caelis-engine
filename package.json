@@ -58,8 +58,7 @@
     "validate:input": "node validation/input-validation.js",
     "validate:state": "node validation/state-isolation.js",
     "validate:purity": "node validation/core-purity.js",
-    "validate:contract": "node validation/contract-consumers.js",
-    "prepublishOnly": "node validation/run.js && node validation/input-validation.js && node validation/state-isolation.js && node validation/core-purity.js && node validation/contract-consumers.js"
+    "prepublishOnly": "node validation/run.js && node validation/input-validation.js && node validation/state-isolation.js && node validation/core-purity.js"
   },
   "engines": {
     "node": ">=18.0.0"

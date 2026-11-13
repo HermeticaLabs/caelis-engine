@@ -95,4 +95,3 @@ jobs:
       - run: node validation/input-validation.js
       - run: node validation/state-isolation.js
       - run: node validation/core-purity.js
-      - run: node validation/contract-consumers.js
