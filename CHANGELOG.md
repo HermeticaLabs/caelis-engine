@@ -109,6 +109,19 @@ or `localStorage`: the astronomical core carries no host-environment code.
 - Not applied to `index.html`, `caelis-minimal.html` and
   `dist/caelis-minimal.html`, which carry their own copy of the engine.
 
+### Added (validation, consumer contract)
+`validation/contract-consumers.js` (94 assertions, `npm run validate:contract`)
+fixes the snapshot paths and types that dependent projects read, so a schema
+change that breaks one of them fails here before it is published. It covers
+`schema_version`, `meta.utc`, `meta.jd_tt`, `meta.delta_t_sec`,
+`meta.sidereal.lst_deg`, nine fields for each of the nine bodies, the Moon
+distance and illumination, `deltaT()`, the positional and object observer
+forms, and determinism. It runs in the CI `suites` job and in `prepublishOnly`.
+
+Rule it enforces: schema minor versions only add fields; consumers must ignore
+fields they do not know. Current scope: the fields read by Caeliscope. It
+does not yet cover A.T.A.C.I.R. No engine change in this step.
+
 ### Notes
 Engine changes limited to input validation and removal of browser-only code (see above). No version change; not published to npm.
 `README.md` is included in the npm package, so the corrected table will appear
